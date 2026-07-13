@@ -400,6 +400,20 @@ html, body {
   .btn.success { color: #fff; }
 }
 
+/* Toggle explícito de tema (usado quando embutido em visualizadores que
+   marcam data-theme na raiz). Tem prioridade sobre a preferência do sistema. */
+:root[data-theme="light"] {
+  --bg: #f2f5fb; --bg-elev: #ffffff; --panel: #ffffff; --panel-2: #f4f7fc;
+  --border: #e2e8f2; --track: #e6ebf4; --text: #1a2233; --muted: #64748b;
+  --shadow: 0 12px 30px rgba(30, 45, 90, .12);
+}
+:root[data-theme="light"] .btn.success { color: #fff; }
+:root[data-theme="dark"] {
+  --bg: #0f1420; --bg-elev: #171e2e; --panel: #1b2436; --panel-2: #212c42;
+  --border: #2a3654; --track: #2a3654; --text: #e8edf7; --muted: #93a1bd;
+  --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+}
+
 /* ---------------- Responsive ---------------- */
 @media (max-width: 900px) {
   .dashboard-grid { grid-template-columns: 1fr; }
