@@ -1,0 +1,582 @@
+/* app.js — estado da aplicação, navegação e renderização das abas */
+(function (global) {
+  'use strict';
+
+  const U = global.Utils;
+  const F = global.Finance;
+  const el = U.el;
+
+  const state = {
+    tab: 'dashboard',
+    year: new Date().getFullYear(),
+    month0: new Date().getMonth()
+  };
+
+  const view = document.getElementById('view');
+
+  /* ================================================================== *
+   *  Navegação                                                          *
+   * ================================================================== */
+  function setTab(tab) {
+    state.tab = tab;
+    document.querySelectorAll('.nav-item').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.tab === tab);
+    });
+    render();
+  }
+
+  function shiftMonth(delta) {
+    const m = U.addMonths(state.year, state.month0, delta);
+    state.year = m.year; state.month0 = m.month0;
+    updateMonthLabel();
+    render();
+  }
+  function goToday() {
+    const d = new Date();
+    state.year = d.getFullYear(); state.month0 = d.getMonth();
+    updateMonthLabel();
+    render();
+  }
+  function updateMonthLabel() {
+    document.getElementById('currentMonthLabel').textContent =
+      U.monthLabel(state.year, state.month0);
+  }
+
+  function refresh() { render(); }
+
+  /* ================================================================== *
+   *  Componentes reutilizáveis                                          *
+   * ================================================================== */
+  function sectionHeader(title, actionNode) {
+    return el('div', { class: 'section-header' }, [
+      el('h1', { class: 'section-title', text: title }),
+      actionNode || null
+    ]);
+  }
+
+  function statCard(label, value, cls, sub) {
+    return el('div', { class: 'stat-card ' + (cls || '') }, [
+      el('span', { class: 'stat-label', text: label }),
+      el('strong', { class: 'stat-value', text: value }),
+      sub ? el('span', { class: 'stat-sub', text: sub }) : null
+    ]);
+  }
+
+  function emptyState(msg, actionNode) {
+    return el('div', { class: 'empty' }, [
+      el('div', { class: 'empty-icon', text: '∅' }),
+      el('p', { text: msg }),
+      actionNode || null
+    ]);
+  }
+
+  function catBadge(categoryId) {
+    const c = F.getCategory(categoryId);
+    return el('span', { class: 'cat-badge' }, [
+      el('span', { class: 'cat-dot', style: 'background:' + c.color }),
+      el('span', { text: c.name })
+    ]);
+  }
+
+  /* ================================================================== *
+   *  Aba: Visão geral (dashboard)                                       *
+   * ================================================================== */
+  function renderDashboard() {
+    const s = F.monthSummary(state.year, state.month0);
+    view.innerHTML = '';
+    view.appendChild(sectionHeader('Visão geral'));
+
+    // Cards de resumo
+    const stats = el('div', { class: 'stat-grid' }, [
+      statCard('Receitas previstas', U.formatBRL(s.totalIncome), 'income'),
+      statCard('Despesas do mês', U.formatBRL(s.totalExpense), 'expense',
+        'Contas ' + U.formatBRL(s.totalDirectExpense) + ' + cartões ' + U.formatBRL(s.totalInvoices)),
+      statCard('Saldo previsto', U.formatBRL(s.balance), s.balance >= 0 ? 'positive' : 'negative')
+    ]);
+    view.appendChild(stats);
+
+    // Gráficos
+    const grid = el('div', { class: 'dashboard-grid' });
+
+    // Donut por categoria
+    const byCat = F.expenseByCategory(state.year, state.month0);
+    const donutCard = el('div', { class: 'panel' }, [
+      el('h3', { class: 'panel-title', text: 'Despesas por categoria' })
+    ]);
+    const donutWrap = el('div', { class: 'donut-wrap' }, [
+      global.Charts.donut(byCat, { size: 180, stroke: 24 })
+    ]);
+    const legend = el('div', { class: 'legend' });
+    byCat.slice(0, 8).forEach(function (c) {
+      legend.appendChild(el('div', { class: 'legend-item' }, [
+        el('span', { class: 'legend-dot', style: 'background:' + c.color }),
+        el('span', { class: 'legend-name', text: c.name }),
+        el('span', { class: 'legend-val', text: U.formatBRL(c.total) })
+      ]));
+    });
+    if (!byCat.length) legend.appendChild(el('p', { class: 'muted', text: 'Nenhuma despesa neste mês.' }));
+    donutCard.appendChild(el('div', { class: 'donut-layout' }, [donutWrap, legend]));
+    grid.appendChild(donutCard);
+
+    // Projeção de 6 meses
+    const proj = F.projection(state.year, state.month0, 6);
+    const projCard = el('div', { class: 'panel' }, [
+      el('h3', { class: 'panel-title', text: 'Projeção (6 meses)' }),
+      el('div', { class: 'bars-wrap' }, [global.Charts.barsIncomeExpense(proj)]),
+      el('div', { class: 'legend-inline' }, [
+        el('span', { class: 'legend-item' }, [
+          el('span', { class: 'legend-dot', style: 'background:var(--income)' }),
+          el('span', { text: 'Receitas' })
+        ]),
+        el('span', { class: 'legend-item' }, [
+          el('span', { class: 'legend-dot', style: 'background:var(--expense)' }),
+          el('span', { text: 'Despesas' })
+        ])
+      ])
+    ]);
+    grid.appendChild(projCard);
+    view.appendChild(grid);
+
+    // Próximos lançamentos do mês
+    const upcoming = s.expenses.concat(
+      s.incomes.map(function (i) { return Object.assign({}, i); })
+    ).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+
+    const listPanel = el('div', { class: 'panel' }, [
+      el('h3', { class: 'panel-title', text: 'Lançamentos do mês' })
+    ]);
+    if (!upcoming.length) {
+      listPanel.appendChild(el('p', { class: 'muted', text: 'Nada lançado ainda neste mês.' }));
+    } else {
+      const list = el('div', { class: 'txn-list' });
+      upcoming.slice(0, 12).forEach(function (o) {
+        list.appendChild(el('div', { class: 'txn-row compact' }, [
+          el('div', { class: 'txn-main' }, [
+            el('span', { class: 'txn-desc', text: o.description }),
+            el('span', { class: 'txn-meta', text: U.formatDateBR(o.date) })
+          ]),
+          el('span', {
+            class: 'txn-amount ' + (o.type === 'income' ? 'pos' : 'neg'),
+            text: (o.type === 'income' ? '+ ' : '- ') + U.formatBRL(o.amount)
+          })
+        ]));
+      });
+      listPanel.appendChild(list);
+    }
+    view.appendChild(listPanel);
+  }
+
+  /* ================================================================== *
+   *  Abas: Despesas e Receitas                                          *
+   * ================================================================== */
+  function renderTransactions(type) {
+    const isIncome = type === 'income';
+    const occ = F.occurrencesInMonth(type, state.year, state.month0);
+    const total = occ.reduce(function (s, o) { return s + o.amount; }, 0);
+
+    view.innerHTML = '';
+    const addBtn = el('button', {
+      class: 'btn ' + (isIncome ? 'success' : 'danger'),
+      text: isIncome ? '+ Nova receita' : '+ Nova despesa',
+      onclick: function () {
+        global.UI.openTransactionModal(type, null, refresh);
+      }
+    });
+    view.appendChild(sectionHeader(isIncome ? 'Receitas' : 'Despesas', addBtn));
+
+    view.appendChild(el('div', { class: 'stat-grid slim' }, [
+      statCard(isIncome ? 'Total previsto no mês' : 'Total no mês',
+        U.formatBRL(total), isIncome ? 'income' : 'expense'),
+      statCard('Lançamentos', String(occ.length), '')
+    ]));
+
+    if (!occ.length) {
+      view.appendChild(emptyState(
+        isIncome ? 'Nenhuma receita neste mês.' : 'Nenhuma despesa neste mês.', addBtn.cloneNode(true)
+      ));
+      // recliga o clone
+      view.querySelector('.empty .btn').addEventListener('click', function () {
+        global.UI.openTransactionModal(type, null, refresh);
+      });
+      return;
+    }
+
+    const list = el('div', { class: 'txn-list panel' });
+    occ.forEach(function (o) {
+      const tx = global.Store.getData().transactions.find(function (t) { return t.id === o.txId; });
+      const recTag = o.recurrence !== 'none'
+        ? el('span', { class: 'tag', text: recurrenceLabel(o.recurrence) })
+        : null;
+
+      const paidBtn = el('button', {
+        class: 'chip ' + (o.paid ? 'chip-on' : ''),
+        text: o.paid ? '✓ Pago' : 'Marcar pago',
+        onclick: function () { togglePaid(o.paidKey); }
+      });
+
+      const row = el('div', { class: 'txn-row' }, [
+        el('div', { class: 'txn-main' }, [
+          el('div', { class: 'txn-title-line' }, [
+            el('span', { class: 'txn-desc', text: o.description }),
+            recTag
+          ]),
+          el('div', { class: 'txn-meta-line' }, [
+            catBadge(o.categoryId),
+            el('span', { class: 'txn-meta', text: U.formatDateBR(o.date) })
+          ])
+        ]),
+        el('div', { class: 'txn-right' }, [
+          el('span', {
+            class: 'txn-amount ' + (isIncome ? 'pos' : 'neg'),
+            text: (isIncome ? '+ ' : '- ') + U.formatBRL(o.amount)
+          }),
+          paidBtn,
+          rowActions(
+            function () { global.UI.openTransactionModal(type, tx, refresh); },
+            function () { deleteTransaction(tx, o.recurrence !== 'none'); }
+          )
+        ])
+      ]);
+      list.appendChild(row);
+    });
+    view.appendChild(list);
+  }
+
+  function recurrenceLabel(r) {
+    return { monthly: 'Mensal', weekly: 'Semanal', yearly: 'Anual' }[r] || '';
+  }
+
+  function togglePaid(key) {
+    const d = global.Store.getData();
+    if (d.paidOverrides[key]) delete d.paidOverrides[key];
+    else d.paidOverrides[key] = true;
+    global.Store.save();
+    render();
+  }
+
+  function deleteTransaction(tx, isRecurring) {
+    const msg = isRecurring
+      ? 'Excluir "' + tx.description + '"? Isso remove a recorrência de todos os meses.'
+      : 'Excluir "' + tx.description + '"?';
+    global.UI.confirmModal('Excluir lançamento', msg, function () {
+      const d = global.Store.getData();
+      d.transactions = d.transactions.filter(function (t) { return t.id !== tx.id; });
+      global.Store.save();
+      U.toast('Lançamento excluído.', 'success');
+      render();
+    }, true);
+  }
+
+  function rowActions(onEdit, onDelete) {
+    return el('div', { class: 'row-actions' }, [
+      el('button', { class: 'icon-btn small', text: '✎', title: 'Editar', onclick: onEdit }),
+      el('button', { class: 'icon-btn small danger', text: '🗑', title: 'Excluir', onclick: onDelete })
+    ]);
+  }
+
+  /* ================================================================== *
+   *  Aba: Cartões                                                       *
+   * ================================================================== */
+  function renderCards() {
+    const d = global.Store.getData();
+    view.innerHTML = '';
+
+    const addCardBtn = el('button', {
+      class: 'btn primary', text: '+ Novo cartão',
+      onclick: function () { global.UI.openCardModal(null, refresh); }
+    });
+    view.appendChild(sectionHeader('Cartões de crédito', addCardBtn));
+
+    if (!d.cards.length) {
+      const b = el('button', {
+        class: 'btn primary', text: '+ Cadastrar cartão',
+        onclick: function () { global.UI.openCardModal(null, refresh); }
+      });
+      view.appendChild(emptyState('Você ainda não cadastrou nenhum cartão.', b));
+      return;
+    }
+
+    d.cards.forEach(function (card) {
+      view.appendChild(renderCardPanel(card));
+    });
+  }
+
+  function renderCardPanel(card) {
+    const items = F.invoiceItems(card.id, state.year, state.month0);
+    const total = items.reduce(function (s, i) { return s + i.amount; }, 0);
+    const paid = F.isInvoicePaid(card.id, state.year, state.month0);
+    const openBal = F.cardOpenBalance(card.id);
+    const available = card.limit ? (card.limit - openBal) : null;
+
+    const header = el('div', { class: 'card-panel-header', style: '--card-color:' + card.color }, [
+      el('div', { class: 'card-badge', style: 'background:' + card.color }, [
+        el('span', { text: card.name.slice(0, 2).toUpperCase() })
+      ]),
+      el('div', { class: 'card-headinfo' }, [
+        el('strong', { text: card.name }),
+        el('span', { class: 'muted small', text:
+          'Fecha dia ' + card.closingDay + ' • Vence dia ' + card.dueDay })
+      ]),
+      el('div', { class: 'card-head-actions' }, [
+        el('button', {
+          class: 'btn small primary', text: '+ Compra',
+          onclick: function () { global.UI.openCardExpenseModal(card.id, null, refresh); }
+        }),
+        el('button', { class: 'icon-btn small', text: '✎', title: 'Editar cartão',
+          onclick: function () { global.UI.openCardModal(card, refresh); } }),
+        el('button', { class: 'icon-btn small danger', text: '🗑', title: 'Excluir cartão',
+          onclick: function () { deleteCard(card); } })
+      ])
+    ]);
+
+    const metrics = el('div', { class: 'card-metrics' }, [
+      el('div', { class: 'card-metric' }, [
+        el('span', { class: 'muted small', text: 'Fatura de ' + U.MESES[state.month0] }),
+        el('strong', { class: 'card-metric-val', text: U.formatBRL(total) })
+      ]),
+      card.limit ? el('div', { class: 'card-metric' }, [
+        el('span', { class: 'muted small', text: 'Limite disponível' }),
+        el('strong', { class: 'card-metric-val ' + (available < 0 ? 'neg' : ''),
+          text: U.formatBRL(available) }),
+        el('div', { class: 'limit-bar' }, [
+          el('div', { class: 'limit-fill', style:
+            'width:' + Math.min(100, Math.max(0, (openBal / card.limit) * 100)) + '%;' +
+            'background:' + card.color })
+        ])
+      ]) : null,
+      el('div', { class: 'card-metric' }, [
+        el('span', { class: 'muted small', text: 'Situação da fatura' }),
+        el('button', {
+          class: 'chip ' + (paid ? 'chip-on' : ''),
+          text: paid ? '✓ Paga' : 'Marcar como paga',
+          onclick: function () { toggleInvoicePaid(card.id); }
+        })
+      ])
+    ]);
+
+    const panel = el('div', { class: 'panel card-panel' }, [header, metrics]);
+
+    if (!items.length) {
+      panel.appendChild(el('p', { class: 'muted', text: 'Sem lançamentos nesta fatura.' }));
+    } else {
+      const list = el('div', { class: 'txn-list' });
+      items.forEach(function (i) {
+        const ce = global.Store.getData().cardExpenses.find(function (x) { return x.id === i.cardExpenseId; });
+        const instTag = i.of > 1
+          ? el('span', { class: 'tag', text: i.n + '/' + i.of }) : null;
+        list.appendChild(el('div', { class: 'txn-row' }, [
+          el('div', { class: 'txn-main' }, [
+            el('div', { class: 'txn-title-line' }, [
+              el('span', { class: 'txn-desc', text: i.description }), instTag
+            ]),
+            el('div', { class: 'txn-meta-line' }, [
+              catBadge(i.categoryId),
+              el('span', { class: 'txn-meta', text: 'Compra ' + U.formatDateBR(i.purchaseDate) })
+            ])
+          ]),
+          el('div', { class: 'txn-right' }, [
+            el('span', { class: 'txn-amount neg', text: '- ' + U.formatBRL(i.amount) }),
+            rowActions(
+              function () { global.UI.openCardExpenseModal(card.id, ce, refresh); },
+              function () { deleteCardExpense(ce); }
+            )
+          ])
+        ]));
+      });
+      panel.appendChild(list);
+    }
+    return panel;
+  }
+
+  function toggleInvoicePaid(cardId) {
+    const d = global.Store.getData();
+    const key = F.invoicePaidKey(cardId, state.year, state.month0);
+    if (d.invoicePaid[key]) delete d.invoicePaid[key];
+    else d.invoicePaid[key] = true;
+    global.Store.save();
+    render();
+  }
+
+  function deleteCard(card) {
+    const d = global.Store.getData();
+    const count = d.cardExpenses.filter(function (x) { return x.cardId === card.id; }).length;
+    const msg = count
+      ? 'Excluir "' + card.name + '" e suas ' + count + ' compra(s) cadastradas?'
+      : 'Excluir o cartão "' + card.name + '"?';
+    global.UI.confirmModal('Excluir cartão', msg, function () {
+      d.cards = d.cards.filter(function (c) { return c.id !== card.id; });
+      d.cardExpenses = d.cardExpenses.filter(function (x) { return x.cardId !== card.id; });
+      global.Store.save();
+      U.toast('Cartão excluído.', 'success');
+      render();
+    }, true);
+  }
+
+  function deleteCardExpense(ce) {
+    global.UI.confirmModal('Excluir compra',
+      'Excluir "' + ce.description + '"? Todas as parcelas serão removidas.', function () {
+        const d = global.Store.getData();
+        d.cardExpenses = d.cardExpenses.filter(function (x) { return x.id !== ce.id; });
+        global.Store.save();
+        U.toast('Compra excluída.', 'success');
+        render();
+      }, true);
+  }
+
+  /* ================================================================== *
+   *  Aba: Configurações                                                 *
+   * ================================================================== */
+  function renderConfig() {
+    const d = global.Store.getData();
+    view.innerHTML = '';
+    view.appendChild(sectionHeader('Configurações'));
+
+    // Categorias
+    ['expense', 'income'].forEach(function (type) {
+      const isIncome = type === 'income';
+      const cats = d.categories.filter(function (c) { return c.type === type; });
+      const addBtn = el('button', {
+        class: 'btn small primary', text: '+ Categoria',
+        onclick: function () { global.UI.openCategoryModal(type, null, refresh); }
+      });
+      const panel = el('div', { class: 'panel' }, [
+        el('div', { class: 'panel-head-row' }, [
+          el('h3', { class: 'panel-title', text: isIncome ? 'Categorias de receita' : 'Categorias de despesa' }),
+          addBtn
+        ])
+      ]);
+      const chips = el('div', { class: 'cat-chip-grid' });
+      cats.forEach(function (c) {
+        chips.appendChild(el('div', { class: 'cat-chip', style: 'border-color:' + c.color }, [
+          el('span', { class: 'cat-dot', style: 'background:' + c.color }),
+          el('span', { class: 'cat-chip-name', text: c.name }),
+          el('button', { class: 'icon-btn tiny', text: '✎', title: 'Editar',
+            onclick: function () { global.UI.openCategoryModal(type, c, refresh); } }),
+          el('button', { class: 'icon-btn tiny danger', text: '✕', title: 'Excluir',
+            onclick: function () { deleteCategory(c); } })
+        ]));
+      });
+      panel.appendChild(chips);
+      view.appendChild(panel);
+    });
+
+    // Backup
+    const backupPanel = el('div', { class: 'panel' }, [
+      el('h3', { class: 'panel-title', text: 'Backup e dados' }),
+      el('p', { class: 'muted', text:
+        'Seus dados ficam salvos apenas neste navegador. Exporte um backup regularmente ' +
+        'para não perder informações ao limpar o navegador ou trocar de dispositivo.' }),
+      el('div', { class: 'button-row' }, [
+        el('button', { class: 'btn primary', text: '↓ Exportar backup (JSON)', onclick: exportBackup }),
+        el('button', { class: 'btn', text: '↑ Importar backup', onclick: importBackup }),
+        el('button', { class: 'btn danger', text: '⟳ Apagar tudo', onclick: resetEverything })
+      ]),
+      el('input', { type: 'file', id: 'importFile', accept: '.json,application/json',
+        style: 'display:none', onchange: onImportFile })
+    ]);
+    view.appendChild(backupPanel);
+
+    // Estatísticas rápidas
+    view.appendChild(el('div', { class: 'panel muted small' }, [
+      el('p', { text:
+        d.transactions.length + ' lançamento(s) • ' +
+        d.cards.length + ' cartão(ões) • ' +
+        d.cardExpenses.length + ' compra(s) no cartão • ' +
+        d.categories.length + ' categoria(s).' })
+    ]));
+  }
+
+  function deleteCategory(cat) {
+    global.UI.confirmModal('Excluir categoria',
+      'Excluir a categoria "' + cat.name + '"? Lançamentos existentes ficam sem categoria.',
+      function () {
+        const d = global.Store.getData();
+        d.categories = d.categories.filter(function (c) { return c.id !== cat.id; });
+        global.Store.save();
+        render();
+      }, true);
+  }
+
+  function exportBackup() {
+    const blob = new Blob([global.Store.exportJSON()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = el('a', {
+      href: url,
+      download: 'gestor-financeiro-' + U.todayISO() + '.json'
+    });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    U.toast('Backup exportado.', 'success');
+  }
+
+  function importBackup() { document.getElementById('importFile').click(); }
+
+  function onImportFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function () {
+      try {
+        global.Store.importJSON(reader.result);
+        U.toast('Backup importado com sucesso.', 'success');
+        render();
+      } catch (err) {
+        U.toast('Arquivo inválido: ' + err.message, 'error');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  function resetEverything() {
+    global.UI.confirmModal('Apagar todos os dados',
+      'Isso remove TODOS os lançamentos, cartões e categorias personalizadas. ' +
+      'Recomendamos exportar um backup antes. Deseja continuar?',
+      function () {
+        global.Store.resetAll();
+        U.toast('Dados reiniciados.', 'success');
+        render();
+      }, true);
+  }
+
+  /* ================================================================== *
+   *  Roteador de render                                                 *
+   * ================================================================== */
+  function render() {
+    switch (state.tab) {
+      case 'despesas': renderTransactions('expense'); break;
+      case 'receitas': renderTransactions('income'); break;
+      case 'cartoes': renderCards(); break;
+      case 'config': renderConfig(); break;
+      default: renderDashboard();
+    }
+  }
+
+  /* ================================================================== *
+   *  Inicialização                                                      *
+   * ================================================================== */
+  function init() {
+    global.Store.load();
+
+    document.querySelectorAll('.nav-item').forEach(function (b) {
+      b.addEventListener('click', function () { setTab(b.dataset.tab); });
+    });
+    document.getElementById('prevMonth').addEventListener('click', function () { shiftMonth(-1); });
+    document.getElementById('nextMonth').addEventListener('click', function () { shiftMonth(1); });
+    document.getElementById('todayBtn').addEventListener('click', goToday);
+    document.getElementById('quickAddExpense').addEventListener('click', function () {
+      global.UI.openTransactionModal('expense', null, refresh);
+    });
+    document.getElementById('quickAddIncome').addEventListener('click', function () {
+      global.UI.openTransactionModal('income', null, refresh);
+    });
+
+    updateMonthLabel();
+    render();
+  }
+
+  global.App = { refresh: refresh, setTab: setTab };
+  document.addEventListener('DOMContentLoaded', init);
+})(window);

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meu Gestor Financeiro</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">₣</div>
+        <div class="brand-text">
+          <strong>Meu Gestor</strong>
+          <span>Financeiro pessoal</span>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-tab="dashboard">
+          <span class="nav-icon">◱</span> Visão geral
+        </button>
+        <button class="nav-item" data-tab="despesas">
+          <span class="nav-icon">▼</span> Despesas
+        </button>
+        <button class="nav-item" data-tab="receitas">
+          <span class="nav-icon">▲</span> Receitas
+        </button>
+        <button class="nav-item" data-tab="cartoes">
+          <span class="nav-icon">▭</span> Cartões
+        </button>
+        <button class="nav-item" data-tab="config">
+          <span class="nav-icon">⚙</span> Configurações
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <span>Dados salvos neste navegador</span>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <header class="topbar">
+        <div class="month-picker">
+          <button id="prevMonth" class="icon-btn" title="Mês anterior">‹</button>
+          <span id="currentMonthLabel">—</span>
+          <button id="nextMonth" class="icon-btn" title="Próximo mês">›</button>
+          <button id="todayBtn" class="ghost-btn" title="Voltar ao mês atual">Hoje</button>
+        </div>
+        <div class="topbar-actions">
+          <button id="quickAddExpense" class="btn danger">+ Despesa</button>
+          <button id="quickAddIncome" class="btn success">+ Receita</button>
+        </div>
+      </header>
+
+      <section id="view" class="view"><!-- rendered by JS --></section>
+    </main>
+  </div>
+
+  <!-- Modal container -->
+  <div id="modalRoot"></div>
+  <div id="toastRoot"></div>
+
+  <script src="assets/js/storage.js"></script>
+  <script src="assets/js/utils.js"></script>
+  <script src="assets/js/finance.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
