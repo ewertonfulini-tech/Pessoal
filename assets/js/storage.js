@@ -82,6 +82,8 @@
     } catch (e) {
       console.error('Falha ao salvar dados.', e);
     }
+    // Se a sincronização na nuvem estiver ativa, propaga a mudança
+    if (global.Sync && global.Sync.notifyLocalChange) global.Sync.notifyLocalChange();
   }
 
   // Salva de forma agrupada para não travar em edições rápidas

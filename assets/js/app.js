@@ -732,6 +732,9 @@
       view.appendChild(panel);
     });
 
+    // Sincronização na nuvem
+    if (global.Sync) view.appendChild(renderSyncPanel());
+
     // Backup
     const backupPanel = el('div', { class: 'panel' }, [
       el('h3', { class: 'panel-title', text: 'Backup e dados' }),
@@ -756,6 +759,132 @@
         d.cardExpenses.length + ' compra(s) no cartão • ' +
         d.categories.length + ' categoria(s).' })
     ]));
+  }
+
+  /* ---------- Painel de sincronização na nuvem ---------- */
+  function renderSyncPanel() {
+    const st = global.Sync.getState();
+    const panel = el('div', { class: 'panel sync-panel' });
+
+    const statusDotClass = st.connected ? 'ok'
+      : (st.status === 'error' || st.status === 'offline') ? 'err'
+      : st.status === 'connecting' || st.status === 'syncing' ? 'warn' : 'idle';
+
+    panel.appendChild(el('div', { class: 'panel-head-row' }, [
+      el('h3', { class: 'panel-title', text: 'Sincronização na nuvem' }),
+      el('span', { class: 'sync-status' }, [
+        el('span', { class: 'sync-dot ' + statusDotClass }),
+        el('span', { class: 'muted small', text:
+          st.connected ? 'Conectado' :
+          st.status === 'connecting' ? 'Conectando...' :
+          st.status === 'syncing' ? 'Sincronizando...' :
+          st.status === 'error' ? 'Erro' :
+          st.status === 'offline' ? 'Offline' : 'Desativada' })
+      ])
+    ]));
+
+    // Estado 1: não configurado -> colar firebaseConfig
+    if (!st.configured) {
+      const ta = el('textarea', {
+        class: 'sync-textarea', rows: 7,
+        placeholder: 'Cole aqui o objeto firebaseConfig do console do Firebase, ex:\n\n' +
+          'const firebaseConfig = {\n  apiKey: "...",\n  authDomain: "...",\n' +
+          '  projectId: "...",\n  appId: "..."\n};'
+      });
+      panel.appendChild(el('p', { class: 'muted small', html:
+        'Para sincronizar entre celular e computador, crie um projeto gratuito no ' +
+        '<strong>Firebase</strong> e cole aqui as credenciais. Passo a passo no arquivo ' +
+        '<code>SINCRONIZACAO.md</code> do projeto.' }));
+      panel.appendChild(ta);
+      panel.appendChild(el('div', { class: 'button-row' }, [
+        el('button', {
+          class: 'btn primary', text: 'Conectar',
+          onclick: function () {
+            try {
+              global.Sync.saveConfig(ta.value);
+              U.toast('Configuração salva. Agora faça login.', 'success');
+              render();
+            } catch (e) { U.toast(e.message, 'error'); }
+          }
+        })
+      ]));
+      return panel;
+    }
+
+    // Estado 2: configurado mas sem login -> email/senha
+    if (!st.email) {
+      const emailIn = el('input', { type: 'email', class: 'sync-input', placeholder: 'seu@email.com' });
+      const passIn = el('input', { type: 'password', class: 'sync-input', placeholder: 'senha (mín. 6 caracteres)' });
+      panel.appendChild(el('p', { class: 'muted small', text:
+        'Entre com seu e-mail e senha. Use os mesmos dados nos dois aparelhos para os ' +
+        'lançamentos sincronizarem automaticamente.' }));
+      panel.appendChild(el('div', { class: 'field-row' }, [
+        el('div', { class: 'field' }, [el('label', { class: 'field-label', text: 'E-mail' }), emailIn]),
+        el('div', { class: 'field' }, [el('label', { class: 'field-label', text: 'Senha' }), passIn])
+      ]));
+      if (st.message) panel.appendChild(el('p', { class: 'muted small', text: st.message }));
+      panel.appendChild(el('div', { class: 'button-row' }, [
+        el('button', {
+          class: 'btn primary', text: 'Entrar',
+          onclick: function () {
+            global.Sync.login(emailIn.value, passIn.value)
+              .catch(function (e) { U.toast('Erro ao entrar: ' + friendlyAuth(e), 'error'); });
+          }
+        }),
+        el('button', {
+          class: 'btn', text: 'Criar conta',
+          onclick: function () {
+            global.Sync.register(emailIn.value, passIn.value)
+              .then(function () { U.toast('Conta criada!', 'success'); })
+              .catch(function (e) { U.toast('Erro ao criar: ' + friendlyAuth(e), 'error'); });
+          }
+        }),
+        el('button', {
+          class: 'btn ghost', text: 'Remover configuração',
+          onclick: function () {
+            global.UI.confirmModal('Remover sincronização',
+              'Isso apaga as credenciais do Firebase deste aparelho (os dados locais ' +
+              'permanecem). Continuar?', function () {
+                global.Sync.removeConfig(); render();
+              }, true);
+          }
+        })
+      ]));
+      return panel;
+    }
+
+    // Estado 3: logado
+    panel.appendChild(el('p', { class: '', html:
+      'Conectado como <strong>' + U.escapeHtml(st.email) + '</strong>. Seus lançamentos ' +
+      'sincronizam automaticamente entre os aparelhos com esta mesma conta.' }));
+    if (st.lastSync) {
+      panel.appendChild(el('p', { class: 'muted small', text:
+        'Última sincronização: ' + new Date(st.lastSync).toLocaleString('pt-BR') }));
+    }
+    panel.appendChild(el('div', { class: 'button-row' }, [
+      el('button', {
+        class: 'btn', text: 'Sair da conta',
+        onclick: function () {
+          global.Sync.logout().then(function () { render(); });
+        }
+      })
+    ]));
+    return panel;
+  }
+
+  function friendlyAuth(e) {
+    const code = (e && e.code) || '';
+    const map = {
+      'auth/invalid-email': 'e-mail inválido.',
+      'auth/invalid-credential': 'e-mail ou senha incorretos.',
+      'auth/wrong-password': 'senha incorreta.',
+      'auth/user-not-found': 'conta não encontrada — use "Criar conta".',
+      'auth/email-already-in-use': 'este e-mail já tem conta — use "Entrar".',
+      'auth/weak-password': 'senha muito fraca (mínimo 6 caracteres).',
+      'auth/network-request-failed': 'sem conexão com a internet.',
+      'auth/unauthorized-domain': 'domínio não autorizado no Firebase (adicione-o em Authentication → Settings → Authorized domains).'
+    };
+    return map[code] || (e && e.message) || 'erro desconhecido.';
   }
 
   function deleteCategory(cat) {
@@ -849,6 +978,12 @@
 
     updateMonthLabel();
     render();
+
+    // Sincronização na nuvem (opcional): reflete mudanças de status na tela de config
+    if (global.Sync) {
+      global.Sync.onChange(function () { if (state.tab === 'config') render(); });
+      global.Sync.init();
+    }
   }
 
   global.App = { refresh: refresh, setTab: setTab };

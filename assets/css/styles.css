@@ -390,6 +390,28 @@ html, body {
 .account-balance-val.pos { color: var(--income); }
 .account-balance-val.neg { color: var(--expense); }
 
+/* ---------------- Sincronização ---------------- */
+.sync-status { display: flex; align-items: center; gap: 7px; }
+.sync-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.sync-dot.ok { background: var(--income); box-shadow: 0 0 0 3px rgba(34, 197, 94, .18); }
+.sync-dot.err { background: var(--danger); box-shadow: 0 0 0 3px rgba(239, 68, 68, .18); }
+.sync-dot.warn { background: var(--warn); box-shadow: 0 0 0 3px rgba(245, 158, 11, .18); }
+.sync-dot.idle { background: var(--muted); }
+.sync-textarea {
+  width: 100%; background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  border-radius: var(--radius-sm); padding: 12px; font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12.5px; resize: vertical; margin-bottom: 12px;
+}
+.sync-textarea:focus { outline: none; border-color: var(--primary); }
+.sync-input {
+  width: 100%; background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  padding: 10px 12px; border-radius: var(--radius-sm); font-size: 14px;
+}
+.sync-input:focus { outline: none; border-color: var(--primary); }
+.sync-panel code {
+  background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: 12.5px;
+}
+
 /* ---------------- Light theme ---------------- */
 @media (prefers-color-scheme: light) {
   :root {
