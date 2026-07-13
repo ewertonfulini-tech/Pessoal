@@ -106,6 +106,24 @@
   .tag{font-size:11px; padding:1px 8px; border-radius:20px; border:1px solid var(--border); color:var(--ink-2)}
   .tag.us{border-color:color-mix(in srgb,var(--c5) 50%,var(--border))}
 
+  /* ---- Ajustes para telas pequenas (celular) ---- */
+  @media (max-width:560px){
+    body{padding:14px}
+    h1{font-size:20px}
+    .kpi.hero .k-value{font-size:28px}
+    .section-title{margin:22px 0 10px}
+    th,td{padding:8px 8px; font-size:12.5px}
+    /* imobilizado: esconde Classe e % do líquido */
+    #imobTable th:nth-child(2),#imobTable td:nth-child(2),
+    #imobTable th:nth-child(6),#imobTable td:nth-child(6){display:none}
+    /* movimentação: esconde Saldo */
+    #movTable th:nth-child(2),#movTable td:nth-child(2){display:none}
+    .header-actions .btn{padding:8px 11px}
+  }
+  @media (max-width:380px){
+    .kpis, .kpis.small{grid-template-columns:1fr}
+  }
+
   #tip{position:fixed; pointer-events:none; z-index:80; background:var(--ink); color:var(--page);
     padding:7px 10px; border-radius:8px; font-size:12px; box-shadow:var(--shadow); opacity:0; transition:opacity .08s; max-width:250px}
   #tip .muted{opacity:.7}
@@ -344,6 +362,11 @@ const usd  = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maxi
 const pctPlain = (x,d=1) => x.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})+'%';
 const pctSig   = (x,d=1) => (x>=0?'+':'')+pctPlain(x,d);
 const grp = n => Math.round(n).toLocaleString('pt-BR');
+function brlK(n){ const a=Math.abs(n);
+  if(a>=1e6) return 'R$ '+(n/1e6).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' mi';
+  if(a>=1e3) return 'R$ '+Math.round(n/1e3).toLocaleString('pt-BR')+' mil';
+  return brl.format(n);
+}
 
 function parseNumber(raw){
   if(raw==null) return 0;
@@ -513,7 +536,7 @@ function renderEvolucao(){
     const cls = b.tipo==='meta'?'vbar goal':'vbar';
     const label = b.tipo==='meta'?`${b.ano}<br>meta`: b.tipo==='atual'?`<b>${b.ano}</b><br>atual`:`${b.ano}`;
     return `<div class="vcol">
-      <div class="vval">${brl.format(b.valor)}</div>
+      <div class="vval">${brlK(b.valor)}</div>
       <div class="${cls}" style="height:${h}%; background:${color}"
         data-y="${b.ano}" data-v="${b.valor}" data-t="${b.tipo}"></div>
       <div class="vx">${label}</div></div>`;
@@ -605,27 +628,37 @@ function renderInvTable(){
     (totByInst.get(b.instituicao)-totByInst.get(a.instituicao)) || (b.valor-a.valor));
   let body='', cur=null, multi=false;
   const instCount=n=>state.investimentos.filter(i=>i.instituicao===n).length;
+  const usTag=it=> it.local==='Exterior' ? ' <span class="tag us">US</span>' : '';
   rows.forEach(it=>{
     if(it.instituicao!==cur){
       cur=it.instituicao; multi=instCount(cur)>1;
       if(multi){ const t=totByInst.get(cur);
         body+=`<tr class="group" style="background:color-mix(in srgb,var(--ink) 4%,transparent)">
-          <td class="l" style="font-weight:600">${cur}</td><td class="l"></td><td class="l"></td>
+          <td class="l" style="font-weight:600">${cur}${usTag(it)}</td>
           <td class="num" style="font-weight:600">${brl.format(t)}</td>
           <td class="num" style="font-weight:600">${pctPlain(d.invTotal>0?t/d.invTotal*100:0)}</td></tr>`;
       }
     }
-    body+=`<tr>
-      <td class="l" style="${multi?'padding-left:24px;color:var(--ink-2)':''}">${multi?'':it.instituicao}${multi?'↳ '+it.tipo:''}</td>
-      <td class="l">${multi?'':(it.tipo==='A classificar'?'<span class="tag" style="color:var(--muted)">A classificar</span>':it.tipo)}</td>
-      <td class="l"><span class="tag ${it.local==='Exterior'?'us':''}">${it.local||'Brasil'}</span></td>
-      <td class="num">${brlc.format(+it.valor||0)}</td>
-      <td class="num">${pctPlain(d.invTotal>0?(+it.valor||0)/d.invTotal*100:0)}</td></tr>`;
+    const pc=pctPlain(d.invTotal>0?(+it.valor||0)/d.invTotal*100:0);
+    if(multi){
+      body+=`<tr>
+        <td class="l" style="padding-left:24px;color:var(--ink-2)">↳ ${it.tipo}</td>
+        <td class="num">${brlc.format(+it.valor||0)}</td>
+        <td class="num">${pc}</td></tr>`;
+    } else {
+      const tsub = it.tipo==='A classificar'
+        ? '<span class="tag" style="color:var(--muted)">A classificar</span>'
+        : `<span style="color:var(--muted)">${it.tipo}</span>`;
+      body+=`<tr>
+        <td class="l">${it.instituicao}${usTag(it)}<div style="font-size:11px;margin-top:1px">${tsub}</div></td>
+        <td class="num">${brlc.format(+it.valor||0)}</td>
+        <td class="num">${pc}</td></tr>`;
+    }
   });
   document.getElementById('invTable').innerHTML=`
-    <thead><tr><th class="l">Instituição / tipo</th><th class="l">Tipo</th><th class="l">Local</th><th class="num">Valor</th><th class="num">% carteira</th></tr></thead>
+    <thead><tr><th class="l">Instituição / tipo</th><th class="num">Valor</th><th class="num">% carteira</th></tr></thead>
     <tbody>${body}</tbody>
-    <tfoot><tr><td class="l">TOTAL</td><td></td><td></td><td class="num">${brlc.format(d.invTotal)}</td><td class="num">100%</td></tr></tfoot>`;
+    <tfoot><tr><td class="l">TOTAL</td><td class="num">${brlc.format(d.invTotal)}</td><td class="num">100%</td></tr></tfoot>`;
 }
 
 /* ===================== Render: Movimentação mensal ===================== */
@@ -657,32 +690,42 @@ function renderMovimentacao(){
     <div class="card kpi small"><p class="k-label">Rentab. média</p><div class="k-value">${rentMedia!=null?pctSig(rentMedia):'—'}</div><div class="k-sub">por mês</div></div>
     <div class="card kpi small"><p class="k-label">Último mês (${mesLabel(ult.mes)})</p><div class="k-value ${(+ult.rentabilidade||0)>=0?'up':'down'}">${brl.format(+ult.rentabilidade||0)}</div><div class="k-sub">aporte ${brl.format(+ult.aporte||0)}</div></div>`;
 
-  // Gráfico de barras agrupadas (aporte x rendimento), com linha do zero
-  const W=680,H=250,padL=8,padR=8,padT=16,padB=28, innerW=W-padL-padR, innerH=H-padT-padB;
+  // Gráfico de barras agrupadas (aporte x rendimento), com linha do zero.
+  // No celular usa viewBox mais estreito e alto (barras não achatam) e meses inclinados.
+  const MOB = innerWidth < 640;
+  const W=MOB?360:680, H=MOB?270:250, padL=MOB?6:8, padR=8, padT=16, padB=28;
+  const innerW=W-padL-padR, innerH=H-padT-padB;
   const vals=movs.flatMap(m=>[+m.aporte||0, +m.rentabilidade||0]);
   const maxV=Math.max(0,...vals), minV=Math.min(0,...vals);
   const span=(maxV-minV)||1;
   const y=v=> padT + (1-(v-minV)/span)*innerH;
   const zeroY=y(0);
-  const gw=innerW/movs.length, bw=Math.min(gw*0.3,26), gap=6;
+  const gw=innerW/movs.length, bw=Math.min(gw*0.3,MOB?9:26), gap=MOB?3:6;
   const cAp=cvar('--c1'), cRe=cvar('--c2');
 
   const grid=[0,.25,.5,.75,1].map(f=>{ const val=minV+span*f, gy=y(val);
     return `<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" stroke="${cvar('--grid')}" stroke-width="1"/>
-      <text x="${padL}" y="${gy-3}" font-size="9.5" fill="${cvar('--muted')}">${brl.format(val)}</text>`; }).join('');
+      <text x="${padL}" y="${gy-3}" font-size="${MOB?9:9.5}" fill="${cvar('--muted')}">${brlK(val)}</text>`; }).join('');
 
   const bars=movs.map((m,i)=>{
     const cx=padL+gw*i+gw/2;
     const ap=+m.aporte||0, re=+m.rentabilidade||0;
     function bar(v,color,dx,nm){
       const top=Math.min(y(v),zeroY), h=Math.abs(y(v)-zeroY);
-      return `<rect x="${cx+dx}" y="${top}" width="${bw}" height="${Math.max(h,0)}" rx="3" fill="${color}"
+      return `<rect x="${cx+dx}" y="${top}" width="${bw}" height="${Math.max(h,0)}" rx="${MOB?2:3}" fill="${color}"
         class="movbar" data-nm="${nm}" data-v="${v}" data-m="${encodeURIComponent(mesLabel(m.mes))}" style="cursor:default"/>`;
     }
     return bar(ap,cAp,-bw-gap/2,'Aporte')+bar(re,cRe,gap/2,'Rendimento');
   }).join('');
 
-  const xlabels=movs.map((m,i)=>`<text x="${padL+gw*i+gw/2}" y="${H-9}" text-anchor="middle" font-size="10.5" fill="${cvar('--muted')}">${mesLabel(m.mes)}</text>`).join('');
+  // rótulos horizontais; quando há muitos meses no celular, mostra 1 a cada 2 (sempre o último)
+  const step = (MOB && movs.length>7) ? 2 : 1;
+  const lastIdx = movs.length-1;
+  const xlabels=movs.map((m,i)=>{
+    if(step>1 && (lastIdx-i)%step!==0) return '';
+    const x=padL+gw*i+gw/2;
+    return `<text x="${x}" y="${H-9}" text-anchor="middle" font-size="${MOB?9:10.5}" fill="${cvar('--muted')}">${mesLabel(m.mes)}</text>`;
+  }).join('');
 
   chartEl.innerHTML=`<svg width="100%" viewBox="0 0 ${W} ${H}" style="display:block">
     ${grid}${bars}
