@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard de Investimentos</title>
+<style>
+  :root{
+    /* superfícies e tinta */
+    --page:#f9f9f7; --surface:#fcfcfb;
+    --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+    --good:#006300; --bad:#c0392b;
+    /* paleta categórica (light) */
+    --c1:#2a78d6; --c2:#1baf7a; --c3:#eda100; --c4:#008300;
+    --c5:#4a3aa7; --c6:#e34948; --c7:#e87ba4; --c8:#eb6834;
+    --shadow:0 1px 2px rgba(11,11,11,.04), 0 8px 24px rgba(11,11,11,.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --page:#0d0d0d; --surface:#1a1a19;
+      --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+      --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+      --good:#0ca30c; --bad:#e66767;
+      --c1:#3987e5; --c2:#199e70; --c3:#c98500; --c4:#008300;
+      --c5:#9085e9; --c6:#e66767; --c7:#d55181; --c8:#d95926;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.5);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--page); color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    line-height:1.45; padding:24px; max-width:1180px; margin:0 auto;
+  }
+  a{color:var(--c1)}
+  h1{font-size:22px; margin:0 0 2px}
+  .sub{color:var(--ink-2); font-size:13px; margin:0}
+  header.top{
+    display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end;
+    justify-content:space-between; margin-bottom:20px;
+  }
+  .controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+  label.fld{font-size:12px; color:var(--ink-2); display:flex; flex-direction:column; gap:4px}
+  select, button, .btn{
+    font:inherit; font-size:13px; color:var(--ink);
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:8px; padding:8px 12px; cursor:pointer;
+  }
+  select{padding:7px 10px}
+  .btn:hover, button:hover{border-color:var(--axis)}
+  .btn.primary{background:var(--c1); color:#fff; border-color:transparent}
+  .btn.primary:hover{filter:brightness(.95)}
+
+  .grid{display:grid; gap:16px}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); margin-bottom:16px}
+  .cards{grid-template-columns:1.15fr .85fr}
+  @media (max-width:820px){ .cards{grid-template-columns:1fr} }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:18px 18px 16px; box-shadow:var(--shadow);
+  }
+  .card h2{font-size:14px; margin:0 0 2px; letter-spacing:.01em}
+  .card .hint{font-size:12px; color:var(--muted); margin:0 0 14px}
+
+  .kpi .k-label{font-size:12px; color:var(--ink-2); margin:0 0 6px}
+  .kpi .k-value{font-size:26px; font-weight:650; letter-spacing:-.01em}
+  .kpi .k-delta{font-size:12.5px; margin-top:4px; color:var(--ink-2)}
+  .up{color:var(--good)} .down{color:var(--bad)}
+
+  /* donut */
+  .donut-wrap{display:flex; gap:18px; align-items:center; flex-wrap:wrap}
+  .donut-wrap svg{flex:0 0 auto}
+  .legend{list-style:none; margin:0; padding:0; flex:1 1 200px; min-width:190px}
+  .legend li{display:grid; grid-template-columns:12px 1fr auto; gap:8px; align-items:center;
+    padding:5px 0; font-size:13px; border-bottom:1px solid var(--grid)}
+  .legend li:last-child{border-bottom:0}
+  .legend .sw{width:12px; height:12px; border-radius:3px}
+  .legend .nm{color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .legend .vl{font-variant-numeric:tabular-nums; text-align:right}
+  .legend .pc{color:var(--muted); font-size:11.5px; margin-left:6px}
+
+  /* stacked bars */
+  .chart-area{position:relative}
+  .bars{display:flex; align-items:flex-end; gap:14px; height:230px; padding-top:6px}
+  .bar-col{flex:1 1 0; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end; min-width:0}
+  .bar-stack{width:100%; max-width:56px; display:flex; flex-direction:column-reverse;
+    border-radius:5px 5px 0 0; overflow:hidden; gap:2px; background:transparent}
+  .seg{width:100%; cursor:default}
+  .bar-x{font-size:11.5px; color:var(--muted); margin-top:7px; white-space:nowrap;
+    font-variant-numeric:tabular-nums}
+  .bar-total{font-size:11px; color:var(--ink-2); margin-bottom:5px; font-variant-numeric:tabular-nums}
+
+  /* line */
+  .line-x{display:flex; justify-content:space-between; font-size:11.5px; color:var(--muted); margin-top:6px}
+
+  /* table */
+  .tbl-wrap{overflow-x:auto}
+  table{border-collapse:collapse; width:100%; font-size:13px}
+  th,td{padding:8px 10px; text-align:right; border-bottom:1px solid var(--grid); white-space:nowrap}
+  th:first-child,td:first-child, th.l,td.l{text-align:left}
+  th{color:var(--ink-2); font-weight:600; font-size:12px; position:sticky; top:0; background:var(--surface)}
+  td.num, th.num{font-variant-numeric:tabular-nums}
+  tr.group td{background:color-mix(in srgb, var(--ink) 4%, transparent); font-weight:600}
+  tbody tr:hover td{background:color-mix(in srgb, var(--c1) 7%, transparent)}
+  .chip{display:inline-flex; align-items:center; gap:6px}
+  .chip .dot{width:9px;height:9px;border-radius:50%}
+  tfoot td{font-weight:700; border-top:2px solid var(--axis); border-bottom:0}
+
+  /* tooltip */
+  #tip{position:fixed; pointer-events:none; z-index:50; background:var(--ink); color:var(--page);
+    padding:7px 10px; border-radius:8px; font-size:12px; box-shadow:var(--shadow);
+    opacity:0; transition:opacity .08s; max-width:240px}
+  #tip b{font-weight:650}
+  #tip .muted{opacity:.7}
+
+  .section-title{font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--muted); margin:26px 0 12px}
+  .filebar{font-size:12px; color:var(--muted)}
+  .filebar b{color:var(--ink-2); font-weight:600}
+  details.help{margin-top:28px; font-size:13px; color:var(--ink-2)}
+  details.help summary{cursor:pointer; color:var(--ink); font-weight:600}
+  details.help code{background:color-mix(in srgb,var(--ink) 7%,transparent); padding:1px 5px; border-radius:4px; font-size:12px}
+  details.help pre{background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px; overflow:auto}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <h1>Dashboard de Investimentos</h1>
+    <p class="sub">Fechamento mensal por banco e alocação por tipo de ativo</p>
+  </div>
+  <div class="controls">
+    <label class="fld">Mês de referência
+      <select id="monthSel"></select>
+    </label>
+    <input type="file" id="fileInput" accept=".csv,text/csv" hidden>
+    <button class="btn primary" id="loadBtn" type="button">Carregar meu CSV</button>
+  </div>
+</header>
+
+<p class="filebar" id="filebar">Exibindo <b>dados de exemplo</b>. Clique em “Carregar meu CSV” para ver seus investimentos.</p>
+
+<!-- KPIs -->
+<section class="grid kpis" id="kpis"></section>
+
+<!-- Linha 1: evolução + donut -->
+<section class="grid cards">
+  <div class="card">
+    <h2>Evolução do patrimônio</h2>
+    <p class="hint">Patrimônio total (valor bruto) ao final de cada mês</p>
+    <div class="chart-area" id="lineChart"></div>
+  </div>
+  <div class="card">
+    <h2>Alocação por tipo</h2>
+    <p class="hint" id="donutHint">Distribuição no mês selecionado</p>
+    <div class="donut-wrap">
+      <div id="donut"></div>
+      <ul class="legend" id="donutLegend"></ul>
+    </div>
+  </div>
+</section>
+
+<!-- Linha 2: fechamento por banco -->
+<h3 class="section-title">Fechamento mensal por banco</h3>
+<div class="card">
+  <h2>Patrimônio por instituição, mês a mês</h2>
+  <p class="hint">Barras empilhadas — cada cor é um banco/corretora</p>
+  <div class="chart-area" id="bankChart"></div>
+  <ul class="legend" id="bankLegend" style="margin-top:14px; display:flex; flex-wrap:wrap; gap:4px 22px"></ul>
+</div>
+
+<!-- Tabela detalhada -->
+<h3 class="section-title">Detalhe das posições <span id="tblMonth" style="text-transform:none;letter-spacing:0"></span></h3>
+<div class="card">
+  <div class="tbl-wrap"><table id="detailTable"></table></div>
+</div>
+
+<details class="help">
+  <summary>Como usar / formato do CSV</summary>
+  <p>Exporte do Numbers em <b>Arquivo → Exportar para → CSV</b> com uma linha por investimento, por mês. Colunas reconhecidas (nomes flexíveis, com ou sem acento):</p>
+  <pre>Data_Referencia,Banco_Corretora,Tipo,Ativo,Valor_Atual,Valor_Aplicado,Indexador,Vencimento
+2026-06-30,XP,Renda Fixa,CDB Banco X 110% CDI,15230.45,14000,CDI,2027-08-01</pre>
+  <p><b>Obrigatórias:</b> Data_Referencia, Banco_Corretora, Tipo, Ativo, Valor_Atual. <b>Opcionais:</b> Valor_Aplicado (habilita rentabilidade), Indexador, Vencimento.</p>
+  <p>Aceita separador <code>,</code> ou <code>;</code>, valores com <code>R$</code>, e números no padrão brasileiro (<code>15.230,45</code>) ou internacional (<code>15230.45</code>). Datas em <code>AAAA-MM-DD</code> ou <code>DD/MM/AAAA</code>. Nada é enviado para a internet — tudo roda no seu navegador.</p>
+</details>
+
+<div id="tip"></div>
+
+<script>
+/* ============================ Dados de exemplo ============================ */
+const SAMPLE_CSV = `Data_Referencia,Banco_Corretora,Tipo,Ativo,Valor_Atual,Valor_Aplicado,Indexador,Vencimento
+2026-01-31,XP,Renda Fixa,CDB Banco X 110% CDI,14180,14000,CDI,2027-08-01
+2026-01-31,XP,Ações,PETR4,8200,8000,,
+2026-01-31,XP,Fundos,Fundo Multimercado Alpha,9050,9000,,
+2026-01-31,Itaú,Tesouro,Tesouro IPCA+ 2029,20500,20000,IPCA,2029-05-15
+2026-01-31,Itaú,Renda Fixa,LCI Itaú 95% CDI,10100,10000,CDI,2026-12-10
+2026-01-31,Nubank,Renda Fixa,RDB Nubank,5050,5000,CDI,
+2026-01-31,BTG,COE,COE Global Markets,15000,15000,,2028-03-20
+2026-01-31,BTG,FIIs,HGLG11,12100,12000,,
+2026-02-28,XP,Renda Fixa,CDB Banco X 110% CDI,14360,14000,CDI,2027-08-01
+2026-02-28,XP,Ações,PETR4,7900,8000,,
+2026-02-28,XP,Fundos,Fundo Multimercado Alpha,9150,9000,,
+2026-02-28,Itaú,Tesouro,Tesouro IPCA+ 2029,20800,20000,IPCA,2029-05-15
+2026-02-28,Itaú,Renda Fixa,LCI Itaú 95% CDI,10200,10000,CDI,2026-12-10
+2026-02-28,Nubank,Renda Fixa,RDB Nubank,5100,5000,CDI,
+2026-02-28,BTG,COE,COE Global Markets,15000,15000,,2028-03-20
+2026-02-28,BTG,FIIs,HGLG11,11900,12000,,
+2026-03-31,XP,Renda Fixa,CDB Banco X 110% CDI,14550,14000,CDI,2027-08-01
+2026-03-31,XP,Ações,PETR4,8600,8000,,
+2026-03-31,XP,Fundos,Fundo Multimercado Alpha,9080,9000,,
+2026-03-31,Itaú,Tesouro,Tesouro IPCA+ 2029,21200,20000,IPCA,2029-05-15
+2026-03-31,Itaú,Renda Fixa,LCI Itaú 95% CDI,10300,10000,CDI,2026-12-10
+2026-03-31,Nubank,Renda Fixa,RDB Nubank,5150,5000,CDI,
+2026-03-31,BTG,COE,COE Global Markets,15300,15000,,2028-03-20
+2026-03-31,BTG,FIIs,HGLG11,12300,12000,,
+2026-04-30,XP,Renda Fixa,CDB Banco X 110% CDI,14740,14000,CDI,2027-08-01
+2026-04-30,XP,Ações,PETR4,9100,8000,,
+2026-04-30,XP,Fundos,Fundo Multimercado Alpha,9250,9000,,
+2026-04-30,Itaú,Tesouro,Tesouro IPCA+ 2029,21000,20000,IPCA,2029-05-15
+2026-04-30,Itaú,Renda Fixa,LCI Itaú 95% CDI,10400,10000,CDI,2026-12-10
+2026-04-30,Nubank,Renda Fixa,RDB Nubank,5205,5000,CDI,
+2026-04-30,BTG,COE,COE Global Markets,15300,15000,,2028-03-20
+2026-04-30,BTG,FIIs,HGLG11,12500,12000,,
+2026-05-31,XP,Renda Fixa,CDB Banco X 110% CDI,14930,14000,CDI,2027-08-01
+2026-05-31,XP,Ações,PETR4,8800,8000,,
+2026-05-31,XP,Fundos,Fundo Multimercado Alpha,9400,9000,,
+2026-05-31,Itaú,Tesouro,Tesouro IPCA+ 2029,21600,20000,IPCA,2029-05-15
+2026-05-31,Itaú,Renda Fixa,LCI Itaú 95% CDI,10510,10000,CDI,2026-12-10
+2026-05-31,Nubank,Renda Fixa,RDB Nubank,5260,5000,CDI,
+2026-05-31,BTG,COE,COE Global Markets,15800,15000,,2028-03-20
+2026-05-31,BTG,FIIs,HGLG11,12400,12000,,
+2026-06-30,XP,Renda Fixa,CDB Banco X 110% CDI,15230,14000,CDI,2027-08-01
+2026-06-30,XP,Ações,PETR4,9400,8000,,
+2026-06-30,XP,Fundos,Fundo Multimercado Alpha,9550,9000,,
+2026-06-30,Itaú,Tesouro,Tesouro IPCA+ 2029,22100,20000,IPCA,2029-05-15
+2026-06-30,Itaú,Renda Fixa,LCI Itaú 95% CDI,10620,10000,CDI,2026-12-10
+2026-06-30,Nubank,Renda Fixa,RDB Nubank,5315,5000,CDI,
+2026-06-30,BTG,COE,COE Global Markets,16100,15000,,2028-03-20
+2026-06-30,BTG,FIIs,HGLG11,12800,12000,,`;
+
+/* ============================ Utilidades ============================ */
+const SLOTS = ['--c1','--c2','--c3','--c4','--c5','--c6','--c7','--c8'];
+const cvar = s => getComputedStyle(document.documentElement).getPropertyValue(s).trim();
+const brl = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+const brlc = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2});
+const pct = (x,d=1) => (x>=0?'+':'') + x.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}) + '%';
+const pctPlain = (x,d=1) => x.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}) + '%';
+
+const MONTHS_PT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const TYPE_ORDER = ['Renda Fixa','Tesouro','Fundos','COE','FIIs','Ações','Cripto','Multimercado','Previdência','Outros'];
+
+function parseNumber(raw){
+  if(raw==null) return 0;
+  let s = String(raw).trim().replace(/r\$/i,'').replace(/\s/g,'');
+  if(!s) return 0;
+  const hasDot = s.includes('.'), hasComma = s.includes(',');
+  if(hasDot && hasComma){ s = s.replace(/\./g,'').replace(',','.'); }   // 15.230,45
+  else if(hasComma){ s = s.replace(',','.'); }                          // 15230,45
+  const n = parseFloat(s);
+  return isNaN(n)?0:n;
+}
+function toMonthKey(raw){
+  if(!raw) return null;
+  let s = String(raw).trim();
+  let y,m;
+  let iso = s.match(/^(\d{4})-(\d{1,2})/);
+  let br  = s.match(/^(\d{1,2})[\/\.](\d{1,2})[\/\.](\d{2,4})/);
+  if(iso){ y=+iso[1]; m=+iso[2]; }
+  else if(br){ m=+br[2]; y=+br[3]; if(y<100) y+=2000; }
+  else { const d=new Date(s); if(isNaN(d)) return null; y=d.getFullYear(); m=d.getMonth()+1; }
+  if(!y||!m) return null;
+  return {key:`${y}-${String(m).padStart(2,'0')}`, label:`${MONTHS_PT[m-1]}/${String(y).slice(2)}`, y, m};
+}
+
+/* CSV parser com detecção de separador e aspas */
+function parseCSV(text){
+  text = text.replace(/^﻿/,'').replace(/\r\n?/g,'\n');
+  const firstLine = text.split('\n')[0]||'';
+  const sep = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ',';
+  const rows=[]; let cur=[], val='', q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(q){
+      if(ch==='"'){ if(text[i+1]==='"'){val+='"';i++;} else q=false; }
+      else val+=ch;
+    } else {
+      if(ch==='"') q=true;
+      else if(ch===sep){ cur.push(val); val=''; }
+      else if(ch==='\n'){ cur.push(val); rows.push(cur); cur=[]; val=''; }
+      else val+=ch;
+    }
+  }
+  if(val.length||cur.length){ cur.push(val); rows.push(cur); }
+  return rows.filter(r=>r.some(c=>String(c).trim()!==''));
+}
+
+const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
+const HEADER_MAP = {
+  data:      ['datareferencia','data','mes','competencia','referencia','datadereferencia','periodo'],
+  banco:     ['bancocorretora','banco','corretora','instituicao','banconome'],
+  tipo:      ['tipo','classe','categoria','tipodeativo','classe de ativo','classedeativo'],
+  ativo:     ['ativo','nome','investimento','produto','papel','descricao'],
+  atual:     ['valoratual','saldo','saldobruto','valor','posicao','montante','valorbruto','valoratualbruto'],
+  aplicado:  ['valoraplicado','aplicado','valorinvestido','investido','custo','valoraplicadoinicial'],
+  indexador: ['indexador','index','indice','indexado'],
+  vencimento:['vencimento','venc','datavencimento','datadevencimento'],
+};
+function resolveHeaders(headerRow){
+  const idx={}; const cols = headerRow.map(norm);
+  for(const key in HEADER_MAP){
+    for(const syn of HEADER_MAP[key]){
+      const pos = cols.indexOf(norm(syn));
+      if(pos>=0){ idx[key]=pos; break; }
+    }
+  }
+  return idx;
+}
+
+function loadData(csvText){
+  const rows = parseCSV(csvText);
+  if(!rows.length) throw new Error('Arquivo vazio.');
+  const idx = resolveHeaders(rows[0]);
+  const missing = ['data','banco','tipo','ativo','atual'].filter(k=>idx[k]==null);
+  if(missing.length){
+    const names={data:'Data_Referencia',banco:'Banco_Corretora',tipo:'Tipo',ativo:'Ativo',atual:'Valor_Atual'};
+    throw new Error('Não encontrei as colunas: '+missing.map(k=>names[k]).join(', ')+'. Verifique o cabeçalho.');
+  }
+  const recs=[];
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i];
+    const mk = toMonthKey(r[idx.data]);
+    if(!mk) continue;
+    const atual = parseNumber(r[idx.atual]);
+    recs.push({
+      mkey:mk.key, mlabel:mk.label, y:mk.y, m:mk.m,
+      banco:(r[idx.banco]||'—').trim(),
+      tipo:(r[idx.tipo]||'Outros').trim(),
+      ativo:(r[idx.ativo]||'—').trim(),
+      atual,
+      aplicado: idx.aplicado!=null ? parseNumber(r[idx.aplicado]) : null,
+      indexador: idx.indexador!=null ? (r[idx.indexador]||'').trim() : '',
+      vencimento: idx.vencimento!=null ? (r[idx.vencimento]||'').trim() : '',
+    });
+  }
+  if(!recs.length) throw new Error('Nenhuma linha válida encontrada.');
+  return recs;
+}
+
+/* ============================ Estado / cores ============================ */
+let DATA=[], MONTHS=[], BANK_COLOR={}, TYPE_COLOR={}, hasAplicado=false;
+
+function buildIndexes(){
+  const mset = new Map();
+  DATA.forEach(d=>mset.set(d.mkey,d.mlabel));
+  MONTHS = [...mset.entries()].sort((a,b)=>a[0]<b[0]?-1:1).map(([key,label])=>({key,label}));
+
+  const banks=[...new Set(DATA.map(d=>d.banco))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  BANK_COLOR={}; banks.forEach((b,i)=>BANK_COLOR[b]=`var(${SLOTS[i%8]})`);
+
+  const types=[...new Set(DATA.map(d=>d.tipo))].sort((a,b)=>{
+    let ia=TYPE_ORDER.indexOf(a), ib=TYPE_ORDER.indexOf(b);
+    if(ia<0) ia=99; if(ib<0) ib=99;
+    return ia!==ib ? ia-ib : a.localeCompare(b,'pt-BR');
+  });
+  TYPE_COLOR={}; types.forEach((t,i)=>TYPE_COLOR[t]=`var(${SLOTS[i%8]})`);
+
+  hasAplicado = DATA.some(d=>d.aplicado!=null && d.aplicado>0);
+}
+
+const monthRecs = mk => DATA.filter(d=>d.mkey===mk);
+const sum = arr => arr.reduce((a,d)=>a+d.atual,0);
+const sumApl = arr => arr.reduce((a,d)=>a+(d.aplicado||0),0);
+function totalsBy(recs, field){
+  const m=new Map();
+  recs.forEach(d=>m.set(d[field],(m.get(d[field])||0)+d.atual));
+  return m;
+}
+
+/* ============================ Tooltip ============================ */
+const tip=document.getElementById('tip');
+function showTip(html,x,y){ tip.innerHTML=html; tip.style.opacity=1;
+  const pad=14; let tx=x+pad, ty=y+pad;
+  const r=tip.getBoundingClientRect();
+  if(tx+r.width>innerWidth) tx=x-r.width-pad;
+  if(ty+r.height>innerHeight) ty=y-r.height-pad;
+  tip.style.left=tx+'px'; tip.style.top=ty+'px';
+}
+function hideTip(){ tip.style.opacity=0; }
+
+/* ============================ KPIs ============================ */
+function renderKPIs(mk){
+  const el=document.getElementById('kpis');
+  const recs=monthRecs(mk);
+  const total=sum(recs);
+  const idx=MONTHS.findIndex(m=>m.key===mk);
+  const prev= idx>0 ? sum(monthRecs(MONTHS[idx-1].key)) : null;
+  const delta = prev!=null && prev>0 ? (total-prev)/prev*100 : null;
+  const deltaAbs = prev!=null ? total-prev : null;
+  const apl=sumApl(recs);
+  const rent = hasAplicado && apl>0 ? (total-apl)/apl*100 : null;
+  const lucro = hasAplicado ? total-apl : null;
+
+  const cards=[
+    {label:'Patrimônio total', value:brl.format(total),
+     delta: delta!=null ? `<span class="${delta>=0?'up':'down'}">${pct(delta)} (${(deltaAbs>=0?'+':'')+brl.format(deltaAbs)}) vs. mês anterior</span>` : '<span class="k-delta">primeiro mês</span>'},
+    {label:'Total aplicado', value: hasAplicado?brl.format(apl):'—',
+     delta: hasAplicado?`<span class="k-delta">${recs.length} ativos</span>`:'<span class="k-delta">informe Valor_Aplicado</span>'},
+    {label:'Rentabilidade acumulada', value: rent!=null?pctPlain(rent):'—',
+     delta: lucro!=null?`<span class="${lucro>=0?'up':'down'}">${(lucro>=0?'+':'')+brl.format(lucro)} de resultado</span>`:'<span class="k-delta">requer valor aplicado</span>'},
+    {label:'Instituições', value: new Set(recs.map(d=>d.banco)).size,
+     delta:`<span class="k-delta">${new Set(recs.map(d=>d.tipo)).size} tipos de ativo</span>`},
+  ];
+  el.innerHTML=cards.map(c=>`<div class="card kpi">
+      <p class="k-label">${c.label}</p>
+      <div class="k-value">${c.value}</div>
+      <div class="k-delta">${c.delta}</div>
+    </div>`).join('');
+}
+
+/* ============================ Donut alocação por tipo ============================ */
+function renderDonut(mk){
+  const recs=monthRecs(mk);
+  const totalsMap=totalsBy(recs,'tipo');
+  const total=[...totalsMap.values()].reduce((a,b)=>a+b,0);
+  const entries=[...totalsMap.entries()].sort((a,b)=>b[1]-a[1]);
+  document.getElementById('donutHint').textContent = `Distribuição em ${MONTHS.find(m=>m.key===mk).label} · ${brl.format(total)}`;
+
+  const R=78, r=50, cx=90, cy=90, C=2*Math.PI*((R+r)/2), sw=R-r;
+  let acc=0; const segs=[];
+  entries.forEach(([tipo,val])=>{
+    const frac=val/total;
+    const dash=frac*C;
+    segs.push(`<circle cx="${cx}" cy="${cy}" r="${(R+r)/2}" fill="none"
+       stroke="${TYPE_COLOR[tipo]}" stroke-width="${sw}"
+       stroke-dasharray="${dash-2} ${C-dash+2}" stroke-dashoffset="${-acc}"
+       transform="rotate(-90 ${cx} ${cy})"
+       data-tipo="${encodeURIComponent(tipo)}" data-val="${val}" data-frac="${frac}"
+       class="donut-seg" style="cursor:default"></circle>`);
+    acc+=dash;
+  });
+  document.getElementById('donut').innerHTML=`
+    <svg width="180" height="180" viewBox="0 0 180 180" role="img" aria-label="Alocação por tipo">
+      ${segs.join('')}
+      <text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="11" fill="${cvar('--muted')}">total</text>
+      <text x="${cx}" y="${cy+13}" text-anchor="middle" font-size="15" font-weight="650" fill="${cvar('--ink')}">${brl.format(total)}</text>
+    </svg>`;
+
+  document.getElementById('donutLegend').innerHTML=entries.map(([tipo,val])=>`
+    <li><span class="sw" style="background:${TYPE_COLOR[tipo]}"></span>
+      <span class="nm">${tipo}</span>
+      <span class="vl">${brl.format(val)}<span class="pc">${pctPlain(val/total*100,0)}</span></span></li>`).join('');
+
+  document.querySelectorAll('.donut-seg').forEach(s=>{
+    s.addEventListener('mousemove',e=>{
+      const tipo=decodeURIComponent(s.dataset.tipo);
+      showTip(`<b>${tipo}</b><br>${brlc.format(+s.dataset.val)}<br><span class="muted">${pctPlain(+s.dataset.frac*100)} da carteira</span>`,e.clientX,e.clientY);
+    });
+    s.addEventListener('mouseleave',hideTip);
+  });
+}
+
+/* ============================ Evolução (linha + área) ============================ */
+function renderLine(){
+  const series=MONTHS.map(m=>({...m, total:sum(monthRecs(m.key))}));
+  const W=560,H=210, padL=8,padR=8,padT=14,padB=8, innerW=W-padL-padR, innerH=H-padT-padB;
+  const max=Math.max(...series.map(s=>s.total))*1.08, min=Math.min(...series.map(s=>s.total))*0.94;
+  const x=i=> series.length<2?padL+innerW/2 : padL + i/(series.length-1)*innerW;
+  const y=v=> padT + (1-(v-min)/(max-min))*innerH;
+
+  const grid=[0,.25,.5,.75,1].map(f=>{
+    const val=min+(max-min)*f, gy=padT+(1-f)*innerH;
+    return `<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" stroke="${cvar('--grid')}" stroke-width="1"/>
+      <text x="${padL}" y="${gy-4}" font-size="10" fill="${cvar('--muted')}">${brl.format(val)}</text>`;
+  }).join('');
+  const pts=series.map((s,i)=>`${x(i)},${y(s.total)}`).join(' ');
+  const area=`M ${padL},${padT+innerH} L ${series.map((s,i)=>`${x(i)},${y(s.total)}`).join(' L ')} L ${W-padR},${padT+innerH} Z`;
+  const dots=series.map((s,i)=>`<circle cx="${x(i)}" cy="${y(s.total)}" r="4.5" fill="${cvar('--surface')}" stroke="${cvar('--c1')}" stroke-width="2"
+      data-i="${i}" class="line-dot" style="cursor:default"/>`).join('');
+
+  document.getElementById('lineChart').innerHTML=`
+    <svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="display:block">
+      <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="${cvar('--c1')}" stop-opacity="0.18"/>
+        <stop offset="1" stop-color="${cvar('--c1')}" stop-opacity="0"/>
+      </linearGradient></defs>
+      ${grid}
+      <path d="${area}" fill="url(#ag)"/>
+      <polyline points="${pts}" fill="none" stroke="${cvar('--c1')}" stroke-width="2" stroke-linejoin="round"/>
+      ${dots}
+    </svg>
+    <div class="line-x">${series.map(s=>`<span>${s.label}</span>`).join('')}</div>`;
+
+  document.querySelectorAll('.line-dot').forEach(d=>{
+    d.addEventListener('mousemove',e=>{
+      const s=series[+d.dataset.i];
+      const prev = +d.dataset.i>0 ? series[+d.dataset.i-1].total : null;
+      const dl = prev!=null&&prev>0 ? `<br><span class="muted">${pct((s.total-prev)/prev*100)} vs. mês anterior</span>`:'';
+      showTip(`<b>${s.label}</b><br>${brlc.format(s.total)}${dl}`,e.clientX,e.clientY);
+    });
+    d.addEventListener('mouseleave',hideTip);
+    d.addEventListener('mouseenter',()=>d.setAttribute('r','6'));
+    d.addEventListener('mouseleave',()=>d.setAttribute('r','4.5'));
+  });
+}
+
+/* ============================ Fechamento por banco (barras empilhadas) ============================ */
+function renderBankChart(){
+  const banks=Object.keys(BANK_COLOR);
+  const perMonth=MONTHS.map(m=>{
+    const recs=monthRecs(m.key);
+    const byBank=totalsBy(recs,'banco');
+    return {label:m.label, key:m.key, total:sum(recs), byBank};
+  });
+  const max=Math.max(...perMonth.map(p=>p.total));
+
+  document.getElementById('bankChart').innerHTML=`<div class="bars">${
+    perMonth.map(p=>{
+      const segs=banks.filter(b=>p.byBank.get(b)).map(b=>{
+        const v=p.byBank.get(b);
+        return `<div class="seg" style="height:${v/p.total*100}%; background:${BANK_COLOR[b]}"
+          data-b="${encodeURIComponent(b)}" data-v="${v}" data-m="${p.label}" data-t="${p.total}"></div>`;
+      }).join('');
+      return `<div class="bar-col">
+        <div class="bar-total">${brl.format(p.total)}</div>
+        <div class="bar-stack" style="height:${p.total/max*100}%">${segs}</div>
+        <div class="bar-x">${p.label}</div>
+      </div>`;
+    }).join('')
+  }</div>`;
+
+  document.getElementById('bankLegend').innerHTML=banks.map(b=>`
+    <li style="border:0; grid-template-columns:12px auto; padding:2px 0">
+      <span class="sw" style="background:${BANK_COLOR[b]}"></span>
+      <span class="nm" style="color:var(--ink)">${b}</span></li>`).join('');
+
+  document.querySelectorAll('.bar-stack .seg').forEach(s=>{
+    s.addEventListener('mousemove',e=>{
+      const b=decodeURIComponent(s.dataset.b), v=+s.dataset.v, t=+s.dataset.t;
+      showTip(`<b>${b}</b> · ${s.dataset.m}<br>${brlc.format(v)}<br><span class="muted">${pctPlain(v/t*100)} do mês</span>`,e.clientX,e.clientY);
+    });
+    s.addEventListener('mouseleave',hideTip);
+  });
+}
+
+/* ============================ Tabela detalhada ============================ */
+function renderTable(mk){
+  const recs=monthRecs(mk).slice().sort((a,b)=> a.banco.localeCompare(b.banco,'pt-BR') || b.atual-a.atual );
+  document.getElementById('tblMonth').textContent = '· '+MONTHS.find(m=>m.key===mk).label;
+  const total=sum(recs), totalApl=sumApl(recs);
+
+  let body='', curBank=null, bankSub=0, bankAplSub=0;
+  function flush(){
+    if(curBank!==null){
+      body+=`<tr class="group"><td class="l">Subtotal ${curBank}</td><td></td>
+        <td class="num">${brl.format(bankSub)}</td>
+        <td class="num">${hasAplicado?brl.format(bankAplSub):'—'}</td>
+        <td class="num">${hasAplicado&&bankAplSub>0?pct((bankSub-bankAplSub)/bankAplSub*100):'—'}</td>
+        <td class="num">${pctPlain(bankSub/total*100)}</td></tr>`;
+    }
+  }
+  recs.forEach(d=>{
+    if(d.banco!==curBank){ flush(); curBank=d.banco; bankSub=0; bankAplSub=0; }
+    bankSub+=d.atual; bankAplSub+=(d.aplicado||0);
+    const rent = hasAplicado && d.aplicado>0 ? (d.atual-d.aplicado)/d.aplicado*100 : null;
+    body+=`<tr>
+      <td class="l"><span class="chip"><span class="dot" style="background:${BANK_COLOR[d.banco]}"></span>${d.ativo}</span>
+        <div style="font-size:11px;color:var(--muted)">${d.banco}${d.indexador?' · '+d.indexador:''}${d.vencimento?' · venc '+d.vencimento:''}</div></td>
+      <td class="l"><span class="chip"><span class="dot" style="background:${TYPE_COLOR[d.tipo]}"></span>${d.tipo}</span></td>
+      <td class="num">${brlc.format(d.atual)}</td>
+      <td class="num">${hasAplicado&&d.aplicado!=null?brlc.format(d.aplicado):'—'}</td>
+      <td class="num ${rent!=null?(rent>=0?'up':'down'):''}">${rent!=null?pct(rent):'—'}</td>
+      <td class="num">${pctPlain(d.atual/total*100)}</td></tr>`;
+  });
+  flush();
+
+  document.getElementById('detailTable').innerHTML=`
+    <thead><tr>
+      <th class="l">Ativo</th><th class="l">Tipo</th>
+      <th class="num">Valor atual</th><th class="num">Aplicado</th>
+      <th class="num">Rentab.</th><th class="num">% carteira</th>
+    </tr></thead>
+    <tbody>${body}</tbody>
+    <tfoot><tr>
+      <td class="l">TOTAL</td><td></td>
+      <td class="num">${brlc.format(total)}</td>
+      <td class="num">${hasAplicado?brlc.format(totalApl):'—'}</td>
+      <td class="num">${hasAplicado&&totalApl>0?pct((total-totalApl)/totalApl*100):'—'}</td>
+      <td class="num">100%</td>
+    </tr></tfoot>`;
+}
+
+/* ============================ Render geral ============================ */
+function renderAll(){
+  const mk=document.getElementById('monthSel').value;
+  renderKPIs(mk); renderDonut(mk); renderLine(); renderBankChart(); renderTable(mk);
+}
+function populateMonths(){
+  const sel=document.getElementById('monthSel');
+  sel.innerHTML=MONTHS.map(m=>`<option value="${m.key}">${m.label}</option>`).join('');
+  sel.value=MONTHS[MONTHS.length-1].key;
+}
+function init(csvText, fromFile, fileName){
+  try{
+    DATA=loadData(csvText); buildIndexes(); populateMonths(); renderAll();
+    const fb=document.getElementById('filebar');
+    if(fromFile) fb.innerHTML=`Exibindo <b>${fileName}</b> · ${DATA.length} posições · ${MONTHS.length} meses.`;
+  }catch(err){
+    alert('Não consegui ler o arquivo:\n\n'+err.message);
+  }
+}
+
+document.getElementById('loadBtn').addEventListener('click',()=>document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>init(rd.result,true,f.name);
+  rd.readAsText(f,'utf-8');
+});
+document.getElementById('monthSel').addEventListener('change',renderAll);
+window.addEventListener('resize',()=>{ /* re-render p/ recalcular cores/SVG */ renderAll(); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',renderAll);
+
+init(SAMPLE_CSV,false);
+</script>
+</body>
+</html>
