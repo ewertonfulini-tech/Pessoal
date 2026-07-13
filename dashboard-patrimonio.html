@@ -688,6 +688,7 @@ function renderMovimentacao(){
     ${grid}${bars}
     <line x1="${padL}" y1="${zeroY}" x2="${W-padR}" y2="${zeroY}" stroke="${cvar('--axis')}" stroke-width="1.5"/>
     ${xlabels}</svg>`;
+  if(state.movNota) chartEl.insertAdjacentHTML('afterbegin', `<p style="margin:0 0 10px; font-size:12px; color:var(--muted)">ℹ️ ${state.movNota}</p>`);
 
   legEl.innerHTML=`
     <li style="border:0; grid-template-columns:12px auto; padding:2px 0"><span class="sw" style="background:${cAp}"></span><span class="nm" style="color:var(--ink)">Aporte</span></li>
