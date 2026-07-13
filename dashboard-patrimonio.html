@@ -246,7 +246,8 @@
 <details class="help">
   <summary>Como manter atualizado</summary>
   <p style="margin-top:10px">Clique em <b>✏️ Editar dados</b> para ajustar valores, adicionar/remover itens e atualizar a meta. Tudo é salvo automaticamente <b>neste navegador</b> (nada vai para a internet). Use <b>Restaurar</b> para voltar aos números originais.</p>
-  <p>Para <b>classificar os investimentos por tipo</b> (Renda Fixa, Ações, COE, FIIs…) e preencher o <b>aporte e a rentabilidade mensal</b>, me envie no chat os extratos de fechamento de cada banco — eu leio, extraio saldo, aportes e rendimentos, classifico ativo por ativo e devolvo os dados prontos para colar aqui.</p>
+  <p>Para <b>classificar os investimentos por tipo</b> (Renda Fixa, Ações, COE, FIIs…) e preencher o <b>aporte e a rentabilidade mensal</b>, me envie no chat os extratos de fechamento de cada banco — eu leio, extraio saldo, aportes e rendimentos, classifico ativo por ativo e devolvo um <b>bloco pronto</b>.</p>
+  <p>Em <b>✏️ Editar dados → 📥 Importar / exportar</b> você: <b>cola o bloco do Claude</b> (JSON) e clica em Aplicar; <b>importa CSV/OFX</b> do banco direto na página (offline); e <b>exporta um backup</b> dos seus dados (recomendado de vez em quando, já que ficam só neste navegador).</p>
 </details>
 
 <!-- ===== Editor Modal ===== -->
@@ -257,6 +258,29 @@
       <button class="btn ghost" id="closeBtn" type="button">✕</button>
     </header>
     <div class="modal-body">
+      <div class="ed-sec" style="background:color-mix(in srgb,var(--c1) 6%,transparent); border:1px solid var(--border); border-radius:12px; padding:14px">
+        <h3 style="color:var(--c1)">📥 Importar / exportar</h3>
+        <p class="desc">Traga dados prontos sem digitar tudo. Nada sai do seu computador.</p>
+
+        <div style="margin-bottom:16px">
+          <label style="font-size:12.5px; color:var(--ink); font-weight:600">Colar bloco do Claude (JSON)</label>
+          <p class="desc" style="margin:3px 0 7px">Envie seu extrato ao Claude no chat → ele devolve um bloco → cole aqui e clique em Aplicar. Só substitui/atualiza o que vier no bloco.</p>
+          <textarea id="imp-json" rows="4" placeholder='Cole aqui o bloco JSON que o Claude enviar, ex.: {"investimentos":[{"instituicao":"BRB","tipo":"Renda Fixa","local":"Brasil","valor":254901}]}' style="width:100%; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; color:var(--ink); background:var(--page); border:1px solid var(--border); border-radius:8px; padding:9px; resize:vertical"></textarea>
+          <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap">
+            <button class="btn primary" id="imp-json-apply" type="button">Aplicar bloco</button>
+            <button class="btn" id="imp-export" type="button">⬇ Exportar backup (JSON)</button>
+          </div>
+          <p id="imp-json-msg" style="font-size:12px; margin:8px 0 0; min-height:16px"></p>
+        </div>
+
+        <div>
+          <label style="font-size:12.5px; color:var(--ink); font-weight:600">Importar arquivo do banco (CSV / OFX)</label>
+          <p class="desc" style="margin:3px 0 7px">Extratos em CSV ou OFX são lidos aqui na própria página. Para PDF/imagem, use o campo acima (via chat).</p>
+          <input type="file" id="imp-file" accept=".csv,.ofx,.qfx,.txt" style="font-size:12.5px">
+          <div id="imp-file-preview" style="margin-top:10px"></div>
+        </div>
+      </div>
+
       <div class="ed-sec">
         <h3>Configurações</h3>
         <div class="settings-grid">
@@ -810,7 +834,7 @@ function histRow(it={ano:'',valor:''}){
   div.querySelector('.icon-btn').onclick=()=>div.remove();
   return div;
 }
-function openEditor(){
+function fillEditorRows(){
   document.getElementById('ed-cambio').value=grp(state.cambioUSD*100)/100;
   document.getElementById('ed-metaAno').value=state.meta.ano;
   document.getElementById('ed-metaValor').value=grp(state.meta.valor);
@@ -819,7 +843,177 @@ function openEditor(){
   const gv=document.getElementById('ed-inv'); gv.innerHTML=''; state.investimentos.forEach(it=>gv.appendChild(invRow(it)));
   const gm=document.getElementById('ed-mov'); gm.innerHTML=''; [...(state.movimentacoes||[])].sort((a,b)=>a.mes<b.mes?-1:1).forEach(it=>gm.appendChild(movRow(it)));
   const gh=document.getElementById('ed-hist'); gh.innerHTML=''; [...state.historico].sort((a,b)=>a.ano-b.ano).forEach(it=>gh.appendChild(histRow(it)));
+}
+function openEditor(){
+  fillEditorRows();
+  document.getElementById('imp-json').value='';
+  document.getElementById('imp-json-msg').textContent='';
+  document.getElementById('imp-file-preview').innerHTML='';
+  document.getElementById('imp-file').value='';
   editor.hidden=false; document.body.style.overflow='hidden';
+}
+
+/* ---------- Importar / Exportar ---------- */
+function applyImport(obj){
+  // aplica um bloco (parcial) sobre o estado; só toca no que vier no bloco
+  const res=[];
+  if(obj.cambioUSD!=null){ state.cambioUSD=+obj.cambioUSD||state.cambioUSD; res.push('câmbio'); }
+  if(obj.fgts!=null){ state.fgts=parseNumber(obj.fgts); res.push('FGTS'); }
+  if(obj.meta){ state.meta={...state.meta, ...obj.meta}; res.push('meta'); }
+  if(obj.movNota!=null){ state.movNota=obj.movNota; }
+  if(Array.isArray(obj.historico)){ state.historico=obj.historico.map(h=>({ano:+h.ano, valor:parseNumber(h.valor)})); res.push(`${obj.historico.length} anos`); }
+  if(Array.isArray(obj.imobilizado)){ state.imobilizado=obj.imobilizado.map(i=>({nome:i.nome, classe:i.classe||'Imóvel', valor:parseNumber(i.valor), divida:parseNumber(i.divida)})); res.push(`${obj.imobilizado.length} bens`); }
+  if(Array.isArray(obj.investimentos)){
+    const clean=obj.investimentos.map(i=>({instituicao:String(i.instituicao||'').trim(), tipo:i.tipo||'A classificar', local:i.local||'Brasil', valor:parseNumber(i.valor)})).filter(i=>i.instituicao);
+    const insts=new Set(clean.map(i=>i.instituicao));           // substitui as instituições presentes no bloco
+    state.investimentos=state.investimentos.filter(i=>!insts.has(i.instituicao)).concat(clean);
+    res.push(`${insts.size} instituição(ões)`);
+  }
+  if(Array.isArray(obj.movimentacoes)){
+    const map=new Map((state.movimentacoes||[]).map(m=>[m.mes,m]));
+    obj.movimentacoes.forEach(m=>{ if(m.mes) map.set(m.mes,{mes:m.mes, saldo:parseNumber(m.saldo), aporte:parseNumber(m.aporte), rentabilidade:parseNumber(m.rentabilidade)}); });
+    state.movimentacoes=[...map.values()];
+    res.push(`${obj.movimentacoes.length} mês(es)`);
+  }
+  return res;
+}
+function msg(el, text, ok){ el.textContent=text; el.style.color = ok ? 'var(--good)' : 'var(--bad)'; }
+
+document.getElementById('imp-json-apply').onclick=()=>{
+  const el=document.getElementById('imp-json-msg');
+  const raw=document.getElementById('imp-json').value.trim();
+  if(!raw){ msg(el,'Cole um bloco JSON primeiro.',false); return; }
+  let obj; try{ obj=JSON.parse(raw); }catch(e){ msg(el,'JSON inválido: '+e.message,false); return; }
+  try{
+    const parts=applyImport(obj);
+    saveState(); fillEditorRows(); renderAll();
+    msg(el, parts.length? 'Aplicado ✓ ('+parts.join(', ')+'). Confira abaixo e clique em Salvar.' : 'Nada reconhecido no bloco.', parts.length>0);
+    if(parts.length) document.getElementById('imp-json').value='';
+  }catch(e){ msg(el,'Erro ao aplicar: '+e.message,false); }
+};
+
+document.getElementById('imp-export').onclick=()=>{
+  const data=JSON.stringify(state,null,2);
+  const blob=new Blob([data],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='patrimonio-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+};
+
+/* CSV/OFX → objeto de importação, com pré-visualização */
+document.getElementById('imp-file').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{ previewImportFile(rd.result, f.name); }catch(err){ document.getElementById('imp-file-preview').innerHTML=`<p style="color:var(--bad);font-size:12px">Não consegui ler: ${err.message}</p>`; } };
+  rd.readAsText(f,'utf-8');
+});
+
+function csvRows(text){
+  text=text.replace(/^﻿/,'').replace(/\r\n?/g,'\n');
+  const first=text.split('\n')[0]||'';
+  const sep=(first.split(';').length>first.split(',').length)?';':',';
+  const rows=[]; let cur=[],val='',q=false;
+  for(let i=0;i<text.length;i++){ const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){val+='"';i++;} else q=false; } else val+=c; }
+    else { if(c==='"')q=true; else if(c===sep){cur.push(val);val='';} else if(c==='\n'){cur.push(val);rows.push(cur);cur=[];val='';} else val+=c; }
+  }
+  if(val.length||cur.length){cur.push(val);rows.push(cur);}
+  return rows.filter(r=>r.some(c=>String(c).trim()!==''));
+}
+const normh=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
+function pickCol(cols,names){ for(const n of names){ const i=cols.indexOf(normh(n)); if(i>=0) return i; } return -1; }
+
+function previewImportFile(text, name){
+  const box=document.getElementById('imp-file-preview');
+  const isOFX=/<OFX>/i.test(text)||/OFXHEADER/i.test(text);
+  let parsed;
+  if(isOFX) parsed=parseOFX(text);
+  else parsed=parseCSVImport(text);
+  if(!parsed || !parsed.linhas.length){ box.innerHTML=`<p style="color:var(--bad);font-size:12px">Não reconheci dados úteis em <b>${name}</b>. Se for um extrato em PDF, me envie no chat.</p>`; return; }
+
+  const instInput = parsed.tipo==='investimentos'
+    ? `<label style="font-size:12px;color:var(--ink-2);display:block;margin:8px 0 4px">Instituição destes ativos<input id="imp-inst" value="${parsed.instituicao||''}" placeholder="Ex.: BRB" style="width:100%;margin-top:3px"></label>`
+    : '';
+  box.innerHTML=`
+    <div style="border:1px solid var(--border);border-radius:8px;padding:10px;font-size:12px">
+      <b>${name}</b> — reconhecido como <b>${parsed.tipo==='investimentos'?'investimentos':'movimentação mensal'}</b> (${parsed.linhas.length} linha(s)).
+      ${instInput}
+      <div style="max-height:120px;overflow:auto;margin:8px 0;border-top:1px solid var(--grid);padding-top:6px;color:var(--ink-2)">
+        ${parsed.linhas.slice(0,8).map(l=>`<div>${parsed.tipo==='investimentos'?`${l.tipo||'A classificar'} — ${brl.format(l.valor)}`:`${l.mes}: aporte ${brl.format(l.aporte)}, rend. ${brl.format(l.rentabilidade)}`}</div>`).join('')}
+        ${parsed.linhas.length>8?`<div>… +${parsed.linhas.length-8}</div>`:''}
+      </div>
+      <button class="btn primary" id="imp-file-apply" type="button">Importar</button>
+      <p id="imp-file-msg" style="font-size:12px;margin:8px 0 0"></p>
+    </div>`;
+  document.getElementById('imp-file-apply').onclick=()=>{
+    const m2=document.getElementById('imp-file-msg');
+    let obj;
+    if(parsed.tipo==='investimentos'){
+      const inst=(document.getElementById('imp-inst').value||'').trim();
+      if(!inst){ msg(m2,'Informe a instituição.',false); return; }
+      obj={investimentos: parsed.linhas.map(l=>({instituicao:inst, tipo:l.tipo||'A classificar', local:parsed.local||'Brasil', valor:l.valor}))};
+    } else {
+      obj={movimentacoes: parsed.linhas};
+    }
+    const parts=applyImport(obj); saveState(); fillEditorRows(); renderAll();
+    msg(m2,'Importado ✓ ('+parts.join(', ')+'). Clique em Salvar para confirmar.',true);
+  };
+}
+
+function parseCSVImport(text){
+  const rows=csvRows(text); if(rows.length<2) return null;
+  const cols=rows[0].map(normh);
+  const iMes=pickCol(cols,['mes','competencia','periodo','data','datareferencia','mesano']);
+  const iAporte=pickCol(cols,['aporte','aplicacao','aplicacoes','movimentacoes','movimentacao','entradas']);
+  const iRend=pickCol(cols,['rendimento','rentabilidade','ganho','ganhofinanceiro','rendimentos','proventos']);
+  const iSaldo=pickCol(cols,['saldo','saldofinal','patrimonio','patrimoniofinal','posicao','valor','valorbruto']);
+  // Movimentação: tem mês E (aporte OU rendimento OU saldo)
+  if(iMes>=0 && (iAporte>=0||iRend>=0)){
+    const linhas=rows.slice(1).map(r=>{
+      const mk=(String(r[iMes]||'').match(/(\d{4})[-\/](\d{1,2})/)||String(r[iMes]||'').match(/(\d{1,2})[-\/](\d{4})/));
+      let mes='';
+      if(mk){ const a=mk[0].includes('/')?mk.slice(1):mk.slice(1); const y=(''+mk[1]).length===4?mk[1]:mk[2]; const mo=(''+mk[1]).length===4?mk[2]:mk[1]; mes=`${y}-${String(mo).padStart(2,'0')}`; }
+      return mes?{mes, saldo:iSaldo>=0?parseNumber(r[iSaldo]):0, aporte:iAporte>=0?parseNumber(r[iAporte]):0, rentabilidade:iRend>=0?parseNumber(r[iRend]):0}:null;
+    }).filter(Boolean);
+    if(linhas.length) return {tipo:'movimentacoes', linhas};
+  }
+  // Investimentos: tem ativo/produto/tipo e um valor
+  const iAtivo=pickCol(cols,['ativo','produto','papel','descricao','fundo','nome','emissor']);
+  const iTipo=pickCol(cols,['tipo','classe','categoria','estrategia','classepapel']);
+  const iVal=iSaldo>=0?iSaldo:pickCol(cols,['valorliquido','valorbruto','financeiro','posicao','montante']);
+  if((iAtivo>=0||iTipo>=0) && iVal>=0){
+    const linhas=rows.slice(1).map(r=>({ativo:iAtivo>=0?String(r[iAtivo]||'').trim():'', tipo:iTipo>=0?classifTipo(r[iTipo]):'A classificar', valor:parseNumber(r[iVal])})).filter(l=>l.valor>0);
+    if(linhas.length) return {tipo:'investimentos', linhas};
+  }
+  return null;
+}
+// mapeia rótulos de classe do banco para os tipos do dashboard
+function classifTipo(raw){
+  const s=normh(raw);
+  if(!s) return 'A classificar';
+  if(/(cdb|lci|lca|cri|cra|deb|rdb|posfix|prefix|inflacao|rendafixa|tesouro?direto)/.test(s)){ if(/tesouro/.test(s))return'Tesouro'; return 'Renda Fixa'; }
+  if(/tesouro/.test(s)) return 'Tesouro';
+  if(/(acao|acoes|rendavariavel|equity)/.test(s)) return 'Ações';
+  if(/(fii|imobiliario|fundoslistados)/.test(s)) return 'FIIs';
+  if(/coe/.test(s)) return 'COE';
+  if(/previd/.test(s)) return 'Previdência';
+  if(/(multimercado|alternativo|hedge)/.test(s)) return 'Multimercado';
+  if(/(fundo|fic|fim)/.test(s)) return 'Fundos';
+  if(/(caixa|cash|saldo)/.test(s)) return 'Caixa';
+  return 'A classificar';
+}
+// OFX: extrai transações (STMTTRN) e agrega movimento líquido por mês (como aporte)
+function parseOFX(text){
+  const trns=[...text.matchAll(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi)].map(m=>m[1]);
+  const get=(b,tag)=>{ const r=new RegExp('<'+tag+'>([^<\\r\\n]*)','i').exec(b); return r?r[1].trim():''; };
+  const byMes=new Map();
+  trns.forEach(b=>{ const dt=get(b,'DTPOSTED'); const amt=parseNumber(get(b,'TRNAMT').replace('.',','));
+    const mk=dt.match(/^(\d{4})(\d{2})/); if(!mk) return;
+    const mes=`${mk[1]}-${mk[2]}`; byMes.set(mes,(byMes.get(mes)||0)+amt);
+  });
+  const linhas=[...byMes.entries()].sort().map(([mes,aporte])=>({mes, saldo:0, aporte, rentabilidade:0}));
+  return linhas.length?{tipo:'movimentacoes', linhas, ofx:true}:null;
 }
 function closeEditor(){ editor.hidden=true; document.body.style.overflow=''; }
 function collectAndSave(){
