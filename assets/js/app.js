@@ -9,7 +9,12 @@
   const state = {
     tab: 'dashboard',
     year: new Date().getFullYear(),
-    month0: new Date().getMonth()
+    month0: new Date().getMonth(),
+    // Filtros das listas de despesas/receitas
+    filters: {
+      expense: { q: '', category: '', status: '' },
+      income: { q: '', category: '', status: '' }
+    }
   };
 
   const view = document.getElementById('view');
@@ -87,13 +92,29 @@
     view.appendChild(sectionHeader('Visão geral'));
 
     // Cards de resumo
-    const stats = el('div', { class: 'stat-grid' }, [
+    const d = global.Store.getData();
+    const statCards = [
       statCard('Receitas previstas', U.formatBRL(s.totalIncome), 'income'),
       statCard('Despesas do mês', U.formatBRL(s.totalExpense), 'expense',
         'Contas ' + U.formatBRL(s.totalDirectExpense) + ' + cartões ' + U.formatBRL(s.totalInvoices)),
       statCard('Saldo previsto', U.formatBRL(s.balance), s.balance >= 0 ? 'positive' : 'negative')
-    ]);
-    view.appendChild(stats);
+    ];
+    if (d.accounts.length) {
+      const bal = F.totalAccountsBalance();
+      statCards.push(statCard('Saldo em contas', U.formatBRL(bal), bal >= 0 ? 'positive' : 'negative',
+        'Somente valores efetivados'));
+    }
+    view.appendChild(el('div', { class: 'stat-grid' + (statCards.length === 4 ? ' four' : '') }, statCards));
+
+    // Alertas de orçamento estourado
+    const overBudgets = F.budgetStatus(state.year, state.month0).filter(function (b) { return b.over; });
+    if (overBudgets.length) {
+      view.appendChild(el('div', { class: 'alert-banner' }, [
+        el('span', { class: 'alert-icon', text: '⚠' }),
+        el('span', { html: '<strong>Orçamento estourado</strong> em ' +
+          overBudgets.map(function (b) { return U.escapeHtml(b.name); }).join(', ') + '.' })
+      ]));
+    }
 
     // Gráficos
     const grid = el('div', { class: 'dashboard-grid' });
@@ -173,73 +194,179 @@
     const isIncome = type === 'income';
     const occ = F.occurrencesInMonth(type, state.year, state.month0);
     const total = occ.reduce(function (s, o) { return s + o.amount; }, 0);
+    const paidTotal = occ.reduce(function (s, o) { return s + (o.paid ? o.amount : 0); }, 0);
+    const openTotal = total - paidTotal;
 
     view.innerHTML = '';
     const addBtn = el('button', {
       class: 'btn ' + (isIncome ? 'success' : 'danger'),
       text: isIncome ? '+ Nova receita' : '+ Nova despesa',
-      onclick: function () {
-        global.UI.openTransactionModal(type, null, refresh);
-      }
+      onclick: function () { global.UI.openTransactionModal(type, null, refresh); }
     });
     view.appendChild(sectionHeader(isIncome ? 'Receitas' : 'Despesas', addBtn));
 
-    view.appendChild(el('div', { class: 'stat-grid slim' }, [
-      statCard(isIncome ? 'Total previsto no mês' : 'Total no mês',
+    view.appendChild(el('div', { class: 'stat-grid' }, [
+      statCard(isIncome ? 'Previsto no mês' : 'Total no mês',
         U.formatBRL(total), isIncome ? 'income' : 'expense'),
-      statCard('Lançamentos', String(occ.length), '')
+      statCard(isIncome ? 'Já recebido' : 'Já pago', U.formatBRL(paidTotal), 'positive'),
+      statCard(isIncome ? 'A receber' : 'A pagar', U.formatBRL(openTotal),
+        openTotal > 0 ? 'expense' : '')
     ]));
 
+    // Meta do mês (para despesas, se houver orçamentos)
+    if (!isIncome) {
+      const goal = F.monthGoal(state.year, state.month0);
+      if (goal.limit > 0) {
+        const pct = Math.min(100, (goal.spent / goal.limit) * 100);
+        const over = goal.remaining < 0;
+        view.appendChild(el('div', { class: 'panel goal-panel' }, [
+          el('div', { class: 'goal-head' }, [
+            el('span', { text: 'Meta de gastos do mês' }),
+            el('strong', {
+              class: over ? 'neg' : '',
+              text: over
+                ? 'Estourou ' + U.formatBRL(-goal.remaining)
+                : 'Resta ' + U.formatBRL(goal.remaining)
+            })
+          ]),
+          el('div', { class: 'progress' }, [
+            el('div', { class: 'progress-fill ' + (over ? 'over' : ''), style: 'width:' + pct + '%' })
+          ]),
+          el('div', { class: 'goal-foot muted small', text:
+            U.formatBRL(goal.spent) + ' de ' + U.formatBRL(goal.limit) + ' orçados' })
+        ]));
+      }
+    }
+
     if (!occ.length) {
-      view.appendChild(emptyState(
-        isIncome ? 'Nenhuma receita neste mês.' : 'Nenhuma despesa neste mês.', addBtn.cloneNode(true)
-      ));
-      // recliga o clone
-      view.querySelector('.empty .btn').addEventListener('click', function () {
-        global.UI.openTransactionModal(type, null, refresh);
+      const b = el('button', {
+        class: 'btn ' + (isIncome ? 'success' : 'danger'),
+        text: isIncome ? '+ Nova receita' : '+ Nova despesa',
+        onclick: function () { global.UI.openTransactionModal(type, null, refresh); }
       });
+      view.appendChild(emptyState(
+        isIncome ? 'Nenhuma receita neste mês.' : 'Nenhuma despesa neste mês.', b));
       return;
     }
 
-    const list = el('div', { class: 'txn-list panel' });
-    occ.forEach(function (o) {
-      const tx = global.Store.getData().transactions.find(function (t) { return t.id === o.txId; });
-      const recTag = o.recurrence !== 'none'
-        ? el('span', { class: 'tag', text: recurrenceLabel(o.recurrence) })
-        : null;
-
-      const paidBtn = el('button', {
-        class: 'chip ' + (o.paid ? 'chip-on' : ''),
-        text: o.paid ? '✓ Pago' : 'Marcar pago',
-        onclick: function () { togglePaid(o.paidKey); }
-      });
-
-      const row = el('div', { class: 'txn-row' }, [
-        el('div', { class: 'txn-main' }, [
-          el('div', { class: 'txn-title-line' }, [
-            el('span', { class: 'txn-desc', text: o.description }),
-            recTag
-          ]),
-          el('div', { class: 'txn-meta-line' }, [
-            catBadge(o.categoryId),
-            el('span', { class: 'txn-meta', text: U.formatDateBR(o.date) })
-          ])
-        ]),
-        el('div', { class: 'txn-right' }, [
-          el('span', {
-            class: 'txn-amount ' + (isIncome ? 'pos' : 'neg'),
-            text: (isIncome ? '+ ' : '- ') + U.formatBRL(o.amount)
-          }),
-          paidBtn,
-          rowActions(
-            function () { global.UI.openTransactionModal(type, tx, refresh); },
-            function () { deleteTransaction(tx, o.recurrence !== 'none'); }
-          )
-        ])
-      ]);
-      list.appendChild(row);
+    // Barra de busca e filtros
+    const f = state.filters[type];
+    const searchIn = el('input', {
+      type: 'search', class: 'toolbar-search', placeholder: 'Buscar por descrição...', value: f.q
     });
-    view.appendChild(list);
+    const catFilter = el('select', { class: 'toolbar-select' });
+    catFilter.appendChild(el('option', { value: '', text: 'Todas as categorias' }));
+    global.Store.getData().categories
+      .filter(function (c) { return c.type === type; })
+      .forEach(function (c) {
+        const opt = el('option', { value: c.id, text: c.name });
+        if (c.id === f.category) opt.selected = true;
+        catFilter.appendChild(opt);
+      });
+    const statusFilter = el('select', { class: 'toolbar-select' }, [
+      el('option', { value: '', text: 'Todos' }),
+      el('option', { value: 'paid', text: isIncome ? 'Recebidos' : 'Pagos' }),
+      el('option', { value: 'open', text: isIncome ? 'A receber' : 'A pagar' })
+    ]);
+    statusFilter.value = f.status;
+
+    const countLabel = el('span', { class: 'muted small toolbar-count' });
+    const listContainer = el('div', { class: 'panel' });
+
+    function applyFilters() {
+      f.q = searchIn.value;
+      f.category = catFilter.value;
+      f.status = statusFilter.value;
+      const q = f.q.trim().toLowerCase();
+      const filtered = occ.filter(function (o) {
+        if (q && o.description.toLowerCase().indexOf(q) === -1) return false;
+        if (f.category && o.categoryId !== f.category) return false;
+        if (f.status === 'paid' && !o.paid) return false;
+        if (f.status === 'open' && o.paid) return false;
+        return true;
+      });
+      countLabel.textContent = filtered.length + ' de ' + occ.length + ' lançamentos';
+      renderTxnGroups(listContainer, filtered, type);
+    }
+
+    searchIn.addEventListener('input', applyFilters);
+    catFilter.addEventListener('change', applyFilters);
+    statusFilter.addEventListener('change', applyFilters);
+
+    view.appendChild(el('div', { class: 'toolbar' }, [
+      searchIn,
+      el('div', { class: 'toolbar-filters' }, [catFilter, statusFilter]),
+      countLabel
+    ]));
+    view.appendChild(listContainer);
+    applyFilters();
+  }
+
+  // Renderiza lançamentos agrupados por dia, com subtotal diário
+  function renderTxnGroups(container, list, type) {
+    const isIncome = type === 'income';
+    container.innerHTML = '';
+    if (!list.length) {
+      container.appendChild(el('p', { class: 'muted', text: 'Nenhum lançamento com esses filtros.' }));
+      return;
+    }
+    const d = global.Store.getData();
+    // Agrupa por data
+    const groups = [];
+    const byDate = {};
+    list.forEach(function (o) {
+      if (!byDate[o.date]) { byDate[o.date] = []; groups.push(o.date); }
+      byDate[o.date].push(o);
+    });
+
+    groups.forEach(function (date) {
+      const rows = byDate[date];
+      const subtotal = rows.reduce(function (s, o) { return s + o.amount; }, 0);
+      container.appendChild(el('div', { class: 'day-header' }, [
+        el('span', { class: 'day-date', text: U.formatDateBR(date) }),
+        el('span', {
+          class: 'day-subtotal ' + (isIncome ? 'pos' : 'neg'),
+          text: (isIncome ? '+ ' : '- ') + U.formatBRL(subtotal)
+        })
+      ]));
+      rows.forEach(function (o) {
+        const tx = d.transactions.find(function (t) { return t.id === o.txId; });
+        const recTag = o.recurrence !== 'none'
+          ? el('span', { class: 'tag', text: recurrenceLabel(o.recurrence) }) : null;
+        const acc = tx && tx.accountId ? F.getAccount(tx.accountId) : null;
+        const accTag = acc
+          ? el('span', { class: 'tag tag-account' }, [
+              el('span', { class: 'cat-dot', style: 'background:' + (acc.color || '#888') }),
+              el('span', { text: acc.name })
+            ]) : null;
+
+        const paidBtn = el('button', {
+          class: 'chip ' + (o.paid ? 'chip-on' : ''),
+          text: o.paid ? (isIncome ? '✓ Recebido' : '✓ Pago') : (isIncome ? 'Receber' : 'Marcar pago'),
+          onclick: function () { togglePaid(o.paidKey); }
+        });
+
+        container.appendChild(el('div', { class: 'txn-row' }, [
+          el('div', { class: 'txn-main' }, [
+            el('div', { class: 'txn-title-line' }, [
+              el('span', { class: 'txn-desc', text: o.description }), recTag, accTag
+            ]),
+            el('div', { class: 'txn-meta-line' }, [ catBadge(o.categoryId) ])
+          ]),
+          el('div', { class: 'txn-right' }, [
+            el('span', {
+              class: 'txn-amount ' + (isIncome ? 'pos' : 'neg'),
+              text: (isIncome ? '+ ' : '- ') + U.formatBRL(o.amount)
+            }),
+            paidBtn,
+            rowActions(
+              function () { global.UI.openTransactionModal(type, tx, refresh); },
+              function () { deleteTransaction(tx, o.recurrence !== 'none'); }
+            )
+          ])
+        ]));
+      });
+    });
   }
 
   function recurrenceLabel(r) {
@@ -424,6 +551,151 @@
   }
 
   /* ================================================================== *
+   *  Aba: Orçamento                                                     *
+   * ================================================================== */
+  function renderBudgets() {
+    const d = global.Store.getData();
+    view.innerHTML = '';
+    view.appendChild(sectionHeader('Orçamento por categoria'));
+
+    const goal = F.monthGoal(state.year, state.month0);
+    const spentAll = F.expenseByCategory(state.year, state.month0)
+      .reduce(function (s, c) { return s + c.total; }, 0);
+
+    view.appendChild(el('div', { class: 'stat-grid' }, [
+      statCard('Total orçado', U.formatBRL(goal.limit), ''),
+      statCard('Gasto no mês', U.formatBRL(spentAll), 'expense'),
+      statCard('Saldo do orçamento', U.formatBRL(goal.remaining),
+        goal.remaining >= 0 ? 'positive' : 'negative')
+    ]));
+
+    view.appendChild(el('p', { class: 'muted', text:
+      'Defina um limite mensal para cada categoria de despesa. A barra mostra o quanto você já gastou ' +
+      'no mês selecionado e alerta quando o orçamento estoura.' }));
+
+    const expenseCats = d.categories.filter(function (c) { return c.type === 'expense'; });
+    const spentMap = {};
+    F.expenseByCategory(state.year, state.month0).forEach(function (c) { spentMap[c.categoryId] = c.total; });
+
+    const panel = el('div', { class: 'panel' });
+    expenseCats.forEach(function (cat) {
+      const limit = F.getBudget(cat.id);
+      const spent = spentMap[cat.id] || 0;
+      const pct = limit > 0 ? Math.min(100, (spent / limit) * 100) : 0;
+      const over = limit > 0 && spent > limit;
+
+      const input = el('input', {
+        type: 'text', inputmode: 'decimal', class: 'input-money budget-input',
+        placeholder: 'Sem limite', value: limit > 0 ? U.formatNumber(limit) : ''
+      });
+      input.addEventListener('change', function () {
+        F.setBudget(cat.id, U.parseAmount(input.value));
+        renderBudgets();
+      });
+
+      const bar = limit > 0
+        ? el('div', { class: 'progress slim' }, [
+            el('div', { class: 'progress-fill ' + (over ? 'over' : ''), style:
+              'width:' + pct + '%;background:' + (over ? '' : cat.color) })
+          ])
+        : el('div', { class: 'muted small', text: 'Defina um limite para acompanhar.' });
+
+      panel.appendChild(el('div', { class: 'budget-row' }, [
+        el('div', { class: 'budget-cat' }, [
+          el('span', { class: 'cat-dot', style: 'background:' + cat.color }),
+          el('span', { class: 'budget-name', text: cat.name })
+        ]),
+        el('div', { class: 'budget-track' }, [
+          bar,
+          limit > 0 ? el('div', { class: 'budget-values muted small', text:
+            U.formatBRL(spent) + ' de ' + U.formatBRL(limit) +
+            (over ? ' • estourou ' + U.formatBRL(spent - limit) : ' • resta ' + U.formatBRL(limit - spent))
+          }) : null
+        ]),
+        el('div', { class: 'budget-input-wrap' }, [
+          el('span', { class: 'muted small', text: 'R$' }), input
+        ])
+      ]));
+    });
+    view.appendChild(panel);
+  }
+
+  /* ================================================================== *
+   *  Aba: Contas                                                        *
+   * ================================================================== */
+  function renderAccounts() {
+    const d = global.Store.getData();
+    view.innerHTML = '';
+    const addBtn = el('button', {
+      class: 'btn primary', text: '+ Nova conta',
+      onclick: function () { global.UI.openAccountModal(null, refresh); }
+    });
+    view.appendChild(sectionHeader('Contas', addBtn));
+
+    if (!d.accounts.length) {
+      const b = el('button', {
+        class: 'btn primary', text: '+ Criar primeira conta',
+        onclick: function () { global.UI.openAccountModal(null, refresh); }
+      });
+      view.appendChild(emptyState(
+        'Cadastre suas contas (banco, carteira, dinheiro) para acompanhar o saldo real. ' +
+        'Depois vincule despesas, receitas e cartões a elas.', b));
+      return;
+    }
+
+    const totalBal = F.totalAccountsBalance();
+    view.appendChild(el('div', { class: 'stat-grid single' }, [
+      statCard('Saldo total das contas', U.formatBRL(totalBal),
+        totalBal >= 0 ? 'positive' : 'negative', 'Somente lançamentos efetivados')
+    ]));
+
+    const typeLabels = {
+      banco: 'Conta bancária', carteira: 'Carteira digital',
+      dinheiro: 'Dinheiro', poupanca: 'Poupança', outro: 'Conta'
+    };
+    const grid = el('div', { class: 'account-grid' });
+    d.accounts.forEach(function (acc) {
+      const bal = F.accountBalance(acc.id);
+      grid.appendChild(el('div', { class: 'panel account-card', style: '--acc:' + acc.color }, [
+        el('div', { class: 'account-top' }, [
+          el('div', { class: 'account-badge', style: 'background:' + acc.color, text: acc.name.slice(0, 2).toUpperCase() }),
+          el('div', { class: 'account-info' }, [
+            el('strong', { text: acc.name }),
+            el('span', { class: 'muted small', text: typeLabels[acc.type] || 'Conta' })
+          ]),
+          el('div', { class: 'row-actions' }, [
+            el('button', { class: 'icon-btn small', text: '✎', title: 'Editar',
+              onclick: function () { global.UI.openAccountModal(acc, refresh); } }),
+            el('button', { class: 'icon-btn small danger', text: '🗑', title: 'Excluir',
+              onclick: function () { deleteAccount(acc); } })
+          ])
+        ]),
+        el('div', { class: 'account-balance' }, [
+          el('span', { class: 'muted small', text: 'Saldo atual' }),
+          el('strong', { class: 'account-balance-val ' + (bal >= 0 ? 'pos' : 'neg'),
+            text: U.formatBRL(bal) })
+        ]),
+        el('div', { class: 'muted small', text: 'Saldo inicial ' + U.formatBRL(acc.initialBalance || 0) })
+      ]));
+    });
+    view.appendChild(grid);
+  }
+
+  function deleteAccount(acc) {
+    global.UI.confirmModal('Excluir conta',
+      'Excluir a conta "' + acc.name + '"? Os lançamentos vinculados ficam sem conta.',
+      function () {
+        const d = global.Store.getData();
+        d.accounts = d.accounts.filter(function (a) { return a.id !== acc.id; });
+        d.transactions.forEach(function (t) { if (t.accountId === acc.id) t.accountId = ''; });
+        d.cards.forEach(function (c) { if (c.accountId === acc.id) c.accountId = ''; });
+        global.Store.save();
+        U.toast('Conta excluída.', 'success');
+        render();
+      }, true);
+  }
+
+  /* ================================================================== *
    *  Aba: Configurações                                                 *
    * ================================================================== */
   function renderConfig() {
@@ -549,6 +821,8 @@
       case 'despesas': renderTransactions('expense'); break;
       case 'receitas': renderTransactions('income'); break;
       case 'cartoes': renderCards(); break;
+      case 'orcamento': renderBudgets(); break;
+      case 'contas': renderAccounts(); break;
       case 'config': renderConfig(); break;
       default: renderDashboard();
     }

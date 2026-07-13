@@ -34,7 +34,13 @@
       // Marca de "pago" por ocorrência: chave "id:YYYY-MM" -> true
       paidOverrides: {},
       // Faturas pagas: chave "cardId:YYYY-MM" -> true
-      invoicePaid: {}
+      invoicePaid: {},
+      // Contas (banco/carteira/dinheiro) com saldo inicial
+      accounts: [],
+      // Orçamentos mensais por categoria: [{ categoryId, amount }]
+      budgets: [],
+      // Preferências gerais
+      settings: {}
     };
   }
 
@@ -59,11 +65,13 @@
     // Garante que todas as chaves existam
     const merged = Object.assign({}, base, parsed);
     merged.version = SCHEMA_VERSION;
-    ['categories', 'transactions', 'cards', 'cardExpenses'].forEach(function (k) {
+    ['categories', 'transactions', 'cards', 'cardExpenses',
+      'accounts', 'budgets'].forEach(function (k) {
       if (!Array.isArray(merged[k])) merged[k] = base[k];
     });
     if (!merged.paidOverrides || typeof merged.paidOverrides !== 'object') merged.paidOverrides = {};
     if (!merged.invoicePaid || typeof merged.invoicePaid !== 'object') merged.invoicePaid = {};
+    if (!merged.settings || typeof merged.settings !== 'object') merged.settings = {};
     return merged;
   }
 

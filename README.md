@@ -12,11 +12,21 @@ navegador — basta abrir um arquivo, sem instalar nada.
 - **Cartões de crédito** — cadastro de vários cartões (limite, dia de fechamento
   e vencimento) com compras **à vista e parceladas**. As parcelas são distribuídas
   automaticamente nas faturas corretas mês a mês.
+- **Orçamento por categoria** (estilo "Planejamento" do Mobills) — defina um limite
+  mensal por categoria, com barra de progresso, quanto ainda resta e **alerta quando
+  o orçamento estoura**.
+- **Contas e saldo** — cadastre contas (banco, carteira, dinheiro), vincule
+  despesas/receitas/cartões a elas e acompanhe o **saldo real** (considerando apenas
+  o que foi efetivado). Saldo consolidado de todas as contas.
+- **Busca e filtros** nas listas de despesas e receitas: por descrição, categoria e
+  status (pago/pendente).
+- **Resumo diário** — lançamentos agrupados por dia com subtotal, e **meta de gastos**
+  do mês com barra de progresso.
 - **Visão geral (dashboard)** com:
-  - Cartões de resumo (receitas, despesas e saldo previsto do mês).
+  - Cartões de resumo (receitas, despesas, saldo previsto e saldo em contas).
   - Gráfico de rosca de **despesas por categoria**.
   - **Projeção de 6 meses** (receitas × despesas).
-  - Lista dos lançamentos do mês.
+  - Alertas de orçamento estourado e lista dos lançamentos do mês.
 - **Navegação por mês** (‹ ›) para ver o passado e planejar o futuro.
 - **Backup**: exportar/importar seus dados em JSON.
 

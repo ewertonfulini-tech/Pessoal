@@ -102,6 +102,21 @@
     return d.cards.map(function (c) { return { value: c.id, label: c.name }; });
   }
 
+  function accountOptions(withNone) {
+    const d = global.Store.getData();
+    const opts = d.accounts.map(function (a) { return { value: a.id, label: a.name }; });
+    if (withNone) opts.unshift({ value: '', label: '— Sem conta —' });
+    return opts;
+  }
+
+  const ACCOUNT_TYPES = [
+    { value: 'banco', label: 'Conta bancária' },
+    { value: 'carteira', label: 'Carteira digital' },
+    { value: 'dinheiro', label: 'Dinheiro' },
+    { value: 'poupanca', label: 'Poupança' },
+    { value: 'outro', label: 'Outro' }
+  ];
+
   const RECURRENCE_OPTS = [
     { value: 'none', label: 'Única (não repete)' },
     { value: 'monthly', label: 'Mensal' },
@@ -124,6 +139,8 @@
     const catIn = select(categoryOptions(type), tx.categoryId);
     const recIn = select(RECURRENCE_OPTS, tx.recurrence || 'none');
     const endIn = el('input', { type: 'date', value: tx.recurrenceEnd || '' });
+    const hasAccounts = global.Store.getData().accounts.length > 0;
+    const acctIn = hasAccounts ? select(accountOptions(true), tx.accountId || '') : null;
 
     const endField = field('Repetir até (opcional)', endIn, 'Deixe vazio para repetir indefinidamente.');
     function syncEnd() { endField.style.display = recIn.value === 'none' ? 'none' : ''; }
@@ -140,6 +157,8 @@
         field('Categoria', catIn),
         field('Recorrência', recIn)
       ]),
+      hasAccounts ? field(type === 'income' ? 'Receber na conta' : 'Pagar com a conta', acctIn,
+        'Usada para calcular o saldo quando marcado como ' + (type === 'income' ? 'recebido.' : 'pago.')) : null,
       endField
     ]);
 
@@ -149,18 +168,19 @@
       if (amount <= 0) { U.toast('Informe um valor maior que zero.', 'error'); return; }
 
       const d = global.Store.getData();
+      const accountId = acctIn ? acctIn.value : (tx.accountId || '');
       if (isEdit) {
         const ref = d.transactions.find(function (t) { return t.id === tx.id; });
         Object.assign(ref, {
           description: descIn.value.trim(), amount: amount, date: dateIn.value,
-          categoryId: catIn.value, recurrence: recIn.value,
+          categoryId: catIn.value, recurrence: recIn.value, accountId: accountId,
           recurrenceEnd: recIn.value === 'none' ? '' : (endIn.value || '')
         });
       } else {
         d.transactions.push({
           id: U.uid('tx'), type: type,
           description: descIn.value.trim(), amount: amount, date: dateIn.value,
-          categoryId: catIn.value, recurrence: recIn.value,
+          categoryId: catIn.value, recurrence: recIn.value, accountId: accountId,
           recurrenceEnd: recIn.value === 'none' ? '' : (endIn.value || '')
         });
       }
@@ -182,13 +202,15 @@
   function openCardModal(existing, onSaved) {
     const isEdit = !!existing;
     const card = existing || {
-      name: '', limit: '', closingDay: 1, dueDay: 10, color: '#6366f1'
+      name: '', limit: '', closingDay: 1, dueDay: 10, color: '#6366f1', accountId: ''
     };
     const nameIn = textInput(card.name, { placeholder: 'Ex: Nubank, Itaú...' });
     const limitIn = numberInput(card.limit ? U.formatNumber(card.limit) : '');
     const closeIn = el('input', { type: 'number', min: 1, max: 31, value: card.closingDay || 1 });
     const dueIn = el('input', { type: 'number', min: 1, max: 31, value: card.dueDay || 10 });
     const colorIn = el('input', { type: 'color', value: card.color || '#6366f1', class: 'input-color' });
+    const hasAccounts = global.Store.getData().accounts.length > 0;
+    const acctIn = hasAccounts ? select(accountOptions(true), card.accountId || '') : null;
 
     const body = el('div', { class: 'modal-body' }, [
       field('Nome do cartão', nameIn),
@@ -197,6 +219,8 @@
         field('Dia de fechamento', closeIn),
         field('Dia de vencimento', dueIn)
       ]),
+      hasAccounts ? field('Conta que paga a fatura', acctIn,
+        'Ao marcar a fatura como paga, o valor é debitado desta conta.') : null,
       field('Cor', colorIn)
     ]);
 
@@ -208,7 +232,8 @@
         limit: U.parseAmount(limitIn.value),
         closingDay: Math.min(31, Math.max(1, parseInt(closeIn.value, 10) || 1)),
         dueDay: Math.min(31, Math.max(1, parseInt(dueIn.value, 10) || 10)),
-        color: colorIn.value
+        color: colorIn.value,
+        accountId: acctIn ? acctIn.value : (card.accountId || '')
       };
       if (isEdit) {
         Object.assign(d.cards.find(function (c) { return c.id === card.id; }), payload);
@@ -339,8 +364,57 @@
     });
   }
 
+  /* ---------- Modal: Conta ---------- */
+  function openAccountModal(existing, onSaved) {
+    const isEdit = !!existing;
+    const acc = existing || { name: '', type: 'banco', initialBalance: '', color: '#6366f1' };
+    const nameIn = textInput(acc.name, { placeholder: 'Ex: Nubank, Carteira, Dinheiro...' });
+    const typeIn = select(ACCOUNT_TYPES, acc.type);
+    const balIn = numberInput(
+      (acc.initialBalance !== '' && acc.initialBalance != null) ? U.formatNumber(acc.initialBalance) : ''
+    );
+    const colorIn = el('input', { type: 'color', value: acc.color || '#6366f1', class: 'input-color' });
+
+    const body = el('div', { class: 'modal-body' }, [
+      field('Nome da conta', nameIn),
+      el('div', { class: 'field-row' }, [
+        field('Tipo', typeIn),
+        field('Saldo inicial (R$)', balIn)
+      ]),
+      el('small', { class: 'field-hint', text:
+        'O saldo evolui somando receitas recebidas e subtraindo despesas/faturas pagas nesta conta.' }),
+      field('Cor', colorIn)
+    ]);
+
+    function save(close) {
+      if (!nameIn.value.trim()) { U.toast('Informe o nome da conta.', 'error'); return; }
+      const d = global.Store.getData();
+      const payload = {
+        name: nameIn.value.trim(), type: typeIn.value,
+        initialBalance: U.parseAmount(balIn.value), color: colorIn.value
+      };
+      if (isEdit) {
+        Object.assign(d.accounts.find(function (a) { return a.id === acc.id; }), payload);
+      } else {
+        d.accounts.push(Object.assign({ id: U.uid('acc') }, payload));
+      }
+      global.Store.save();
+      U.toast(isEdit ? 'Conta atualizada.' : 'Conta criada.', 'success');
+      close();
+      onSaved && onSaved();
+    }
+
+    openModal(isEdit ? 'Editar conta' : 'Nova conta', body, {
+      buttons: [
+        { label: 'Cancelar', variant: 'ghost', onClick: function (c) { c(); } },
+        { label: 'Salvar', variant: 'primary', onClick: save }
+      ]
+    });
+  }
+
   global.UI = {
     openModal, confirmModal,
-    openTransactionModal, openCardModal, openCardExpenseModal, openCategoryModal
+    openTransactionModal, openCardModal, openCardExpenseModal, openCategoryModal,
+    openAccountModal
   };
 })(window);

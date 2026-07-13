@@ -283,11 +283,108 @@
     return out;
   }
 
+  /* ------------------------------------------------------------------ *
+   *  Orçamentos por categoria                                           *
+   * ------------------------------------------------------------------ */
+
+  function getBudget(categoryId) {
+    const b = global.Store.getData().budgets.find(function (x) { return x.categoryId === categoryId; });
+    return b ? Number(b.amount) || 0 : 0;
+  }
+
+  function setBudget(categoryId, amount) {
+    const d = global.Store.getData();
+    const existing = d.budgets.find(function (x) { return x.categoryId === categoryId; });
+    if (amount > 0) {
+      if (existing) existing.amount = amount;
+      else d.budgets.push({ categoryId: categoryId, amount: amount });
+    } else if (existing) {
+      d.budgets = d.budgets.filter(function (x) { return x.categoryId !== categoryId; });
+    }
+    global.Store.save();
+  }
+
+  // Situação de todos os orçamentos definidos no mês
+  function budgetStatus(year, month0) {
+    const d = global.Store.getData();
+    const spentMap = {};
+    expenseByCategory(year, month0).forEach(function (c) { spentMap[c.categoryId] = c.total; });
+    return d.budgets
+      .filter(function (b) { return Number(b.amount) > 0; })
+      .map(function (b) {
+        const cat = getCategory(b.categoryId);
+        const limit = Number(b.amount) || 0;
+        const spent = spentMap[b.categoryId] || 0;
+        const pct = limit > 0 ? (spent / limit) * 100 : 0;
+        return {
+          categoryId: b.categoryId, name: cat.name, color: cat.color,
+          limit: limit, spent: spent, remaining: limit - spent,
+          pct: pct, over: spent > limit
+        };
+      })
+      .sort(function (a, b) { return b.pct - a.pct; });
+  }
+
+  // Meta total do mês = soma dos orçamentos definidos
+  function monthGoal(year, month0) {
+    const status = budgetStatus(year, month0);
+    const limit = status.reduce(function (s, b) { return s + b.limit; }, 0);
+    const spent = status.reduce(function (s, b) { return s + b.spent; }, 0);
+    return { limit: limit, spent: spent, remaining: limit - spent, count: status.length };
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  Contas e saldo                                                     *
+   * ------------------------------------------------------------------ */
+
+  function getAccount(id) {
+    return global.Store.getData().accounts.find(function (a) { return a.id === id; });
+  }
+
+  // Saldo atual de uma conta: saldo inicial + lançamentos EFETIVADOS (pagos/recebidos)
+  // vinculados a ela + faturas pagas de cartões vinculados.
+  function accountBalance(accountId) {
+    const d = global.Store.getData();
+    const acc = getAccount(accountId);
+    let balance = acc ? (Number(acc.initialBalance) || 0) : 0;
+
+    // Lançamentos marcados como pagos/recebidos
+    Object.keys(d.paidOverrides).forEach(function (key) {
+      if (!d.paidOverrides[key]) return;
+      const sep = key.lastIndexOf(':');
+      const txId = key.slice(0, sep);
+      const tx = d.transactions.find(function (t) { return t.id === txId; });
+      if (!tx || tx.accountId !== accountId) return;
+      const amt = Number(tx.amount) || 0;
+      balance += (tx.type === 'income' ? amt : -amt);
+    });
+
+    // Faturas de cartão pagas por esta conta
+    Object.keys(d.invoicePaid).forEach(function (key) {
+      if (!d.invoicePaid[key]) return;
+      const sep = key.lastIndexOf(':');
+      const cardId = key.slice(0, sep);
+      const ym = key.slice(sep + 1).split('-');
+      const card = getCard(cardId);
+      if (!card || card.accountId !== accountId) return;
+      balance -= invoiceTotal(cardId, parseInt(ym[0], 10), parseInt(ym[1], 10) - 1);
+    });
+
+    return balance;
+  }
+
+  function totalAccountsBalance() {
+    const d = global.Store.getData();
+    return d.accounts.reduce(function (s, a) { return s + accountBalance(a.id); }, 0);
+  }
+
   global.Finance = {
     getCategory,
     occurrencesOfTransaction, occurrencesInMonth,
     getCard, installmentsOf, invoiceItems, invoiceTotal,
     invoicePaidKey, isInvoicePaid, cardOpenBalance,
-    monthSummary, expenseByCategory, projection
+    monthSummary, expenseByCategory, projection,
+    getBudget, setBudget, budgetStatus, monthGoal,
+    getAccount, accountBalance, totalAccountsBalance
   };
 })(window);

@@ -309,6 +309,87 @@ html, body {
 .toast.success { border-color: var(--success); }
 .toast.error { border-color: var(--danger); }
 
+/* ---------------- Stat grid extra columns ---------------- */
+.stat-grid.four { grid-template-columns: repeat(4, 1fr); }
+.stat-grid.single { grid-template-columns: 1fr; margin-bottom: 22px; }
+
+/* ---------------- Toolbar (busca e filtros) ---------------- */
+.toolbar {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;
+}
+.toolbar-search {
+  flex: 1; min-width: 180px; background: var(--panel); border: 1px solid var(--border);
+  color: var(--text); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 14px;
+}
+.toolbar-search:focus { outline: none; border-color: var(--primary); }
+.toolbar-filters { display: flex; gap: 8px; }
+.toolbar-select {
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  padding: 9px 12px; border-radius: var(--radius-sm); font-size: 13.5px; cursor: pointer;
+}
+.toolbar-count { white-space: nowrap; }
+
+/* ---------------- Agrupamento por dia ---------------- */
+.day-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 4px 6px; border-bottom: 1px solid var(--border); margin-top: 4px;
+}
+.day-header:first-child { margin-top: 0; }
+.day-date { font-size: 12.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.day-subtotal { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.day-subtotal.pos { color: var(--income); }
+.day-subtotal.neg { color: var(--muted); }
+.tag-account { display: inline-flex; align-items: center; gap: 5px; }
+
+/* ---------------- Barras de progresso ---------------- */
+.progress { width: 100%; height: 10px; border-radius: 999px; background: var(--track); overflow: hidden; }
+.progress.slim { height: 8px; }
+.progress-fill { height: 100%; border-radius: 999px; background: var(--primary); transition: width .3s; }
+.progress-fill.over { background: var(--danger); }
+
+/* ---------------- Meta do mês ---------------- */
+.goal-panel { display: flex; flex-direction: column; gap: 10px; }
+.goal-head { display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
+.goal-head .neg { color: var(--danger); }
+.goal-foot { text-align: right; }
+
+/* ---------------- Alerta ---------------- */
+.alert-banner {
+  display: flex; align-items: center; gap: 10px; background: rgba(239, 68, 68, .12);
+  border: 1px solid var(--danger); color: var(--text); padding: 12px 16px;
+  border-radius: var(--radius); margin-bottom: 18px; font-size: 14px;
+}
+.alert-icon { font-size: 18px; }
+
+/* ---------------- Orçamento ---------------- */
+.budget-row {
+  display: grid; grid-template-columns: 160px 1fr 130px; gap: 16px; align-items: center;
+  padding: 14px 4px; border-bottom: 1px solid var(--border);
+}
+.budget-row:last-child { border-bottom: none; }
+.budget-cat { display: flex; align-items: center; gap: 8px; }
+.budget-name { font-weight: 600; }
+.budget-track { display: flex; flex-direction: column; gap: 6px; }
+.budget-values { font-variant-numeric: tabular-nums; }
+.budget-input-wrap { display: flex; align-items: center; gap: 6px; }
+.budget-input { width: 100px; padding: 8px 10px; text-align: right; }
+
+/* ---------------- Contas ---------------- */
+.account-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;
+}
+.account-card { margin-bottom: 0; border-top: 3px solid var(--acc, var(--primary)); }
+.account-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.account-badge {
+  width: 42px; height: 42px; border-radius: 10px; color: #fff; flex-shrink: 0;
+  display: grid; place-items: center; font-weight: 700; font-size: 14px;
+}
+.account-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.account-balance { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+.account-balance-val { font-size: 22px; font-weight: 700; }
+.account-balance-val.pos { color: var(--income); }
+.account-balance-val.neg { color: var(--expense); }
+
 /* ---------------- Light theme ---------------- */
 @media (prefers-color-scheme: light) {
   :root {
@@ -338,4 +419,12 @@ html, body {
   .topbar { padding: 12px 16px; }
   .field-row { grid-template-columns: 1fr; }
   .stat-grid.slim { grid-template-columns: 1fr; }
+  .budget-row { grid-template-columns: 1fr; gap: 10px; }
+  .budget-input { width: 100%; }
+  .budget-input-wrap { justify-content: flex-start; }
+  .toolbar-search { min-width: 100%; }
+}
+
+@media (max-width: 900px) {
+  .stat-grid.four { grid-template-columns: repeat(2, 1fr); }
 }
