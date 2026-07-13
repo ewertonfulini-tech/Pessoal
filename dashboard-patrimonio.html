@@ -311,10 +311,13 @@ const DEFAULT_STATE = {
     { nome:'Carro (exemplo)',       classe:'Veículo', valor:90000,  divida:35000 },
   ],
   investimentos: [
-    { instituicao:'Banco A',    tipo:'A classificar', local:'Brasil',   valor:420000 },
-    { instituicao:'Corretora B',tipo:'A classificar', local:'Brasil',   valor:210000 },
-    { instituicao:'Banco C',    tipo:'A classificar', local:'Brasil',   valor:85000 },
-    { instituicao:'Broker US',  tipo:'A classificar', local:'Exterior', valor:40000 },
+    { instituicao:'Corretora A', tipo:'Renda Fixa',   local:'Brasil',   valor:180000 },
+    { instituicao:'Corretora A', tipo:'Ações',        local:'Brasil',   valor:90000 },
+    { instituicao:'Corretora A', tipo:'Fundos',       local:'Brasil',   valor:60000 },
+    { instituicao:'Corretora A', tipo:'FIIs',         local:'Brasil',   valor:40000 },
+    { instituicao:'Banco B',     tipo:'Renda Fixa',   local:'Brasil',   valor:210000 },
+    { instituicao:'Banco C',     tipo:'A classificar',local:'Brasil',   valor:85000 },
+    { instituicao:'Broker US',   tipo:'Ações',        local:'Exterior', valor:40000 },
   ],
   // Movimentação mensal — extraída dos extratos bancários (saldo final, aporte líquido e rendimento do mês)
   movimentacoes: [
@@ -442,7 +445,7 @@ function renderKpis(){
     </div>`;
   document.getElementById('miniKpis').innerHTML = `
     <div class="card kpi small"><p class="k-label">Imóveis &amp; veículos</p><div class="k-value">${brl.format(d.imobTotal)}</div><div class="k-sub"><span class="pill">${state.imobilizado.length} bens</span></div></div>
-    <div class="card kpi small"><p class="k-label">Investimentos</p><div class="k-value">${brl.format(d.invTotal)}</div><div class="k-sub"><span class="pill">${state.investimentos.filter(i=>+i.valor>0).length} instituições</span></div></div>
+    <div class="card kpi small"><p class="k-label">Investimentos</p><div class="k-value">${brl.format(d.invTotal)}</div><div class="k-sub"><span class="pill">${new Set(state.investimentos.filter(i=>+i.valor>0).map(i=>i.instituicao)).size} instituições</span></div></div>
     <div class="card kpi small"><p class="k-label">Dívidas / financiamentos</p><div class="k-value neg">${brl.format(d.dividaTotal)}</div><div class="k-sub">${pctPlain(d.bruto>0?d.dividaTotal/d.bruto*100:0)} do patrimônio bruto</div></div>
     <div class="card kpi small"><p class="k-label">FGTS</p><div class="k-value">${brl.format(d.fgts)}</div><div class="k-sub">fora do patrimônio principal</div></div>`;
 }
@@ -528,8 +531,11 @@ function renderEvolucao(){
 /* ===================== Render: Investimentos por instituição ===================== */
 function renderInstituicoes(){
   const d=derive();
-  const items=state.investimentos.filter(i=>+i.valor>0).sort((a,b)=>b.valor-a.valor);
-  const max=Math.max(...items.map(i=>+i.valor),1);
+  // agrega por instituição (uma instituição pode ter várias linhas, uma por tipo)
+  const agg=new Map();
+  state.investimentos.forEach(i=>{ if(+i.valor>0){ const cur=agg.get(i.instituicao)||{valor:0,local:i.local}; cur.valor+=+i.valor; if(i.local==='Exterior')cur.local='Exterior'; agg.set(i.instituicao,cur); } });
+  const items=[...agg.entries()].map(([instituicao,v])=>({instituicao,...v})).sort((a,b)=>b.valor-a.valor);
+  const max=Math.max(...items.map(i=>i.valor),1);
   const colorMap={}; items.forEach((it,i)=>colorMap[it.instituicao]=`var(${SLOTS[i%8]})`);
   document.getElementById('instHint').textContent=`Total ${brl.format(d.invTotal)} em ${items.length} instituições`;
   document.getElementById('instBars').innerHTML=items.map(it=>`
@@ -592,15 +598,32 @@ function renderImobTable(){
 /* ===================== Render: Tabela investimentos ===================== */
 function renderInvTable(){
   const d=derive();
-  const rows=[...state.investimentos].sort((a,b)=>b.valor-a.valor);
-  const body=rows.map(it=>`<tr>
-      <td class="l">${it.instituicao}</td>
-      <td class="l">${it.tipo==='A classificar'?'<span class="tag" style="color:var(--muted)">A classificar</span>':it.tipo}</td>
+  // ordena instituições por total desc; dentro de cada uma, tipos por valor desc
+  const totByInst=new Map();
+  state.investimentos.forEach(i=>totByInst.set(i.instituicao,(totByInst.get(i.instituicao)||0)+ +i.valor));
+  const rows=[...state.investimentos].sort((a,b)=>
+    (totByInst.get(b.instituicao)-totByInst.get(a.instituicao)) || (b.valor-a.valor));
+  let body='', cur=null, multi=false;
+  const instCount=n=>state.investimentos.filter(i=>i.instituicao===n).length;
+  rows.forEach(it=>{
+    if(it.instituicao!==cur){
+      cur=it.instituicao; multi=instCount(cur)>1;
+      if(multi){ const t=totByInst.get(cur);
+        body+=`<tr class="group" style="background:color-mix(in srgb,var(--ink) 4%,transparent)">
+          <td class="l" style="font-weight:600">${cur}</td><td class="l"></td><td class="l"></td>
+          <td class="num" style="font-weight:600">${brl.format(t)}</td>
+          <td class="num" style="font-weight:600">${pctPlain(d.invTotal>0?t/d.invTotal*100:0)}</td></tr>`;
+      }
+    }
+    body+=`<tr>
+      <td class="l" style="${multi?'padding-left:24px;color:var(--ink-2)':''}">${multi?'':it.instituicao}${multi?'↳ '+it.tipo:''}</td>
+      <td class="l">${multi?'':(it.tipo==='A classificar'?'<span class="tag" style="color:var(--muted)">A classificar</span>':it.tipo)}</td>
       <td class="l"><span class="tag ${it.local==='Exterior'?'us':''}">${it.local||'Brasil'}</span></td>
       <td class="num">${brlc.format(+it.valor||0)}</td>
-      <td class="num">${pctPlain(d.invTotal>0?(+it.valor||0)/d.invTotal*100:0)}</td></tr>`).join('');
+      <td class="num">${pctPlain(d.invTotal>0?(+it.valor||0)/d.invTotal*100:0)}</td></tr>`;
+  });
   document.getElementById('invTable').innerHTML=`
-    <thead><tr><th class="l">Instituição</th><th class="l">Tipo</th><th class="l">Local</th><th class="num">Valor</th><th class="num">% carteira</th></tr></thead>
+    <thead><tr><th class="l">Instituição / tipo</th><th class="l">Tipo</th><th class="l">Local</th><th class="num">Valor</th><th class="num">% carteira</th></tr></thead>
     <tbody>${body}</tbody>
     <tfoot><tr><td class="l">TOTAL</td><td></td><td></td><td class="num">${brlc.format(d.invTotal)}</td><td class="num">100%</td></tr></tfoot>`;
 }
