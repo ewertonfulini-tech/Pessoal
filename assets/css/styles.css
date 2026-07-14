@@ -1,24 +1,27 @@
 /* styles.css — Meu Gestor Financeiro */
 
-:root {
-  --bg: #0f1420;
-  --bg-elev: #171e2e;
-  --panel: #1b2436;
-  --panel-2: #212c42;
-  --border: #2a3654;
-  --track: #2a3654;
-  --text: #e8edf7;
-  --muted: #93a1bd;
-  --primary: #6366f1;
-  --primary-hover: #7c7ff5;
-  --income: #22c55e;
-  --expense: #ef4444;
-  --success: #22c55e;
-  --danger: #ef4444;
-  --warn: #f59e0b;
-  --shadow: 0 10px 30px rgba(0, 0, 0, .35);
-  --radius: 14px;
-  --radius-sm: 9px;
+:root, :root[data-theme="dark"] {
+  --bg: #0d0c0f;
+  --bg-elev: #141117;
+  --panel: #15131a;
+  --panel-2: #1d1922;
+  --border: #2a2630;
+  --hair: #3a3342;
+  --track: #241f2a;
+  --text: #f3eee6;
+  --muted: #9a9089;
+  --primary: #c9a15a;
+  --primary-hover: #e0c088;
+  --on-primary: #1a140b;
+  --income: #7bbf98;
+  --expense: #d68a68;
+  --success: #7bbf98;
+  --danger: #d9694a;
+  --warn: #d9b46a;
+  --shadow: 0 20px 48px rgba(0, 0, 0, .55);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
 }
 
 * { box-sizing: border-box; }
@@ -465,29 +468,86 @@ html, body {
   .fab-main { transition: none; }
 }
 
-/* ---------------- Light theme ---------------- */
+/* ================= Acabamento premium ================= */
+
+/* Marca */
+.brand-logo { background: linear-gradient(135deg, #e3c78c, #a9863f); color: #17130c; }
+.brand-text strong { font-family: var(--serif); font-weight: 600; letter-spacing: .2px; }
+
+/* Tipografia serifada nos valores e títulos */
+.section-title,
+.panel-title,
+.stat-value,
+.txn-amount,
+.day-subtotal,
+.account-balance-val,
+.card-metric-val,
+.goal-head strong,
+.hero .value { font-family: var(--serif); font-weight: 500; }
+.stat-value { letter-spacing: .5px; }
+.section-title { letter-spacing: .2px; }
+
+/* Rótulos em caixa-alta espaçada (ar premium) */
+.stat-label { letter-spacing: .1em; }
+
+/* Dourado com texto contrastante */
+.btn.primary { color: var(--on-primary); }
+.nav-item.active { color: var(--on-primary); }
+.fab-main { color: var(--on-primary); box-shadow: 0 12px 28px rgba(201, 161, 90, .42); }
+.fab.open .fab-main { color: var(--text); }
+.fab-a-dot.primary { color: var(--on-primary); }
+
+/* Divisória sutil no topo das seções */
+.section-header { border-bottom: 1px solid var(--border); padding-bottom: 14px; }
+
+/* ---- Cartão premium (metálico) — nome do banco em destaque ---- */
+.card-panel { border-color: rgba(201, 161, 90, .22); }
+.card-panel-header {
+  background: radial-gradient(130% 150% at 0% 0%, #3a3340 0%, #1a171d 45%, #0f0d11 100%);
+  border-bottom: 1px solid rgba(201, 161, 90, .28);
+  color: #efe6d4; position: relative; overflow: hidden;
+}
+.card-panel-header::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgba(227, 199, 140, .10) 46%, transparent 60%);
+}
+.card-panel-header > * { position: relative; }
+.card-badge {
+  background: linear-gradient(135deg, #e3c78c, #a9863f) !important;
+  color: #17130c; border-radius: 8px;
+}
+.card-headinfo strong {
+  font-family: var(--serif); font-size: 19px; letter-spacing: .04em; color: #f2e7cf;
+}
+.card-headinfo .muted { color: #b6ada0 !important; }
+.card-head-actions .icon-btn {
+  background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .16); color: #efe6d4;
+}
+.card-head-actions .btn.small.primary {
+  background: linear-gradient(135deg, #e3c78c, #b8893f); color: #17130c; border: none;
+}
+
+/* ---------------- Light theme (champagne) ---------------- */
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #f2f5fb; --bg-elev: #ffffff; --panel: #ffffff; --panel-2: #f4f7fc;
-    --border: #e2e8f2; --track: #e6ebf4; --text: #1a2233; --muted: #64748b;
-    --shadow: 0 12px 30px rgba(30, 45, 90, .12);
+    --bg: #efe9dd; --bg-elev: #f7f3ea; --panel: #ffffff; --panel-2: #f4efe4;
+    --border: #ece4d5; --hair: #e0d7c6; --track: #eae2d3; --text: #211e18; --muted: #8a8175;
+    --primary: #a97e39; --primary-hover: #c69a4f; --on-primary: #ffffff;
+    --income: #4f9e73; --expense: #bf6a44; --success: #4f9e73; --danger: #bf6a44; --warn: #c08a2e;
+    --shadow: 0 20px 44px rgba(120, 100, 60, .16);
   }
   .btn.success { color: #fff; }
 }
 
-/* Toggle explícito de tema (usado quando embutido em visualizadores que
-   marcam data-theme na raiz). Tem prioridade sobre a preferência do sistema. */
+/* Toggle explícito de tema — tem prioridade sobre a preferência do sistema. */
 :root[data-theme="light"] {
-  --bg: #f2f5fb; --bg-elev: #ffffff; --panel: #ffffff; --panel-2: #f4f7fc;
-  --border: #e2e8f2; --track: #e6ebf4; --text: #1a2233; --muted: #64748b;
-  --shadow: 0 12px 30px rgba(30, 45, 90, .12);
+  --bg: #efe9dd; --bg-elev: #f7f3ea; --panel: #ffffff; --panel-2: #f4efe4;
+  --border: #ece4d5; --hair: #e0d7c6; --track: #eae2d3; --text: #211e18; --muted: #8a8175;
+  --primary: #a97e39; --primary-hover: #c69a4f; --on-primary: #ffffff;
+  --income: #4f9e73; --expense: #bf6a44; --success: #4f9e73; --danger: #bf6a44; --warn: #c08a2e;
+  --shadow: 0 20px 44px rgba(120, 100, 60, .16);
 }
 :root[data-theme="light"] .btn.success { color: #fff; }
-:root[data-theme="dark"] {
-  --bg: #0f1420; --bg-elev: #171e2e; --panel: #1b2436; --panel-2: #212c42;
-  --border: #2a3654; --track: #2a3654; --text: #e8edf7; --muted: #93a1bd;
-  --shadow: 0 10px 30px rgba(0, 0, 0, .35);
-}
 
 /* ---------------- Responsive ---------------- */
 @media (max-width: 900px) {

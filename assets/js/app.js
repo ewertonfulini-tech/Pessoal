@@ -1043,6 +1043,37 @@
     });
   }
 
+  /* ---------- Tema claro/escuro ---------- */
+  function effectiveTheme() {
+    const t = document.documentElement.getAttribute('data-theme');
+    if (t) return t;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches)
+      ? 'light' : 'dark';
+  }
+  function updateThemeButton() {
+    const btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    const cur = effectiveTheme();
+    btn.textContent = cur === 'light' ? '☀' : '☾';
+    btn.title = cur === 'light' ? 'Tema claro — tocar para escuro' : 'Tema escuro — tocar para claro';
+  }
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem('meugestor_theme', theme); } catch (e) {}
+    updateThemeButton();
+  }
+  function setupTheme() {
+    try {
+      const saved = localStorage.getItem('meugestor_theme');
+      if (saved === 'light' || saved === 'dark') document.documentElement.setAttribute('data-theme', saved);
+    } catch (e) {}
+    updateThemeButton();
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.addEventListener('click', function () {
+      applyTheme(effectiveTheme() === 'light' ? 'dark' : 'light');
+    });
+  }
+
   /* ---------- Service worker (permite instalar na tela inicial) ---------- */
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
@@ -1063,6 +1094,7 @@
     document.getElementById('nextMonth').addEventListener('click', function () { shiftMonth(1); });
     document.getElementById('todayBtn').addEventListener('click', goToday);
 
+    setupTheme();
     setupFab();
     registerServiceWorker();
 
