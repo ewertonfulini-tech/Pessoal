@@ -45,6 +45,15 @@ python3 -m http.server 8000
 # depois abra http://localhost:8000
 ```
 
+## 📲 Instalar no celular (tela inicial)
+
+O app é um PWA — dá para instalar como um aplicativo:
+
+- **Android (Chrome):** abra o link do app → menu **⋮** → **Instalar aplicativo** / **Adicionar à tela inicial**.
+- **iPhone (Safari):** abra o link → botão **Compartilhar** (quadrado com seta) → **Adicionar à Tela de Início**.
+
+Depois é só abrir pelo ícone 💰, como um app normal (tela cheia, sem a barra do navegador).
+
 ## 💾 Sobre os dados
 
 Seus dados ficam salvos **apenas no seu navegador** (localStorage), de forma

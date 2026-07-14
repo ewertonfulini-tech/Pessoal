@@ -982,6 +982,51 @@
     }
   }
 
+  /* ---------- Botão flutuante (FAB) ---------- */
+  function setupFab() {
+    const fab = document.getElementById('fab');
+    const main = document.getElementById('fabMain');
+    const actions = document.getElementById('fabActions');
+    const backdrop = document.getElementById('fabBackdrop');
+    if (!fab || !main) return;
+
+    function open() {
+      fab.classList.add('open');
+      actions.hidden = false;
+      backdrop.hidden = false;
+      main.setAttribute('aria-expanded', 'true');
+    }
+    function close() {
+      fab.classList.remove('open');
+      main.setAttribute('aria-expanded', 'false');
+      // aguarda a animação antes de esconder
+      setTimeout(function () {
+        if (!fab.classList.contains('open')) { actions.hidden = true; backdrop.hidden = true; }
+      }, 180);
+    }
+    function toggle() { fab.classList.contains('open') ? close() : open(); }
+
+    main.addEventListener('click', toggle);
+    backdrop.addEventListener('click', close);
+
+    actions.querySelectorAll('.fab-action').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        close();
+        const action = btn.dataset.action;
+        if (action === 'expense') global.UI.openTransactionModal('expense', null, refresh);
+        else if (action === 'income') global.UI.openTransactionModal('income', null, refresh);
+        else if (action === 'card') global.UI.openCardExpenseModal(null, null, refresh);
+      });
+    });
+  }
+
+  /* ---------- Service worker (permite instalar na tela inicial) ---------- */
+  function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    // Registro relativo funciona em subpastas (ex: GitHub Pages /Pessoal/)
+    navigator.serviceWorker.register('sw.js').catch(function () { /* offline/local: ignora */ });
+  }
+
   /* ================================================================== *
    *  Inicialização                                                      *
    * ================================================================== */
@@ -994,12 +1039,9 @@
     document.getElementById('prevMonth').addEventListener('click', function () { shiftMonth(-1); });
     document.getElementById('nextMonth').addEventListener('click', function () { shiftMonth(1); });
     document.getElementById('todayBtn').addEventListener('click', goToday);
-    document.getElementById('quickAddExpense').addEventListener('click', function () {
-      global.UI.openTransactionModal('expense', null, refresh);
-    });
-    document.getElementById('quickAddIncome').addEventListener('click', function () {
-      global.UI.openTransactionModal('income', null, refresh);
-    });
+
+    setupFab();
+    registerServiceWorker();
 
     updateMonthLabel();
     render();

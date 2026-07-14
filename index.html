@@ -2,9 +2,17 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Meu Gestor Financeiro</title>
   <link rel="stylesheet" href="assets/css/styles.css" />
+  <!-- PWA / instalar na tela inicial -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0f1420" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-180.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Meu Gestor" />
+  <meta name="mobile-web-app-capable" content="yes" />
 </head>
 <body>
   <div id="app">
@@ -54,15 +62,31 @@
           <button id="nextMonth" class="icon-btn" title="Próximo mês">›</button>
           <button id="todayBtn" class="ghost-btn" title="Voltar ao mês atual">Hoje</button>
         </div>
-        <div class="topbar-actions">
-          <button id="quickAddExpense" class="btn danger">+ Despesa</button>
-          <button id="quickAddIncome" class="btn success">+ Receita</button>
-        </div>
       </header>
 
       <section id="view" class="view"><!-- rendered by JS --></section>
     </main>
   </div>
+
+  <!-- Botão flutuante (adicionar) -->
+  <div id="fab" class="fab">
+    <div class="fab-actions" id="fabActions" hidden>
+      <button class="fab-action" data-action="income">
+        <span class="fab-a-label">Receita</span>
+        <span class="fab-a-dot success">＋</span>
+      </button>
+      <button class="fab-action" data-action="expense">
+        <span class="fab-a-label">Despesa</span>
+        <span class="fab-a-dot danger">＋</span>
+      </button>
+      <button class="fab-action" data-action="card">
+        <span class="fab-a-label">Despesa no cartão</span>
+        <span class="fab-a-dot primary">▭</span>
+      </button>
+    </div>
+    <button class="fab-main" id="fabMain" aria-label="Adicionar lançamento">＋</button>
+  </div>
+  <div class="fab-backdrop" id="fabBackdrop" hidden></div>
 
   <!-- Modal container -->
   <div id="modalRoot"></div>
