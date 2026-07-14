@@ -413,6 +413,12 @@ html, body {
 .sync-panel code {
   background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: 12.5px;
 }
+.uid-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 6px 0; }
+.uid-box {
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  padding: 6px 10px; border-radius: var(--radius-sm); font-size: 12.5px;
+  font-family: ui-monospace, Menlo, Consolas, monospace; word-break: break-all; flex: 1; min-width: 160px;
+}
 
 /* ---------------- Botão flutuante (FAB) ---------------- */
 .fab {

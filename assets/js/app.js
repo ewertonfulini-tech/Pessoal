@@ -869,6 +869,29 @@
       panel.appendChild(el('p', { class: 'muted small', text:
         'Última sincronização: ' + new Date(st.lastSync).toLocaleString('pt-BR') }));
     }
+
+    // ID de sincronização (uid) — usado para integrar um bot (ex: Telegram)
+    if (st.uid) {
+      const idField = el('code', { class: 'uid-box', text: st.uid });
+      panel.appendChild(el('div', { class: 'uid-row' }, [
+        el('span', { class: 'muted small', text: 'ID de sincronização:' }),
+        idField,
+        el('button', {
+          class: 'btn small', text: 'Copiar',
+          onclick: function () {
+            const done = function () { U.toast('ID copiado.', 'success'); };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(st.uid).then(done).catch(function () {
+                window.prompt('Copie o ID:', st.uid);
+              });
+            } else { window.prompt('Copie o ID:', st.uid); }
+          }
+        })
+      ]));
+      panel.appendChild(el('p', { class: 'muted small', text:
+        'Use este ID para conectar um bot (ex.: Telegram) que lança despesas por mensagem.' }));
+    }
+
     const actions = el('div', { class: 'button-row' }, [
       el('button', {
         class: 'btn', text: 'Sair da conta',

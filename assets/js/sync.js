@@ -67,6 +67,7 @@
       status: S.status,
       message: S.message,
       email: S.user ? S.user.email : null,
+      uid: S.user ? S.user.uid : null,
       lastSync: S.lastSync
     };
   }
