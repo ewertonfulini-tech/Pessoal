@@ -59,12 +59,14 @@ adicione (use **Encrypt/Secret** para as sensíveis):
 
 | Nome | Valor |
 |------|-------|
-| `TELEGRAM_TOKEN` | token do passo 1 |
-| `FIREBASE_PROJECT_ID` | `project_id` do JSON (ex.: `meu-gestor-bfeda`) |
-| `SA_CLIENT_EMAIL` | `client_email` do JSON |
-| `SA_PRIVATE_KEY` | `private_key` do JSON (cole o texto inteiro, com as quebras de linha) |
+| `TELEGRAM_TOKEN` 🔒 | token do passo 1 |
+| `SA_JSON` 🔒 | **cole o conteúdo inteiro do arquivo `.json`** da conta de serviço (abra o arquivo, selecione tudo, copie e cole aqui) |
 | `TARGET_UID` | seu ID de sincronização (passo 2) |
-| `WEBHOOK_SECRET` | uma senha qualquer que você inventar (ex.: `meusegredo123`) |
+| `WEBHOOK_SECRET` 🔒 | uma senha só com letras/números/`_`/`-` (ex.: `gestorbot2026`) |
+
+> 💡 `SA_JSON` substitui os três campos separados e evita erros com as quebras de
+> linha da chave. (Se preferir, ainda dá para usar `FIREBASE_PROJECT_ID`,
+> `SA_CLIENT_EMAIL` e `SA_PRIVATE_KEY` no lugar de `SA_JSON`.)
 
 Clique em **Deploy** para salvar. (O `ALLOWED_CHAT_ID` a gente adiciona no passo 6.)
 

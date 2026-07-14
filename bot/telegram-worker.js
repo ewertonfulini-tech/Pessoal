@@ -7,12 +7,15 @@
  *
  * Variáveis (configuradas como "Secrets"/"Variables" no Cloudflare):
  *   TELEGRAM_TOKEN      Token do bot (do @BotFather)
- *   FIREBASE_PROJECT_ID Ex.: meu-gestor-bfeda
- *   SA_CLIENT_EMAIL     E-mail da conta de serviço do Firebase
- *   SA_PRIVATE_KEY      Chave privada da conta de serviço (PEM)
+ *   SA_JSON             Conteúdo COMPLETO do arquivo JSON da conta de serviço do
+ *                       Firebase (recomendado — cole o arquivo inteiro). Substitui
+ *                       FIREBASE_PROJECT_ID/SA_CLIENT_EMAIL/SA_PRIVATE_KEY.
  *   TARGET_UID          Seu "ID de sincronização" (Configurações → Sincronização)
  *   ALLOWED_CHAT_ID     Seu chat_id do Telegram (use /id no bot para descobrir)
  *   WEBHOOK_SECRET      (opcional) valida o cabeçalho secreto do webhook do Telegram
+ *
+ *   Alternativa a SA_JSON (campos separados): FIREBASE_PROJECT_ID, SA_CLIENT_EMAIL,
+ *   SA_PRIVATE_KEY.
  *
  * Veja o passo a passo em BOT-TELEGRAM.md.
  */
@@ -78,8 +81,10 @@ export default {
         return new Response('ok');
       }
 
-      const token = await getAccessToken(env);
-      const data = await getVault(env, token);
+      const sa = getServiceAccount(env);
+      const projectId = env.FIREBASE_PROJECT_ID || sa.project_id;
+      const token = await getAccessToken(sa);
+      const data = await getVault(projectId, env.TARGET_UID, token);
       if (!data) {
         await reply(env, chatId, 'Não encontrei seus dados. Abra o app, faça login e sincronize uma vez, depois tente de novo.');
         return new Response('ok');
@@ -91,7 +96,7 @@ export default {
         return new Response('ok');
       }
 
-      await saveVault(env, token, data);
+      await saveVault(projectId, env.TARGET_UID, token, data);
       await reply(env, chatId, result.message);
       return new Response('ok');
     } catch (e) {
@@ -230,17 +235,34 @@ function pemToArrayBuffer(pem) {
   return buf.buffer;
 }
 
-async function getAccessToken(env) {
+// Resolve a conta de serviço: aceita o JSON inteiro (SA_JSON) OU campos separados
+function getServiceAccount(env) {
+  if (env.SA_JSON) {
+    let raw = String(env.SA_JSON).trim();
+    // tolera aspas envolventes coladas por engano
+    if (raw[0] === '"' && raw[raw.length - 1] === '"') { try { raw = JSON.parse(raw); } catch (e) {} }
+    const sa = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return { client_email: sa.client_email, private_key: sa.private_key, project_id: sa.project_id };
+  }
+  return {
+    client_email: env.SA_CLIENT_EMAIL,
+    private_key: env.SA_PRIVATE_KEY,
+    project_id: env.FIREBASE_PROJECT_ID
+  };
+}
+
+async function getAccessToken(sa) {
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: 'RS256', typ: 'JWT' };
   const claim = {
-    iss: env.SA_CLIENT_EMAIL,
+    iss: sa.client_email,
     scope: 'https://www.googleapis.com/auth/datastore',
     aud: 'https://oauth2.googleapis.com/token',
     iat: now, exp: now + 3600
   };
   const unsigned = b64url(JSON.stringify(header)) + '.' + b64url(JSON.stringify(claim));
-  const pem = String(env.SA_PRIVATE_KEY).replace(/\\n/g, '\n');
+  // Aceita chave com \n literais (campos separados) ou quebras reais (do JSON)
+  const pem = String(sa.private_key).replace(/\\n/g, '\n');
   const key = await crypto.subtle.importKey(
     'pkcs8', pemToArrayBuffer(pem),
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']
@@ -260,13 +282,13 @@ async function getAccessToken(env) {
 
 /* ---------- Firestore REST ---------- */
 
-function firestoreBase(env) {
-  return 'https://firestore.googleapis.com/v1/projects/' + env.FIREBASE_PROJECT_ID +
+function firestoreBase(projectId) {
+  return 'https://firestore.googleapis.com/v1/projects/' + projectId +
     '/databases/(default)/documents';
 }
 
-async function getVault(env, token) {
-  const res = await fetch(firestoreBase(env) + '/vaults/' + env.TARGET_UID, {
+async function getVault(projectId, targetUid, token) {
+  const res = await fetch(firestoreBase(projectId) + '/vaults/' + targetUid, {
     headers: { Authorization: 'Bearer ' + token }
   });
   if (res.status === 404) return null;
@@ -276,7 +298,7 @@ async function getVault(env, token) {
   return json ? JSON.parse(json) : null;
 }
 
-async function saveVault(env, token, data) {
+async function saveVault(projectId, targetUid, token, data) {
   const body = {
     fields: {
       json: { stringValue: JSON.stringify(data) },
@@ -284,7 +306,7 @@ async function saveVault(env, token, data) {
       device: { stringValue: 'telegram' }
     }
   };
-  const url = firestoreBase(env) + '/vaults/' + env.TARGET_UID +
+  const url = firestoreBase(projectId) + '/vaults/' + targetUid +
     '?updateMask.fieldPaths=json&updateMask.fieldPaths=updatedAt&updateMask.fieldPaths=device';
   const res = await fetch(url, {
     method: 'PATCH',
