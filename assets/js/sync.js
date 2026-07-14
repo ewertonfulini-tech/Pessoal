@@ -16,6 +16,19 @@
   const SDK_VERSION = '10.12.0';
   const SDK = 'https://www.gstatic.com/firebasejs/' + SDK_VERSION + '/';
 
+  // Configuração padrão do Firebase (credenciais públicas de projeto — não são
+  // segredo; a segurança é garantida pelo login e pelas regras do Firestore).
+  // Assim o app já vem pronto para sincronizar: basta fazer login. Se quiser usar
+  // outro projeto, é só colar outro firebaseConfig em Configurações.
+  const DEFAULT_CONFIG = {
+    apiKey: 'AIzaSyCJBSoKRF-rKd2ZRTD73XWIEv3HvNkjpPg',
+    authDomain: 'meu-gestor-bfeda.firebaseapp.com',
+    projectId: 'meu-gestor-bfeda',
+    storageBucket: 'meu-gestor-bfeda.firebasestorage.app',
+    messagingSenderId: '722763677511',
+    appId: '1:722763677511:web:d72546b2618cbef0221662'
+  };
+
   // Estado interno
   const S = {
     config: null,       // objeto firebaseConfig
@@ -63,8 +76,8 @@
   function loadConfig() {
     try {
       const raw = localStorage.getItem(CONFIG_KEY);
-      S.config = raw ? JSON.parse(raw) : null;
-    } catch (e) { S.config = null; }
+      S.config = raw ? JSON.parse(raw) : (DEFAULT_CONFIG || null);
+    } catch (e) { S.config = DEFAULT_CONFIG || null; }
     return S.config;
   }
 
@@ -96,7 +109,9 @@
   function removeConfig() {
     if (S.unsub) { S.unsub(); S.unsub = null; }
     localStorage.removeItem(CONFIG_KEY);
-    S.config = null; S.user = null; S.ref = null;
+    // Volta para a configuração padrão embutida (se houver)
+    S.config = DEFAULT_CONFIG || null;
+    S.fb = null; S.user = null; S.ref = null;
     setStatus('idle', '');
   }
 
@@ -178,18 +193,10 @@
       if (localIsEmpty()) {
         applyRemote(remote);
       } else {
-        await new Promise(function (resolve) {
-          global.UI.confirmModal('Dados na nuvem encontrados',
-            'A nuvem já contém dados sincronizados. Deseja SUBSTITUIR os dados ' +
-            'deste aparelho pelos da nuvem?\n\n' +
-            'OK = usar os dados da nuvem.\nCancelar = manter os deste aparelho ' +
-            '(eles serão enviados para a nuvem).',
-            function () { applyRemote(remote); resolve(); },
-            false);
-          // Se o usuário cancelar, o modal fecha sem callback; tratamos via timeout curto
-          setTimeout(function () { resolve(); }, 60000);
-        });
-        if (!localIsEmpty()) await pushNow();
+        // Ambos têm dados: o usuário escolhe qual manter (sem travar)
+        const useRemote = await chooseReconciliation();
+        if (useRemote) applyRemote(remote);
+        else await pushNow();
       }
     } else {
       // Nuvem vazia: envia o que existe localmente
@@ -199,6 +206,27 @@
     startRealtime(ref);
     S.lastSync = Date.now();
     setStatus('ready', 'Sincronizado.');
+  }
+
+  // Modal com duas opções explícitas (Promise<boolean> — true = usar nuvem)
+  function chooseReconciliation() {
+    return new Promise(function (resolve) {
+      const body = U.el('div', { class: 'modal-body' }, [
+        U.el('p', { class: 'confirm-text', text:
+          'A nuvem já contém dados sincronizados e este aparelho também tem ' +
+          'lançamentos. Qual versão você quer manter?' }),
+        U.el('p', { class: 'muted small', text:
+          'Dica: faça um backup (Exportar) antes, por segurança.' })
+      ]);
+      global.UI.openModal('Sincronizar dados', body, {
+        buttons: [
+          { label: 'Enviar deste aparelho', variant: 'ghost',
+            onClick: function (close) { close(); resolve(false); } },
+          { label: 'Usar dados da nuvem', variant: 'primary',
+            onClick: function (close) { close(); resolve(true); } }
+        ]
+      });
+    });
   }
 
   function startRealtime(ref) {
