@@ -766,10 +766,17 @@
         'lançamentos idênticos são ignorados para evitar duplicidade.' }),
       el('div', { class: 'button-row' }, [
         el('button', { class: 'btn primary', text: '↥ Importar lançamentos (JSON)',
-          onclick: function () { document.getElementById('importTxFile').click(); } })
+          onclick: function () { document.getElementById('importTxFile').click(); } }),
+        el('button', { class: 'btn danger', text: '🗑 Remover lançamentos deste arquivo',
+          onclick: function () { document.getElementById('removeTxFile').click(); } })
       ]),
+      el('small', { class: 'field-hint', text:
+        'Para desfazer uma importação, selecione o MESMO arquivo em "Remover": ' +
+        'apaga apenas os lançamentos idênticos aos do arquivo.' }),
       el('input', { type: 'file', id: 'importTxFile', accept: '.json,application/json',
-        style: 'display:none', onchange: onImportTxFile })
+        style: 'display:none', onchange: onImportTxFile }),
+      el('input', { type: 'file', id: 'removeTxFile', accept: '.json,application/json',
+        style: 'display:none', onchange: onRemoveTxFile })
     ]);
     view.appendChild(importPanel);
 
@@ -1054,6 +1061,56 @@
 
     global.Store.save();
     return { added: added, dupes: dupes, invalid: invalid, uncategorized: uncategorized };
+  }
+
+  // Remove os lançamentos que batem (tipo+data+descrição+valor) com os do arquivo
+  function removeTransactions(list) {
+    if (!Array.isArray(list)) throw new Error('O arquivo deve conter uma lista de lançamentos.');
+    const d = global.Store.getData();
+    const targets = {};
+    list.forEach(function (item) {
+      const type = item.type === 'income' ? 'income' : 'expense';
+      const amount = Math.round((Number(item.amount) || 0) * 100) / 100;
+      const date = normImportDate(item.date);
+      const desc = String(item.description || 'Lançamento').trim();
+      if (amount <= 0 || !date) return;
+      targets[type + '|' + date + '|' + normName(desc) + '|' + amount] = true;
+    });
+    const before = d.transactions.length;
+    d.transactions = d.transactions.filter(function (t) {
+      const key = t.type + '|' + t.date + '|' + normName(t.description) + '|' + (Number(t.amount) || 0);
+      return !targets[key];
+    });
+    const removed = before - d.transactions.length;
+    global.Store.save();
+    return { removed: removed };
+  }
+
+  function onRemoveTxFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function () {
+      let list;
+      try {
+        const parsed = JSON.parse(reader.result);
+        list = Array.isArray(parsed) ? parsed : parsed.transactions;
+      } catch (err) {
+        U.toast('Arquivo inválido (não é JSON).', 'error'); return;
+      }
+      global.UI.confirmModal('Remover lançamentos',
+        'Isso vai apagar os lançamentos deste aparelho que forem idênticos aos do ' +
+        'arquivo (mesma data, descrição e valor). Deseja continuar?',
+        function () {
+          try {
+            const r = removeTransactions(list);
+            U.toast(r.removed + ' lançamento(s) removido(s).', 'success');
+            render();
+          } catch (err) { U.toast(err.message, 'error'); }
+        }, true);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   }
 
   function onImportTxFile(e) {
