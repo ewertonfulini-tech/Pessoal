@@ -109,7 +109,7 @@ export default {
 /* ---------- Interpretação da mensagem ---------- */
 
 function normalize(s) {
-  return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 function parseAmount(text) {
