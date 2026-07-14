@@ -869,14 +869,25 @@
       panel.appendChild(el('p', { class: 'muted small', text:
         'Última sincronização: ' + new Date(st.lastSync).toLocaleString('pt-BR') }));
     }
-    panel.appendChild(el('div', { class: 'button-row' }, [
+    const actions = el('div', { class: 'button-row' }, [
       el('button', {
         class: 'btn', text: 'Sair da conta',
         onclick: function () {
           global.Sync.logout().then(function () { render(); });
         }
       })
-    ]));
+    ]);
+    // Botão de reconectar quando houver erro/offline
+    if (st.status === 'error' || st.status === 'offline') {
+      actions.insertBefore(el('button', {
+        class: 'btn primary', text: '↻ Tentar novamente',
+        onclick: function () {
+          U.toast('Reconectando...', 'info');
+          global.Sync.retry();
+        }
+      }), actions.firstChild);
+    }
+    panel.appendChild(actions);
     return panel;
   }
 

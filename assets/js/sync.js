@@ -180,32 +180,59 @@
       d.budgets.length === 0;
   }
 
+  // Traduz erros do Firestore em algo acionável
+  function friendlyFirestore(e) {
+    const msg = (e && e.message) || '';
+    if (/offline|unavailable|Failed to get document/i.test(msg)) {
+      return 'Não foi possível conectar ao banco de dados (Firestore). ' +
+        'Verifique se o Firestore Database foi CRIADO no Firebase (Build → ' +
+        'Firestore Database → Create database, no modo Native). Se um bloqueador ' +
+        'de anúncios estiver ativo, desative-o para este site. Depois toque em "Tentar novamente".';
+    }
+    if (/permission|insufficient/i.test(msg)) {
+      return 'Sem permissão no Firestore. Publique as regras de segurança indicadas ' +
+        'no guia (aba Rules do Firestore) e tente de novo.';
+    }
+    return 'Erro ao sincronizar: ' + msg;
+  }
+
   async function startForUser(user) {
     const fb = S.fb;
     const ref = fb.fsMod.doc(fb.db, 'vaults', user.uid);
     S.ref = ref;
     setStatus('connecting', 'Carregando dados da nuvem...');
 
-    // Reconciliação inicial (uma vez), evitando perder dados sem querer
-    const snap = await fb.fsMod.getDoc(ref);
-    if (snap.exists() && snap.data() && snap.data().json) {
-      const remote = JSON.parse(snap.data().json);
-      if (localIsEmpty()) {
-        applyRemote(remote);
+    try {
+      // Reconciliação inicial (uma vez), evitando perder dados sem querer
+      const snap = await fb.fsMod.getDoc(ref);
+      if (snap.exists() && snap.data() && snap.data().json) {
+        const remote = JSON.parse(snap.data().json);
+        if (localIsEmpty()) {
+          applyRemote(remote);
+        } else {
+          // Ambos têm dados: o usuário escolhe qual manter (sem travar)
+          const useRemote = await chooseReconciliation();
+          if (useRemote) applyRemote(remote);
+          else await pushNow();
+        }
       } else {
-        // Ambos têm dados: o usuário escolhe qual manter (sem travar)
-        const useRemote = await chooseReconciliation();
-        if (useRemote) applyRemote(remote);
-        else await pushNow();
+        // Nuvem vazia: envia o que existe localmente
+        await pushNow();
       }
-    } else {
-      // Nuvem vazia: envia o que existe localmente
-      await pushNow();
-    }
 
-    startRealtime(ref);
-    S.lastSync = Date.now();
-    setStatus('ready', 'Sincronizado.');
+      startRealtime(ref);
+      S.lastSync = Date.now();
+      setStatus('ready', 'Sincronizado.');
+    } catch (e) {
+      // Não trava: mostra causa provável e permite "Tentar novamente"
+      setStatus('error', friendlyFirestore(e));
+    }
+  }
+
+  // Reexecuta a sincronização para o usuário logado (usado pelo botão "Tentar novamente")
+  async function retry() {
+    if (!S.fb || !S.fb.auth || !S.fb.auth.currentUser) return;
+    await startForUser(S.fb.auth.currentUser);
   }
 
   // Modal com duas opções explícitas (Promise<boolean> — true = usar nuvem)
@@ -298,7 +325,7 @@
   global.Sync = {
     init: init, onChange: onChange, getState: getState,
     saveConfig: saveConfig, removeConfig: removeConfig,
-    login: login, register: register, logout: logout,
+    login: login, register: register, logout: logout, retry: retry,
     notifyLocalChange: notifyLocalChange
   };
 })(window);
