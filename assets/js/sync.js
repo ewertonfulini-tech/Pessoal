@@ -129,10 +129,30 @@
     const app = appMod.initializeApp(S.config);
     const auth = authMod.getAuth(app);
     await authMod.setPersistence(auth, authMod.browserLocalPersistence);
-    const db = fsMod.getFirestore(app);
+
+    // Inicializa o Firestore em modo de compatibilidade:
+    //  - long-polling automático: contorna redes/bloqueadores que quebram o
+    //    canal padrão (causa comum de "client is offline" com login OK);
+    //  - cache local persistente: mantém os dados offline entre recarregamentos.
+    let db;
     try {
-      await fsMod.enableIndexedDbPersistence(db);
-    } catch (e) { /* múltiplas abas ou sem suporte: segue sem cache offline */ }
+      db = fsMod.initializeFirestore(app, {
+        experimentalAutoDetectLongPolling: true,
+        localCache: fsMod.persistentLocalCache
+          ? fsMod.persistentLocalCache({
+              tabManager: fsMod.persistentMultipleTabManager
+                ? fsMod.persistentMultipleTabManager() : undefined
+            })
+          : undefined
+      });
+    } catch (e) {
+      // Fallback: configuração mais simples ainda com long-polling forçado
+      try {
+        db = fsMod.initializeFirestore(app, { experimentalForceLongPolling: true });
+      } catch (e2) {
+        db = fsMod.getFirestore(app);
+      }
+    }
 
     S.fb = { appMod: appMod, authMod: authMod, fsMod: fsMod, app: app, auth: auth, db: db };
 
