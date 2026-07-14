@@ -783,6 +783,14 @@
       ])
     ]));
 
+    // Mensagem de erro/status visível para diagnóstico
+    if (st.message && (st.status === 'error' || st.status === 'offline')) {
+      panel.appendChild(el('div', { class: 'alert-banner' }, [
+        el('span', { class: 'alert-icon', text: '⚠' }),
+        el('span', { text: st.message })
+      ]));
+    }
+
     // Estado 1: não configurado -> colar firebaseConfig
     if (!st.configured) {
       const ta = el('textarea', {
@@ -881,10 +889,16 @@
       'auth/user-not-found': 'conta não encontrada — use "Criar conta".',
       'auth/email-already-in-use': 'este e-mail já tem conta — use "Entrar".',
       'auth/weak-password': 'senha muito fraca (mínimo 6 caracteres).',
+      'auth/missing-password': 'informe a senha.',
       'auth/network-request-failed': 'sem conexão com a internet.',
-      'auth/unauthorized-domain': 'domínio não autorizado no Firebase (adicione-o em Authentication → Settings → Authorized domains).'
+      'auth/too-many-requests': 'muitas tentativas — aguarde alguns minutos e tente de novo.',
+      'auth/invalid-api-key': 'chave do Firebase inválida (verifique o firebaseConfig).',
+      'auth/operation-not-allowed': 'login por e-mail/senha NÃO está ativado no Firebase. Ative em Authentication → Sign-in method → Email/Password.',
+      'auth/configuration-not-found': 'Authentication não configurado no Firebase. Ative em Authentication → Get started → Email/Password.',
+      'auth/unauthorized-domain': 'domínio não autorizado no Firebase. Adicione o domínio deste site em Authentication → Settings → Authorized domains.'
     };
-    return map[code] || (e && e.message) || 'erro desconhecido.';
+    const base = map[code] || (e && e.message) || 'erro desconhecido.';
+    return code ? base + ' [' + code + ']' : base;
   }
 
   function deleteCategory(cat) {
