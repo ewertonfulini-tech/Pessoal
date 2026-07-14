@@ -256,13 +256,18 @@
     });
     const catFilter = el('select', { class: 'toolbar-select' });
     catFilter.appendChild(el('option', { value: '', text: 'Todas as categorias' }));
+    const catIds = {};
     global.Store.getData().categories
       .filter(function (c) { return c.type === type; })
       .forEach(function (c) {
+        catIds[c.id] = true;
         const opt = el('option', { value: c.id, text: c.name });
         if (c.id === f.category) opt.selected = true;
         catFilter.appendChild(opt);
       });
+    const noneOpt = el('option', { value: '__none__', text: 'Sem categoria (a classificar)' });
+    if (f.category === '__none__') noneOpt.selected = true;
+    catFilter.appendChild(noneOpt);
     const statusFilter = el('select', { class: 'toolbar-select' }, [
       el('option', { value: '', text: 'Todos' }),
       el('option', { value: 'paid', text: isIncome ? 'Recebidos' : 'Pagos' }),
@@ -280,7 +285,8 @@
       const q = f.q.trim().toLowerCase();
       const filtered = occ.filter(function (o) {
         if (q && o.description.toLowerCase().indexOf(q) === -1) return false;
-        if (f.category && o.categoryId !== f.category) return false;
+        if (f.category === '__none__') { if (o.categoryId && catIds[o.categoryId]) return false; }
+        else if (f.category && o.categoryId !== f.category) return false;
         if (f.status === 'paid' && !o.paid) return false;
         if (f.status === 'open' && o.paid) return false;
         return true;
@@ -751,6 +757,22 @@
     ]);
     view.appendChild(backupPanel);
 
+    // Importar lançamentos (soma, não substitui)
+    const importPanel = el('div', { class: 'panel' }, [
+      el('h3', { class: 'panel-title', text: 'Importar lançamentos' }),
+      el('p', { class: 'muted', text:
+        'Adiciona vários lançamentos de uma vez (ex.: exportação de outra planilha), ' +
+        'sem apagar o que já existe. Categorias novas são criadas automaticamente e ' +
+        'lançamentos idênticos são ignorados para evitar duplicidade.' }),
+      el('div', { class: 'button-row' }, [
+        el('button', { class: 'btn primary', text: '↥ Importar lançamentos (JSON)',
+          onclick: function () { document.getElementById('importTxFile').click(); } })
+      ]),
+      el('input', { type: 'file', id: 'importTxFile', accept: '.json,application/json',
+        style: 'display:none', onchange: onImportTxFile })
+    ]);
+    view.appendChild(importPanel);
+
     // Estatísticas rápidas
     view.appendChild(el('div', { class: 'panel muted small' }, [
       el('p', { text:
@@ -973,6 +995,91 @@
         render();
       } catch (err) {
         U.toast('Arquivo inválido: ' + err.message, 'error');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  /* ---------- Importação de lançamentos (mescla) ---------- */
+  function normImportDate(v) {
+    v = String(v || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0, 10);
+    const br = v.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (br) return br[3] + '-' + br[2] + '-' + br[1];
+    return '';
+  }
+  function normName(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  }
+
+  function importTransactions(list) {
+    if (!Array.isArray(list)) throw new Error('O arquivo deve conter uma lista de lançamentos.');
+    const d = global.Store.getData();
+    // Deduplica só contra o que JÁ existe (permite reimportar sem duplicar;
+    // linhas repetidas dentro do mesmo arquivo são todas importadas).
+    const existing = {};
+    d.transactions.forEach(function (t) {
+      existing[t.type + '|' + t.date + '|' + normName(t.description) + '|' + (Number(t.amount) || 0)] = true;
+    });
+    let added = 0, dupes = 0, invalid = 0, uncategorized = 0;
+
+    list.forEach(function (item) {
+      const type = item.type === 'income' ? 'income' : 'expense';
+      const amount = Math.round((Number(item.amount) || 0) * 100) / 100;
+      const date = normImportDate(item.date);
+      if (amount <= 0 || !date) { invalid++; return; }
+      const desc = String(item.description || 'Lançamento').trim();
+      const key = type + '|' + date + '|' + normName(desc) + '|' + amount;
+      if (existing[key]) { dupes++; return; }
+
+      // Não cria categorias: usa só as já existentes (nome igual); senão, deixa
+      // sem categoria ("a classificar").
+      const catName = String(item.category || '').trim();
+      let categoryId = '';
+      if (catName) {
+        const cat = d.categories.find(function (c) {
+          return c.type === type && normName(c.name) === normName(catName);
+        });
+        if (cat) categoryId = cat.id;
+      }
+      if (!categoryId) uncategorized++;
+
+      d.transactions.push({
+        id: U.uid('tx'), type: type, description: desc, amount: amount, date: date,
+        categoryId: categoryId, recurrence: 'none', recurrenceEnd: '', accountId: ''
+      });
+      added++;
+    });
+
+    global.Store.save();
+    return { added: added, dupes: dupes, invalid: invalid, uncategorized: uncategorized };
+  }
+
+  function onImportTxFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function () {
+      let list;
+      try {
+        const parsed = JSON.parse(reader.result);
+        list = Array.isArray(parsed) ? parsed : parsed.transactions;
+      } catch (err) {
+        U.toast('Arquivo inválido (não é JSON).', 'error'); return;
+      }
+      try {
+        const r = importTransactions(list);
+        global.UI.confirmModal('Importação concluída',
+          r.added + ' lançamento(s) importado(s). ' +
+          (r.uncategorized ? r.uncategorized + ' sem categoria (a classificar). ' : '') +
+          (r.dupes ? r.dupes + ' duplicado(s) ignorado(s). ' : '') +
+          (r.invalid ? r.invalid + ' inválido(s) ignorado(s).' : ''),
+          function () { render(); });
+        U.toast(r.added + ' lançamentos importados.', 'success');
+        render();
+      } catch (err) {
+        U.toast(err.message, 'error');
       }
     };
     reader.readAsText(file);
