@@ -424,8 +424,10 @@ html, body {
   transition: transform .22s ease, background .2s;
 }
 .fab-main:hover { background: var(--primary-hover); }
-.fab.open .fab-main { transform: rotate(45deg); }
-.fab-actions { display: flex; flex-direction: column; gap: 14px; align-items: flex-end; }
+.fab-main { font-weight: 700; }
+.fab.open .fab-main { background: var(--panel-2); color: var(--text); font-weight: 400; }
+.fab-actions { display: none; flex-direction: column; gap: 14px; align-items: flex-end; }
+.fab.open .fab-actions { display: flex; }
 .fab-action {
   display: flex; align-items: center; gap: 10px;
   background: transparent; border: none; cursor: pointer; padding: 0;
@@ -448,7 +450,8 @@ html, body {
 .fab-a-dot.success { background: var(--success); }
 .fab-a-dot.danger { background: var(--danger); }
 .fab-a-dot.primary { background: var(--primary); }
-.fab-backdrop { position: fixed; inset: 0; z-index: 80; background: transparent; }
+.fab-backdrop { display: none; position: fixed; inset: 0; z-index: 80; background: transparent; }
+.fab.open ~ .fab-backdrop { display: block; }
 @media (prefers-reduced-motion: reduce) {
   .fab-action { animation: none; }
   .fab-main { transition: none; }

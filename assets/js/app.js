@@ -990,21 +990,21 @@
     const backdrop = document.getElementById('fabBackdrop');
     if (!fab || !main) return;
 
+    // A visibilidade é controlada pela classe .open no CSS (não pelo atributo hidden)
     function open() {
       fab.classList.add('open');
-      actions.hidden = false;
-      backdrop.hidden = false;
+      main.textContent = '✕';
       main.setAttribute('aria-expanded', 'true');
     }
     function close() {
       fab.classList.remove('open');
+      main.textContent = '$';
       main.setAttribute('aria-expanded', 'false');
-      // aguarda a animação antes de esconder
-      setTimeout(function () {
-        if (!fab.classList.contains('open')) { actions.hidden = true; backdrop.hidden = true; }
-      }, 180);
     }
-    function toggle() { fab.classList.contains('open') ? close() : open(); }
+    function toggle(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      fab.classList.contains('open') ? close() : open();
+    }
 
     main.addEventListener('click', toggle);
     backdrop.addEventListener('click', close);

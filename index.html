@@ -70,7 +70,7 @@
 
   <!-- Botão flutuante (adicionar) -->
   <div id="fab" class="fab">
-    <div class="fab-actions" id="fabActions" hidden>
+    <div class="fab-actions" id="fabActions">
       <button class="fab-action" data-action="income">
         <span class="fab-a-label">Receita</span>
         <span class="fab-a-dot success">＋</span>
@@ -84,9 +84,9 @@
         <span class="fab-a-dot primary">▭</span>
       </button>
     </div>
-    <button class="fab-main" id="fabMain" aria-label="Adicionar lançamento">＋</button>
+    <button class="fab-main" id="fabMain" aria-label="Adicionar lançamento" aria-expanded="false">$</button>
   </div>
-  <div class="fab-backdrop" id="fabBackdrop" hidden></div>
+  <div class="fab-backdrop" id="fabBackdrop"></div>
 
   <!-- Modal container -->
   <div id="modalRoot"></div>

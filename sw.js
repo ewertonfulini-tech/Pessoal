@@ -1,8 +1,10 @@
 /* sw.js — service worker para permitir instalar na tela inicial e uso offline.
- * Estratégia: stale-while-revalidate para arquivos do próprio site (mesma origem).
- * Requisições externas (Firebase/gstatic) NÃO são interceptadas.
+ * Estratégia: NETWORK-FIRST para arquivos do próprio site (mesma origem) — assim
+ * o app sempre pega a versão mais nova quando há internet, e usa o cache só como
+ * reserva quando estiver offline. Requisições externas (Firebase/gstatic) NÃO são
+ * interceptadas.
  */
-const CACHE = 'meugestor-v1';
+const CACHE = 'meugestor-v2';
 const SHELL = [
   './',
   './index.html',
@@ -39,16 +41,16 @@ self.addEventListener('fetch', function (e) {
   if (req.method !== 'GET') return;
   if (new URL(req.url).origin !== self.location.origin) return;
 
+  // Network-first: tenta a rede, atualiza o cache e cai para o cache se offline
   e.respondWith(
-    caches.match(req).then(function (cached) {
-      const network = fetch(req).then(function (res) {
-        if (res && res.status === 200) {
-          const clone = res.clone();
-          caches.open(CACHE).then(function (c) { c.put(req, clone); });
-        }
-        return res;
-      }).catch(function () { return cached; });
-      return cached || network;
+    fetch(req).then(function (res) {
+      if (res && res.status === 200) {
+        const clone = res.clone();
+        caches.open(CACHE).then(function (c) { c.put(req, clone); });
+      }
+      return res;
+    }).catch(function () {
+      return caches.match(req);
     })
   );
 });
