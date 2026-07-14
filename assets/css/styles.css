@@ -81,6 +81,8 @@ html, body {
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 28px; border-bottom: 1px solid var(--border);
+  /* Reserva a área segura do topo (barra de status/notch do iPhone no modo app) */
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
   background: var(--bg-elev); position: sticky; top: 0; z-index: 10;
   gap: 12px; flex-wrap: wrap;
 }
@@ -519,7 +521,10 @@ html, body {
 
   .main { padding-bottom: 74px; }
   .view { padding: 16px 14px 26px; }
-  .topbar { padding: 10px 14px; position: sticky; top: 0; }
+  .topbar {
+    padding: 10px 14px; position: sticky; top: 0;
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  }
   .month-picker { gap: 6px; }
   .month-picker span { min-width: 104px; font-size: 14px; }
   .topbar-actions .btn { padding: 8px 12px; font-size: 13px; }
