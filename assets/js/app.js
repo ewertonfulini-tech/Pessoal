@@ -1242,6 +1242,57 @@
     e.target.value = '';
   }
 
+  // Pré-seleciona um cartão se um dos "tokens" do nome dele aparecer no nome do arquivo
+  function matchCardByFilename(fileName, cards) {
+    const f = normName(fileName);
+    let hit = '';
+    cards.forEach(function (c) {
+      const tokens = normName(c.name).split(/[^a-z0-9]+/).filter(function (t) { return t.length >= 3; });
+      if (tokens.some(function (t) { return f.indexOf(t) >= 0; })) hit = c.name;
+    });
+    return hit;
+  }
+
+  // Pergunta para qual cartão importar (ou despesas sem cartão), com pré-seleção pelo nome do arquivo
+  function askImportTarget(fileName, cards, cb) {
+    const sel = el('select', { class: 'toolbar-select', style: 'width:100%' });
+    sel.appendChild(el('option', { value: '', text: 'Despesas (sem cartão)' }));
+    cards.forEach(function (c) { sel.appendChild(el('option', { value: c.name, text: '💳 ' + c.name })); });
+    const pre = matchCardByFilename(fileName, cards);
+    if (pre) sel.value = pre;
+    const body = el('div', { class: 'modal-body' }, [
+      el('p', { class: 'muted', text:
+        'Este arquivo não tem coluna "Cartão". Onde lançar estes lançamentos?' }),
+      el('div', { class: 'field' }, [
+        el('label', { class: 'field-label', text: 'Lançar em' }), sel
+      ])
+    ]);
+    global.UI.openModal('Importar para…', body, {
+      buttons: [
+        { label: 'Cancelar', variant: 'ghost', onClick: function (close) { close(); } },
+        { label: 'Importar', variant: 'primary', onClick: function (close) { close(); cb(sel.value); } }
+      ]
+    });
+  }
+
+  function runImport(list) {
+    try {
+      const r = importTransactions(list);
+      global.UI.confirmModal('Importação concluída',
+        r.added + ' lançamento(s) importado(s). ' +
+        (r.addedCard ? r.addedCard + ' compra(s) no cartão. ' : '') +
+        (r.uncategorized ? r.uncategorized + ' sem categoria (a classificar). ' : '') +
+        (r.dupes ? r.dupes + ' duplicado(s) ignorado(s). ' : '') +
+        (r.noCard ? r.noCard + ' com cartão não encontrado (verifique o nome). ' : '') +
+        (r.invalid ? r.invalid + ' inválido(s) ignorado(s).' : ''),
+        function () { render(); });
+      U.toast((r.added + r.addedCard) + ' lançamentos importados.', 'success');
+      render();
+    } catch (err) {
+      U.toast(err.message, 'error');
+    }
+  }
+
   function onImportTxFile(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -1253,20 +1304,18 @@
       } catch (err) {
         U.toast(err.message || 'Arquivo inválido (use JSON ou CSV).', 'error'); return;
       }
-      try {
-        const r = importTransactions(list);
-        global.UI.confirmModal('Importação concluída',
-          r.added + ' lançamento(s) importado(s). ' +
-          (r.addedCard ? r.addedCard + ' compra(s) no cartão. ' : '') +
-          (r.uncategorized ? r.uncategorized + ' sem categoria (a classificar). ' : '') +
-          (r.dupes ? r.dupes + ' duplicado(s) ignorado(s). ' : '') +
-          (r.noCard ? r.noCard + ' com cartão não encontrado (verifique o nome). ' : '') +
-          (r.invalid ? r.invalid + ' inválido(s) ignorado(s).' : ''),
-          function () { render(); });
-        U.toast((r.added + r.addedCard) + ' lançamentos importados.', 'success');
-        render();
-      } catch (err) {
-        U.toast(err.message, 'error');
+      if (!Array.isArray(list) || !list.length) { U.toast('Nada para importar no arquivo.', 'error'); return; }
+
+      // A coluna "Cartão" (linha a linha) tem prioridade. Sem ela, pergunta o destino.
+      const hasPerRowCard = list.some(function (it) { return it && String(it.card || '').trim(); });
+      const cards = Array.isArray(global.Store.getData().cards) ? global.Store.getData().cards : [];
+      if (!hasPerRowCard && cards.length) {
+        askImportTarget(file.name, cards, function (cardName) {
+          if (cardName) list.forEach(function (it) { it.card = cardName; });
+          runImport(list);
+        });
+      } else {
+        runImport(list);
       }
     };
     reader.readAsText(file);
