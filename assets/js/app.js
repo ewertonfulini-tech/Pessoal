@@ -649,11 +649,24 @@
             const total = Number(ce.totalAmount) || 0;
             // Parcelado: mostra o valor da parcela (como na fatura) e o total como nota
             const perMonth = (!isRec && inst > 1) ? Math.round((total / inst) * 100) / 100 : total;
+            // Em qual fatura esta compra cai (esclarece por que aparece na busca
+            // mas não na fatura do mês exibido)
+            const parts = [];
+            if (!isRec && inst > 1) parts.push('total ' + U.formatBRL(total));
+            if (isRec) {
+              parts.push('recorrente');
+            } else {
+              const firstDue = (F.installmentsOf(ce)[0] || {}).due;
+              if (firstDue) {
+                parts.push((inst > 1 ? '1ª fatura ' : 'fatura ') +
+                  U.MESES_CURTOS[firstDue.month0] + '/' + String(firstDue.year).slice(2));
+              }
+            }
             list.appendChild(cardExpenseRow({
               description: ce.description, categoryId: ce.categoryId, purchaseDate: ce.purchaseDate,
               amount: perMonth,
               instText: isRec ? '' : (inst > 1 ? inst + 'x' : ''),
-              subNote: (!isRec && inst > 1) ? ('total ' + U.formatBRL(total)) : '',
+              subNote: parts.join(' · '),
               recurring: isRec
             }, ce));
           });
