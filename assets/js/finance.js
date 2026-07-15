@@ -150,7 +150,19 @@
       parts.push(amt);
     }
 
-    const first = firstInvoiceMonth(cardExpense.purchaseDate, closingDay);
+    // Fatura forçada (dueOverride = "YYYY-MM" da fatura de vencimento da 1ª parcela):
+    // preserva a data da compra, mas coloca a compra na fatura escolhida.
+    let first;
+    if (cardExpense.dueOverride && /^\d{4}-\d{2}$/.test(cardExpense.dueOverride)) {
+      const ovYear = parseInt(cardExpense.dueOverride.slice(0, 4), 10);
+      const ovMonth0 = parseInt(cardExpense.dueOverride.slice(5, 7), 10) - 1;
+      // Descobre o mês de FECHAMENTO cujo vencimento cai no mês escolhido.
+      first = (dueDay > closingDay)
+        ? { year: ovYear, month0: ovMonth0 }
+        : U.addMonths(ovYear, ovMonth0, -1);
+    } else {
+      first = firstInvoiceMonth(cardExpense.purchaseDate, closingDay);
+    }
     const list = [];
     for (let i = 0; i < count; i++) {
       const closing = U.addMonths(first.year, first.month0, i);

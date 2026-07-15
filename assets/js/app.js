@@ -448,6 +448,8 @@
         }),
         el('button', { class: 'icon-btn small', text: '✎', title: 'Editar cartão',
           onclick: function () { global.UI.openCardModal(card, refresh); } }),
+        el('button', { class: 'icon-btn small', text: '🧹', title: 'Limpar todos os lançamentos deste cartão',
+          onclick: function () { clearCardExpenses(card); } }),
         el('button', { class: 'icon-btn small danger', text: '🗑', title: 'Excluir cartão',
           onclick: function () { deleteCard(card); } })
       ])
@@ -536,6 +538,20 @@
     else d.invoicePaid[key] = true;
     global.Store.save();
     render();
+  }
+
+  function clearCardExpenses(card) {
+    const d = global.Store.getData();
+    const count = (d.cardExpenses || []).filter(function (x) { return x.cardId === card.id; }).length;
+    if (!count) { global.UI && U.toast('Este cartão não tem lançamentos.', 'info'); return; }
+    global.UI.confirmModal('Limpar lançamentos',
+      'Apagar TODOS os ' + count + ' lançamento(s) do cartão "' + card.name + '"? ' +
+      'O cartão continua cadastrado. Esta ação não pode ser desfeita.', function () {
+        d.cardExpenses = (d.cardExpenses || []).filter(function (x) { return x.cardId !== card.id; });
+        global.Store.save();
+        U.toast(count + ' lançamento(s) apagado(s).', 'success');
+        render();
+      }, true);
   }
 
   function deleteCard(card) {
@@ -1151,12 +1167,14 @@
         const categoryId = matchCategoryByName(d, 'expense', item.category);
         if (!categoryId) uncategorized++;
         if (!Array.isArray(d.cardExpenses)) d.cardExpenses = [];
-        d.cardExpenses.push({
+        const ce = {
           id: U.uid('ce'), cardId: card.id, description: desc,
           totalAmount: amount, purchaseDate: date,
           installments: Math.max(1, parseInt(item.installments, 10) || 1),
           categoryId: categoryId
-        });
+        };
+        if (item.dueOverride && /^\d{4}-\d{2}$/.test(item.dueOverride)) ce.dueOverride = item.dueOverride;
+        d.cardExpenses.push(ce);
         addedCard++;
         return;
       }
@@ -1253,24 +1271,48 @@
     return hit;
   }
 
-  // Pergunta para qual cartão importar (ou despesas sem cartão), com pré-seleção pelo nome do arquivo
+  // Pergunta para qual cartão importar (ou despesas sem cartão) e em qual fatura,
+  // com pré-seleção do cartão pelo nome do arquivo. Chama cb(cardName, dueOverride).
   function askImportTarget(fileName, cards, cb) {
     const sel = el('select', { class: 'toolbar-select', style: 'width:100%' });
     sel.appendChild(el('option', { value: '', text: 'Despesas (sem cartão)' }));
     cards.forEach(function (c) { sel.appendChild(el('option', { value: c.name, text: '💳 ' + c.name })); });
     const pre = matchCardByFilename(fileName, cards);
     if (pre) sel.value = pre;
+
+    // Fatura de destino (só faz sentido para cartão)
+    const forceChk = el('input', { type: 'checkbox' });
+    const monthIn = el('input', { type: 'month', value: U.monthKey(state.year, state.month0), disabled: true });
+    forceChk.addEventListener('change', function () { monthIn.disabled = !forceChk.checked; });
+    const invoiceField = el('div', { class: 'field' }, [
+      el('label', { class: 'field-label' }, [
+        forceChk, el('span', { text: ' Lançar todas na fatura de:' })
+      ]),
+      monthIn,
+      el('small', { class: 'field-hint', text:
+        'Útil para faturas: mantém a data de cada compra, mas coloca todas na fatura ' +
+        'escolhida (mesmo com compras de meses anteriores). Sem marcar, cada compra ' +
+        'entra na fatura pela sua data.' })
+    ]);
+    function syncInvoiceVisibility() { invoiceField.style.display = sel.value ? '' : 'none'; }
+    sel.addEventListener('change', syncInvoiceVisibility);
+    syncInvoiceVisibility();
+
     const body = el('div', { class: 'modal-body' }, [
       el('p', { class: 'muted', text:
         'Este arquivo não tem coluna "Cartão". Onde lançar estes lançamentos?' }),
       el('div', { class: 'field' }, [
         el('label', { class: 'field-label', text: 'Lançar em' }), sel
-      ])
+      ]),
+      invoiceField
     ]);
     global.UI.openModal('Importar para…', body, {
       buttons: [
         { label: 'Cancelar', variant: 'ghost', onClick: function (close) { close(); } },
-        { label: 'Importar', variant: 'primary', onClick: function (close) { close(); cb(sel.value); } }
+        { label: 'Importar', variant: 'primary', onClick: function (close) {
+          const due = (sel.value && forceChk.checked && monthIn.value) ? monthIn.value : '';
+          close(); cb(sel.value, due);
+        } }
       ]
     });
   }
@@ -1310,8 +1352,11 @@
       const hasPerRowCard = list.some(function (it) { return it && String(it.card || '').trim(); });
       const cards = Array.isArray(global.Store.getData().cards) ? global.Store.getData().cards : [];
       if (!hasPerRowCard && cards.length) {
-        askImportTarget(file.name, cards, function (cardName) {
-          if (cardName) list.forEach(function (it) { it.card = cardName; });
+        askImportTarget(file.name, cards, function (cardName, dueOverride) {
+          if (cardName) list.forEach(function (it) {
+            it.card = cardName;
+            if (dueOverride) it.dueOverride = dueOverride;
+          });
           runImport(list);
         });
       } else {
