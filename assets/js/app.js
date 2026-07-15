@@ -534,8 +534,6 @@
         }),
         el('button', { class: 'icon-btn small', text: '✎', title: 'Editar cartão',
           onclick: function () { global.UI.openCardModal(card, refresh); } }),
-        el('button', { class: 'icon-btn small', text: '🧹', title: 'Limpar todos os lançamentos deste cartão',
-          onclick: function () { clearCardExpenses(card); } }),
         el('button', { class: 'icon-btn small danger', text: '🗑', title: 'Excluir cartão',
           onclick: function () { deleteCard(card); } })
       ])
@@ -746,20 +744,6 @@
     else d.invoicePaid[key] = true;
     global.Store.save();
     render();
-  }
-
-  function clearCardExpenses(card) {
-    const d = global.Store.getData();
-    const count = (d.cardExpenses || []).filter(function (x) { return x.cardId === card.id; }).length;
-    if (!count) { global.UI && U.toast('Este cartão não tem lançamentos.', 'info'); return; }
-    global.UI.confirmModal('Limpar lançamentos',
-      'Apagar TODOS os ' + count + ' lançamento(s) do cartão "' + card.name + '"? ' +
-      'O cartão continua cadastrado. Esta ação não pode ser desfeita.', function () {
-        d.cardExpenses = (d.cardExpenses || []).filter(function (x) { return x.cardId !== card.id; });
-        global.Store.save();
-        U.toast(count + ' lançamento(s) apagado(s).', 'success');
-        render();
-      }, true);
   }
 
   function deleteCard(card) {
