@@ -19,6 +19,8 @@
 
   // Estado de UI (não persistido): quais cartões estão com a lista expandida
   const cardExpanded = {};
+  // Busca por cartão (não persistido): cardId -> texto de busca
+  const cardSearch = {};
 
   // Privacidade: valores ocultos por padrão a cada abertura (não é persistido,
   // então celular e computador sempre iniciam com os valores escondidos).
@@ -423,16 +425,44 @@
   }
 
   function deleteTransaction(tx, isRecurring) {
-    const msg = isRecurring
-      ? 'Excluir "' + tx.description + '"? Isso remove a recorrência de todos os meses.'
-      : 'Excluir "' + tx.description + '"?';
-    global.UI.confirmModal('Excluir lançamento', msg, function () {
-      const d = global.Store.getData();
-      d.transactions = d.transactions.filter(function (t) { return t.id !== tx.id; });
-      global.Store.save();
-      U.toast('Lançamento excluído.', 'success');
-      render();
-    }, true);
+    if (!isRecurring) {
+      global.UI.confirmModal('Excluir lançamento', 'Excluir "' + tx.description + '"?', function () {
+        const d = global.Store.getData();
+        d.transactions = d.transactions.filter(function (t) { return t.id !== tx.id; });
+        global.Store.save();
+        U.toast('Lançamento excluído.', 'success');
+        render();
+      }, true);
+      return;
+    }
+    // Recorrente: apagar só neste mês (pausa) ou a série inteira
+    const mLabel = U.monthLabel(state.year, state.month0);
+    const body = el('div', { class: 'modal-body' }, [
+      el('p', { class: 'confirm-text', html:
+        'Excluir "<b>' + U.escapeHtml(tx.description) + '</b>" — esta é uma recorrência. O que você quer fazer?' }),
+      el('p', { class: 'muted small', text:
+        '"Só neste mês" pausa a cobrança em ' + mLabel + ' (útil para assinaturas pausadas); ' +
+        'os outros meses continuam.' })
+    ]);
+    global.UI.openModal('Excluir recorrência', body, {
+      buttons: [
+        { label: 'Cancelar', variant: 'ghost', onClick: function (c) { c(); } },
+        { label: 'Só neste mês', variant: 'primary', onClick: function (c) {
+          const d = global.Store.getData();
+          d.skipOverrides[tx.id + ':' + U.monthKey(state.year, state.month0)] = true;
+          global.Store.save(); c();
+          U.toast('Pausado em ' + mLabel + '.', 'success');
+          render();
+        } },
+        { label: 'Toda a recorrência', variant: 'danger', onClick: function (c) {
+          const d = global.Store.getData();
+          d.transactions = d.transactions.filter(function (t) { return t.id !== tx.id; });
+          global.Store.save(); c();
+          U.toast('Recorrência excluída.', 'success');
+          render();
+        } }
+      ]
+    });
   }
 
   function rowActions(onEdit, onDelete) {
@@ -543,15 +573,15 @@
     panel.appendChild(toggle);
 
     if (expanded) {
-      const list = el('div', { class: 'txn-list card-txn-list' });
-      items.forEach(function (i) {
-        const ce = global.Store.getData().cardExpenses.find(function (x) { return x.id === i.cardExpenseId; });
-        const instTag = i.of > 1
-          ? el('span', { class: 'tag', text: i.n + '/' + i.of }) : null;
+      // Monta uma linha de compra (usada tanto na fatura do mês quanto na busca)
+      function cardExpenseRow(i, ce) {
+        const instTag = i.instText
+          ? el('span', { class: 'tag', text: i.instText })
+          : (i.of > 1 ? el('span', { class: 'tag', text: i.n + '/' + i.of }) : null);
         const recTag = i.recurring ? el('span', { class: 'tag', text: '↻ recorrente' }) : null;
         const isCredit = i.amount < 0;
         const creditTag = isCredit ? el('span', { class: 'tag', text: 'estorno' }) : null;
-        list.appendChild(el('div', { class: 'txn-row' }, [
+        return el('div', { class: 'txn-row' }, [
           el('div', { class: 'txn-main' }, [
             el('div', { class: 'txn-title-line' }, [
               el('span', { class: 'txn-desc', text: i.description }), instTag, recTag, creditTag
@@ -569,9 +599,54 @@
               function () { deleteCardExpense(ce); }
             )
           ])
-        ]));
+        ]);
+      }
+
+      const searchIn = el('input', {
+        type: 'search', class: 'toolbar-search', placeholder: 'Buscar compra neste cartão…',
+        value: cardSearch[card.id] || ''
       });
+      const list = el('div', { class: 'txn-list card-txn-list' });
+
+      function fillList() {
+        list.innerHTML = '';
+        const q = normName(searchIn.value.trim());
+        if (q) {
+          // Busca em TODAS as compras do cartão (qualquer mês)
+          const matches = global.Store.getData().cardExpenses
+            .filter(function (ce) { return ce.cardId === card.id && normName(ce.description).indexOf(q) > -1; })
+            .sort(function (a, b) { return a.purchaseDate < b.purchaseDate ? 1 : -1; });
+          if (!matches.length) {
+            list.appendChild(el('p', { class: 'muted', text: 'Nenhuma compra encontrada.' }));
+            return;
+          }
+          list.appendChild(el('div', { class: 'muted small', style: 'padding:4px 0 8px',
+            text: matches.length + ' compra(s) encontrada(s) — todos os meses' }));
+          matches.forEach(function (ce) {
+            const inst = parseInt(ce.installments, 10) || 1;
+            list.appendChild(cardExpenseRow({
+              description: ce.description, categoryId: ce.categoryId, purchaseDate: ce.purchaseDate,
+              amount: Number(ce.totalAmount) || 0,
+              instText: (ce.recurrence && ce.recurrence !== 'none') ? '' : (inst > 1 ? inst + 'x' : ''),
+              recurring: ce.recurrence && ce.recurrence !== 'none'
+            }, ce));
+          });
+        } else {
+          // Fatura do mês exibido
+          items.forEach(function (i) {
+            const ce = global.Store.getData().cardExpenses.find(function (x) { return x.id === i.cardExpenseId; });
+            list.appendChild(cardExpenseRow(i, ce));
+          });
+        }
+      }
+      searchIn.addEventListener('input', function () {
+        cardSearch[card.id] = searchIn.value;
+        fillList();
+      });
+
+      panel.appendChild(el('div', { class: 'card-search' }, [searchIn]));
       panel.appendChild(list);
+      fillList();
     }
     return panel;
   }

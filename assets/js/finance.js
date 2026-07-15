@@ -21,6 +21,10 @@
     const start = U.parseISO(tx.date);
     const rec = tx.recurrence || 'none';
 
+    // Mês pausado (recorrência): não gera ocorrência neste mês
+    const skips = global.Store.getData().skipOverrides;
+    if (skips && skips[tx.id + ':' + U.monthKey(year, month0)]) return out;
+
     function makeOcc(dateISO) {
       const store = global.Store.getData();
       const key = tx.id + ':' + U.monthKey(year, month0);

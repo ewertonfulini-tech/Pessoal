@@ -3,7 +3,7 @@
   'use strict';
 
   const STORAGE_KEY = 'meugestor_data_v1';
-  const SCHEMA_VERSION = 3;
+  const SCHEMA_VERSION = 4;
 
   const DEFAULT_CATEGORIES = [
     { id: 'cat_moradia', name: 'Moradia', color: '#6366f1', type: 'expense' },
@@ -52,6 +52,8 @@
       paidOverrides: {},
       // Valor personalizado por ocorrência (recorrências): chave "id:YYYY-MM" -> valor
       amountOverrides: {},
+      // Meses pausados de uma recorrência: chave "id:YYYY-MM" -> true (não gera a ocorrência)
+      skipOverrides: {},
       // Faturas pagas: chave "cardId:YYYY-MM" -> true
       invoicePaid: {},
       // Contas (banco/carteira/dinheiro) com saldo inicial
@@ -92,6 +94,7 @@
     });
     if (!merged.paidOverrides || typeof merged.paidOverrides !== 'object') merged.paidOverrides = {};
     if (!merged.amountOverrides || typeof merged.amountOverrides !== 'object') merged.amountOverrides = {};
+    if (!merged.skipOverrides || typeof merged.skipOverrides !== 'object') merged.skipOverrides = {};
     if (!merged.invoicePaid || typeof merged.invoicePaid !== 'object') merged.invoicePaid = {};
     if (!merged.settings || typeof merged.settings !== 'object') merged.settings = {};
 
