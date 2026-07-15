@@ -94,6 +94,8 @@
     const d = global.Store.getData();
     return d.categories
       .filter(function (c) { return c.type === type; })
+      .slice()
+      .sort(function (a, b) { return a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }); })
       .map(function (c) { return { value: c.id, label: c.name }; });
   }
 

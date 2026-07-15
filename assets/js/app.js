@@ -269,6 +269,8 @@
     const catIds = {};
     global.Store.getData().categories
       .filter(function (c) { return c.type === type; })
+      .slice()
+      .sort(function (a, b) { return a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }); })
       .forEach(function (c) {
         catIds[c.id] = true;
         const opt = el('option', { value: c.id, text: c.name });
@@ -729,7 +731,9 @@
       'Defina um limite mensal para cada categoria de despesa. A barra mostra o quanto você já gastou ' +
       'no mês selecionado e alerta quando o orçamento estoura.' }));
 
-    const expenseCats = d.categories.filter(function (c) { return c.type === 'expense'; });
+    const expenseCats = d.categories.filter(function (c) { return c.type === 'expense'; })
+      .slice()
+      .sort(function (a, b) { return a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }); });
     const spentMap = {};
     F.expenseByCategory(state.year, state.month0).forEach(function (c) { spentMap[c.categoryId] = c.total; });
 
@@ -863,7 +867,9 @@
     // Categorias
     ['expense', 'income'].forEach(function (type) {
       const isIncome = type === 'income';
-      const cats = d.categories.filter(function (c) { return c.type === type; });
+      const cats = d.categories.filter(function (c) { return c.type === type; })
+        .slice()
+        .sort(function (a, b) { return a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }); });
       const addBtn = el('button', {
         class: 'btn small primary', text: '+ Categoria',
         onclick: function () { global.UI.openCategoryModal(type, null, refresh); }
