@@ -20,6 +20,13 @@
   // Estado de UI (não persistido): quais cartões estão com a lista expandida
   const cardExpanded = {};
 
+  // Privacidade: valores ocultos por padrão a cada abertura (não é persistido,
+  // então celular e computador sempre iniciam com os valores escondidos).
+  let valuesHidden = true;
+  function money(v) { return valuesHidden ? 'R$ ••••' : U.formatBRL(v); }
+  const EYE_OPEN = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const EYE_OFF = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
   const view = document.getElementById('view');
 
   /* ================================================================== *
@@ -92,19 +99,26 @@
   function renderDashboard() {
     const s = F.monthSummary(state.year, state.month0);
     view.innerHTML = '';
-    view.appendChild(sectionHeader('Visão geral'));
+    const eyeBtn = el('button', {
+      class: 'icon-btn eye-toggle',
+      title: valuesHidden ? 'Mostrar valores' : 'Ocultar valores',
+      'aria-label': valuesHidden ? 'Mostrar valores' : 'Ocultar valores',
+      html: valuesHidden ? EYE_OFF : EYE_OPEN,
+      onclick: function () { valuesHidden = !valuesHidden; render(); }
+    });
+    view.appendChild(sectionHeader('Visão geral', eyeBtn));
 
     // Cards de resumo
     const d = global.Store.getData();
     const statCards = [
-      statCard('Receitas previstas', U.formatBRL(s.totalIncome), 'income'),
-      statCard('Despesas do mês', U.formatBRL(s.totalExpense), 'expense',
-        'Contas ' + U.formatBRL(s.totalDirectExpense) + ' + cartões ' + U.formatBRL(s.totalInvoices)),
-      statCard('Saldo previsto', U.formatBRL(s.balance), s.balance >= 0 ? 'positive' : 'negative')
+      statCard('Receitas previstas', money(s.totalIncome), 'income'),
+      statCard('Despesas do mês', money(s.totalExpense), 'expense',
+        'Contas ' + money(s.totalDirectExpense) + ' + cartões ' + money(s.totalInvoices)),
+      statCard('Saldo previsto', money(s.balance), s.balance >= 0 ? 'positive' : 'negative')
     ];
     if (d.accounts.length) {
       const bal = F.totalAccountsBalance();
-      statCards.push(statCard('Saldo em contas', U.formatBRL(bal), bal >= 0 ? 'positive' : 'negative',
+      statCards.push(statCard('Saldo em contas', money(bal), bal >= 0 ? 'positive' : 'negative',
         'Somente valores efetivados'));
     }
     view.appendChild(el('div', { class: 'stat-grid' + (statCards.length === 4 ? ' four' : '') }, statCards));
@@ -128,14 +142,14 @@
       el('h3', { class: 'panel-title', text: 'Despesas por categoria' })
     ]);
     const donutWrap = el('div', { class: 'donut-wrap' }, [
-      global.Charts.donut(byCat, { size: 180, stroke: 24 })
+      global.Charts.donut(byCat, { size: 180, stroke: 24, maskTotal: valuesHidden })
     ]);
     const legend = el('div', { class: 'legend' });
     byCat.slice(0, 8).forEach(function (c) {
       legend.appendChild(el('div', { class: 'legend-item' }, [
         el('span', { class: 'legend-dot', style: 'background:' + c.color }),
         el('span', { class: 'legend-name', text: c.name }),
-        el('span', { class: 'legend-val', text: U.formatBRL(c.total) })
+        el('span', { class: 'legend-val', text: money(c.total) })
       ]));
     });
     if (!byCat.length) legend.appendChild(el('p', { class: 'muted', text: 'Nenhuma despesa neste mês.' }));

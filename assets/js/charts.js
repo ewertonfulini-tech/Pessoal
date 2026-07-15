@@ -67,7 +67,7 @@
     const center = svgEl('text', {
       x: cx, y: cy - 6, 'text-anchor': 'middle', class: 'chart-donut-total'
     });
-    center.textContent = U.formatBRL(total);
+    center.textContent = opts.maskTotal ? 'R$ ••••' : U.formatBRL(total);
     const label = svgEl('text', {
       x: cx, y: cy + 16, 'text-anchor': 'middle', class: 'chart-donut-label'
     });
