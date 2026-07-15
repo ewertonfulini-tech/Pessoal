@@ -548,12 +548,13 @@
         const ce = global.Store.getData().cardExpenses.find(function (x) { return x.id === i.cardExpenseId; });
         const instTag = i.of > 1
           ? el('span', { class: 'tag', text: i.n + '/' + i.of }) : null;
+        const recTag = i.recurring ? el('span', { class: 'tag', text: '↻ recorrente' }) : null;
         const isCredit = i.amount < 0;
         const creditTag = isCredit ? el('span', { class: 'tag', text: 'estorno' }) : null;
         list.appendChild(el('div', { class: 'txn-row' }, [
           el('div', { class: 'txn-main' }, [
             el('div', { class: 'txn-title-line' }, [
-              el('span', { class: 'txn-desc', text: i.description }), instTag, creditTag
+              el('span', { class: 'txn-desc', text: i.description }), instTag, recTag, creditTag
             ]),
             el('div', { class: 'txn-meta-line' }, [
               catBadge(i.categoryId),

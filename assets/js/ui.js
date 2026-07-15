@@ -316,45 +316,72 @@
     const dateIn = dateInput(ce.purchaseDate);
     const instIn = el('input', { type: 'number', min: 1, max: 120, value: ce.installments || 1 });
     const catIn = select(categoryOptions('expense'), ce.categoryId);
+    const recIn = select(RECURRENCE_OPTS, ce.recurrence || 'none');
+    const endIn = el('input', { type: 'date', value: ce.recurrenceEnd || '' });
+
+    const RECUR_LABEL = { weekly: 'semanal', monthly: 'mensal', yearly: 'anual' };
+    const parcelField = field('Parcelas', instIn);
+    const endField = field('Repetir até (opcional)', endIn, 'Deixe vazio para repetir indefinidamente.');
 
     const preview = el('div', { class: 'installment-preview' });
+    function isRecurring() { return recIn.value !== 'none'; }
     function updatePreview() {
       const total = U.parseAmount(amountIn.value);
-      const n = Math.max(1, parseInt(instIn.value, 10) || 1);
       if (total <= 0) { preview.innerHTML = ''; return; }
+      if (isRecurring()) {
+        preview.innerHTML = U.escapeHtml('Cobrança ' + RECUR_LABEL[recIn.value] + ' de ' + U.formatBRL(total) +
+          ' — lançada automaticamente na fatura de cada período.');
+        return;
+      }
+      const n = Math.max(1, parseInt(instIn.value, 10) || 1);
       const per = total / n;
       preview.innerHTML = n > 1
         ? U.escapeHtml(n + 'x de ' + U.formatBRL(per) + '  •  total ' + U.formatBRL(total))
         : U.escapeHtml('À vista: ' + U.formatBRL(total));
     }
+    function syncRecur() {
+      // Recorrente não parcela: esconde parcelas e mostra "repetir até"
+      parcelField.style.display = isRecurring() ? 'none' : '';
+      endField.style.display = isRecurring() ? '' : 'none';
+      if (isRecurring()) instIn.value = 1;
+      updatePreview();
+    }
     amountIn.addEventListener('input', updatePreview);
     instIn.addEventListener('input', updatePreview);
-    updatePreview();
+    recIn.addEventListener('change', syncRecur);
 
     const body = el('div', { class: 'modal-body' }, [
       field('Cartão', cardIn),
       field('Descrição', descIn),
       el('div', { class: 'field-row' }, [
         field('Valor total (R$)', amountIn),
-        field('Parcelas', instIn)
+        parcelField
       ]),
       el('div', { class: 'field-row' }, [
         field('Data da compra', dateIn),
         field('Categoria', catIn)
       ]),
+      el('div', { class: 'field-row' }, [
+        field('Recorrência', recIn),
+        endField
+      ]),
       preview
     ]);
+    syncRecur();
 
     function save(close) {
       const total = U.parseAmount(amountIn.value);
       if (!descIn.value.trim()) { U.toast('Informe uma descrição.', 'error'); return; }
       if (total <= 0) { U.toast('Informe um valor maior que zero.', 'error'); return; }
       const d = global.Store.getData();
+      const recurrence = recIn.value;
       const payload = {
         cardId: cardIn.value, description: descIn.value.trim(),
         totalAmount: total, purchaseDate: dateIn.value,
-        installments: Math.max(1, parseInt(instIn.value, 10) || 1),
-        categoryId: catIn.value
+        installments: recurrence === 'none' ? Math.max(1, parseInt(instIn.value, 10) || 1) : 1,
+        categoryId: catIn.value,
+        recurrence: recurrence,
+        recurrenceEnd: recurrence === 'none' ? '' : (endIn.value || '')
       };
       if (isEdit) {
         Object.assign(d.cardExpenses.find(function (x) { return x.id === ce.id; }), payload);

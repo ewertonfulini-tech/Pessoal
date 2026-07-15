@@ -179,25 +179,87 @@
     return list;
   }
 
+  // Serial de dia (para comparar datas) — usa UTC para evitar fuso
+  function daySerial(year, month0, day) { return Date.UTC(year, month0, day) / 86400000; }
+
+  // Cobranças de UMA compra de cartão que caem na fatura que VENCE em (year, month0).
+  // Trata compras únicas/parceladas (installmentsOf) e recorrentes (semanal/mensal/anual).
+  function cardChargesInInvoice(ce, year, month0) {
+    const card = getCard(ce.cardId);
+    if (!card) return [];
+    const rec = ce.recurrence || 'none';
+
+    if (rec === 'none') {
+      return installmentsOf(ce)
+        .filter(function (p) { return p.due.year === year && p.due.month0 === month0; })
+        .map(function (p) {
+          return { amount: p.amount, n: p.n, of: p.of, purchaseDate: ce.purchaseDate,
+            dueISO: p.dueISO, recurring: false };
+        });
+    }
+
+    // Recorrente: descobre a janela de datas de compra cuja fatura vence em (year, month0)
+    const closingDay = card.closingDay || 1;
+    const dueDay = card.dueDay || 10;
+    const closing = (dueDay > closingDay) ? { year: year, month0: month0 } : U.addMonths(year, month0, -1);
+    const prevClose = U.addMonths(closing.year, closing.month0, -1);
+    const winStart = daySerial(prevClose.year, prevClose.month0, closingDay + 1);
+    const winEnd = daySerial(closing.year, closing.month0, closingDay);
+    const dueISO = U.buildISO(year, month0, dueDay);
+
+    const start = U.parseISO(ce.purchaseDate);
+    const startSerial = daySerial(start.year, start.month0, start.day);
+    const endSerial = ce.recurrenceEnd
+      ? (function () { const e = U.parseISO(ce.recurrenceEnd); return daySerial(e.year, e.month0, e.day); })()
+      : Infinity;
+    const amount = Number(ce.totalAmount) || 0;
+    const charges = [];
+    function pushOcc(serial) {
+      if (serial < startSerial || serial > endSerial || serial < winStart || serial > winEnd) return;
+      const dt = new Date(serial * 86400000);
+      charges.push({
+        amount: amount, n: 1, of: 1, recurring: true, dueISO: dueISO,
+        purchaseDate: U.buildISO(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate())
+      });
+    }
+
+    if (rec === 'weekly') {
+      const step = 7;
+      let k = 0;
+      if (winStart > startSerial) k = Math.ceil((winStart - startSerial) / step);
+      for (let s = startSerial + k * step; s <= winEnd; s += step) pushOcc(s);
+    } else if (rec === 'monthly') {
+      // Uma ocorrência por mês, no dia da compra (ajustado ao fim do mês)
+      [prevClose, closing].forEach(function (m) {
+        const dim = U.daysInMonth(m.year, m.month0);
+        pushOcc(daySerial(m.year, m.month0, Math.min(start.day, dim)));
+      });
+    } else if (rec === 'yearly') {
+      [prevClose.year, closing.year].forEach(function (y) {
+        const dim = U.daysInMonth(y, start.month0);
+        pushOcc(daySerial(y, start.month0, Math.min(start.day, dim)));
+      });
+    }
+    return charges;
+  }
+
   // Itens que compõem a fatura de um cartão que VENCE em (year, month0)
   function invoiceItems(cardId, year, month0) {
     const d = global.Store.getData();
     const items = [];
     d.cardExpenses.forEach(function (ce) {
       if (ce.cardId !== cardId) return;
-      const parcels = installmentsOf(ce);
-      parcels.forEach(function (p) {
-        if (p.due.year === year && p.due.month0 === month0) {
-          items.push({
-            cardExpenseId: ce.id,
-            description: ce.description,
-            categoryId: ce.categoryId,
-            purchaseDate: ce.purchaseDate,
-            n: p.n, of: p.of,
-            amount: p.amount,
-            dueISO: p.dueISO
-          });
-        }
+      cardChargesInInvoice(ce, year, month0).forEach(function (p) {
+        items.push({
+          cardExpenseId: ce.id,
+          description: ce.description,
+          categoryId: ce.categoryId,
+          purchaseDate: p.purchaseDate,
+          n: p.n, of: p.of,
+          amount: p.amount,
+          recurring: p.recurring,
+          dueISO: p.dueISO
+        });
       });
     });
     items.sort(function (a, b) { return a.purchaseDate < b.purchaseDate ? -1 : 1; });
@@ -224,6 +286,7 @@
     let sum = 0;
     d.cardExpenses.forEach(function (ce) {
       if (ce.cardId !== cardId) return;
+      if (ce.recurrence && ce.recurrence !== 'none') return; // recorrente não trava limite
       installmentsOf(ce).forEach(function (p) {
         const k = p.due.year * 12 + p.due.month0;
         if (k >= curKey) sum += p.amount;
