@@ -196,9 +196,16 @@
 
   function localIsEmpty() {
     const d = global.Store.getData();
+    const p = d.patrimonio || {};
+    const patrimonioVazio =
+      (!p.investimentos || p.investimentos.length === 0) &&
+      (!p.imobilizado || p.imobilizado.length === 0) &&
+      (!p.movimentacoes || p.movimentacoes.length === 0) &&
+      (!p.historico || p.historico.length === 0) &&
+      (!p.fgts) && (!p.meta || !p.meta.valor);
     return d.transactions.length === 0 && d.cards.length === 0 &&
       d.cardExpenses.length === 0 && d.accounts.length === 0 &&
-      d.budgets.length === 0;
+      d.budgets.length === 0 && patrimonioVazio;
   }
 
   // Traduz erros do Firestore em algo acionável

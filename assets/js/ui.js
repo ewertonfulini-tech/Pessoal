@@ -414,6 +414,7 @@
 
   global.UI = {
     openModal, confirmModal,
+    field, textInput, numberInput, dateInput, select,
     openTransactionModal, openCardModal, openCardExpenseModal, openCategoryModal,
     openAccountModal
   };

@@ -1164,6 +1164,7 @@
       case 'cartoes': renderCards(); break;
       case 'orcamento': renderBudgets(); break;
       case 'contas': renderAccounts(); break;
+      case 'patrimonio': global.Patrimonio.render(); break;
       case 'config': renderConfig(); break;
       default: renderDashboard();
     }

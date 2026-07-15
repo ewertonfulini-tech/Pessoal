@@ -3,7 +3,7 @@
   'use strict';
 
   const STORAGE_KEY = 'meugestor_data_v1';
-  const SCHEMA_VERSION = 1;
+  const SCHEMA_VERSION = 2;
 
   const DEFAULT_CATEGORIES = [
     { id: 'cat_moradia', name: 'Moradia', color: '#6366f1', type: 'expense' },
@@ -20,6 +20,23 @@
     { id: 'cat_investimentos', name: 'Investimentos', color: '#10b981', type: 'income' },
     { id: 'cat_outros_r', name: 'Outros', color: '#4ade80', type: 'income' }
   ];
+
+  function defaultPatrimonio() {
+    return {
+      cambioUSD: 5.00,
+      meta: { ano: new Date().getFullYear(), valor: 0 },
+      fgts: 0,
+      // Evolução anual de patrimônio: [{ id, ano, valor }]
+      historico: [],
+      // Imóveis e veículos: [{ id, nome, classe, valor, divida }]
+      imobilizado: [],
+      // Carteira de investimentos: [{ id, instituicao, tipo, local, valor }]
+      investimentos: [],
+      // Movimentação mensal (saldo/aporte/rentabilidade): [{ id, mes:'YYYY-MM', saldo, aporte, rentabilidade }]
+      movimentacoes: [],
+      movNota: ''
+    };
+  }
 
   function defaultData() {
     return {
@@ -39,6 +56,8 @@
       accounts: [],
       // Orçamentos mensais por categoria: [{ categoryId, amount }]
       budgets: [],
+      // Patrimônio: investimentos, imóveis/veículos, FGTS e metas
+      patrimonio: defaultPatrimonio(),
       // Preferências gerais
       settings: {}
     };
@@ -72,6 +91,20 @@
     if (!merged.paidOverrides || typeof merged.paidOverrides !== 'object') merged.paidOverrides = {};
     if (!merged.invoicePaid || typeof merged.invoicePaid !== 'object') merged.invoicePaid = {};
     if (!merged.settings || typeof merged.settings !== 'object') merged.settings = {};
+
+    if (!merged.patrimonio || typeof merged.patrimonio !== 'object') merged.patrimonio = base.patrimonio;
+    ['historico', 'imobilizado', 'investimentos', 'movimentacoes'].forEach(function (k) {
+      if (!Array.isArray(merged.patrimonio[k])) merged.patrimonio[k] = [];
+      // Backfill de id para itens vindos de um import antigo (dashboard avulso) sem id.
+      merged.patrimonio[k].forEach(function (item) {
+        if (!item.id) item.id = global.Utils ? global.Utils.uid('pat') : ('pat_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8));
+      });
+    });
+    if (!merged.patrimonio.meta || typeof merged.patrimonio.meta !== 'object') merged.patrimonio.meta = base.patrimonio.meta;
+    if (typeof merged.patrimonio.cambioUSD !== 'number') merged.patrimonio.cambioUSD = base.patrimonio.cambioUSD;
+    if (typeof merged.patrimonio.fgts !== 'number') merged.patrimonio.fgts = base.patrimonio.fgts;
+    if (typeof merged.patrimonio.movNota !== 'string') merged.patrimonio.movNota = '';
+
     return merged;
   }
 
@@ -119,6 +152,6 @@
   global.Store = {
     STORAGE_KEY, SCHEMA_VERSION,
     load, save, saveDebounced, getData, replaceData,
-    exportJSON, importJSON, resetAll, defaultData
+    exportJSON, importJSON, resetAll, defaultData, defaultPatrimonio
   };
 })(window);
