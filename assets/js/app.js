@@ -182,6 +182,25 @@
   function renderTransactions(type) {
     const isIncome = type === 'income';
     const occ = F.occurrencesInMonth(type, state.year, state.month0);
+
+    // Despesas: faturas de cartão PAGAS aparecem como uma linha consolidada
+    // (paga). É apenas exibição — o valor já é contabilizado como fatura, então
+    // não criamos transação (evita contar em dobro).
+    if (!isIncome) {
+      global.Store.getData().cards.forEach(function (card) {
+        const tot = F.invoiceTotal(card.id, state.year, state.month0);
+        if (tot > 0 && F.isInvoicePaid(card.id, state.year, state.month0)) {
+          occ.push({
+            id: 'inv@' + card.id, isInvoice: true, cardId: card.id, cardColor: card.color,
+            date: U.buildISO(state.year, state.month0, card.dueDay),
+            description: 'Fatura ' + card.name, amount: tot,
+            categoryId: '', type: 'expense', recurrence: 'none', paid: true
+          });
+        }
+      });
+      occ.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+    }
+
     const total = occ.reduce(function (s, o) { return s + o.amount; }, 0);
     const paidTotal = occ.reduce(function (s, o) { return s + (o.paid ? o.amount : 0); }, 0);
     const openTotal = total - paidTotal;
@@ -325,6 +344,31 @@
         })
       ]));
       rows.forEach(function (o) {
+        // Linha consolidada da fatura de cartão paga (só exibição)
+        if (o.isInvoice) {
+          container.appendChild(el('div', { class: 'txn-row' }, [
+            el('div', { class: 'txn-main' }, [
+              el('div', { class: 'txn-title-line' }, [
+                el('span', { class: 'txn-desc', text: o.description }),
+                el('span', { class: 'tag tag-account' }, [
+                  el('span', { class: 'cat-dot', style: 'background:' + (o.cardColor || '#888') }),
+                  el('span', { text: 'cartão' })
+                ])
+              ]),
+              el('div', { class: 'txn-meta-line' }, [
+                el('span', { class: 'txn-meta', text: 'Pagamento da fatura' })
+              ])
+            ]),
+            el('div', { class: 'txn-right' }, [
+              el('span', { class: 'txn-amount neg', text: '- ' + U.formatBRL(o.amount) }),
+              el('button', {
+                class: 'chip chip-on', title: 'Desmarcar fatura como paga',
+                text: '✓ Pago', onclick: function () { toggleInvoicePaid(o.cardId); }
+              })
+            ])
+          ]));
+          return;
+        }
         const tx = d.transactions.find(function (t) { return t.id === o.txId; });
         const recTag = o.recurrence !== 'none'
           ? el('span', { class: 'tag', text: recurrenceLabel(o.recurrence) }) : null;
