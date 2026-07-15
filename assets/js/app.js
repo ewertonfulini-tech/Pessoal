@@ -912,14 +912,48 @@
         ]),
         el('div', { class: 'account-balance' }, [
           el('span', { class: 'muted small', text: 'Saldo atual' }),
-          el('strong', { class: 'account-balance-val ' + (bal >= 0 ? 'pos' : 'neg'),
-            text: U.formatBRL(bal) })
+          el('div', { class: 'account-balance-row' }, [
+            el('strong', { class: 'account-balance-val ' + (bal >= 0 ? 'pos' : 'neg'),
+              text: U.formatBRL(bal) }),
+            el('button', { class: 'icon-btn tiny', text: '✎', title: 'Ajustar saldo atual',
+              onclick: function () { adjustAccountBalance(acc); } })
+          ])
         ]),
-        el('div', { class: 'muted small', text: 'Saldo inicial ' + U.formatBRL(acc.initialBalance || 0) })
+        el('div', { class: 'muted small', text: 'Saldo inicial ' + U.formatBRL(acc.initialBalance || 0) +
+          (Number(acc.adjustment) ? ' · ajuste ' + U.formatBRL(acc.adjustment) : '') })
       ]));
     });
     wrap.appendChild(grid);
     return wrap;
+  }
+
+  function adjustAccountBalance(acc) {
+    const current = F.accountBalance(acc.id);
+    const input = el('input', { type: 'text', class: 'input-money',
+      value: current.toFixed(2).replace('.', ',') });
+    const body = el('div', { class: 'modal-body' }, [
+      el('p', { class: 'muted', html:
+        'Saldo calculado agora: <b>' + U.formatBRL(current) + '</b>.<br>' +
+        'Informe o saldo real da conta (ex.: do extrato) — a diferença é gravada ' +
+        'como um ajuste manual.' }),
+      el('div', { class: 'field' }, [
+        el('label', { class: 'field-label', text: 'Saldo atual (R$)' }), input
+      ])
+    ]);
+    global.UI.openModal('Ajustar saldo — ' + acc.name, body, {
+      buttons: [
+        { label: 'Cancelar', variant: 'ghost', onClick: function (c) { c(); } },
+        { label: 'Salvar', variant: 'primary', onClick: function (c) {
+          const novo = U.parseAmount(input.value);
+          const delta = Math.round((novo - current) * 100) / 100;
+          const ref = global.Store.getData().accounts.find(function (a) { return a.id === acc.id; });
+          ref.adjustment = Math.round(((Number(ref.adjustment) || 0) + delta) * 100) / 100;
+          global.Store.save(); c();
+          U.toast('Saldo ajustado.', 'success');
+          render();
+        } }
+      ]
+    });
   }
 
   function deleteAccount(acc) {

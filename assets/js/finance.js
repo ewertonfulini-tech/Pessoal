@@ -432,6 +432,8 @@
     const d = global.Store.getData();
     const acc = getAccount(accountId);
     let balance = acc ? (Number(acc.initialBalance) || 0) : 0;
+    // Ajuste manual do saldo (conciliação com o extrato)
+    if (acc) balance += Number(acc.adjustment) || 0;
 
     // Lançamentos marcados como pagos/recebidos
     Object.keys(d.paidOverrides).forEach(function (key) {

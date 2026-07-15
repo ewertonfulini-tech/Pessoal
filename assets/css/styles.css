@@ -409,6 +409,7 @@ html, body {
 }
 .account-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .account-balance { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+.account-balance-row { display: flex; align-items: center; gap: 8px; }
 .account-balance-val { font-size: 22px; font-weight: 700; }
 .account-balance-val.pos { color: var(--income); }
 .account-balance-val.neg { color: var(--expense); }
