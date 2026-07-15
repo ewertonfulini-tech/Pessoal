@@ -185,18 +185,20 @@
     const isIncome = type === 'income';
     const occ = F.occurrencesInMonth(type, state.year, state.month0);
 
-    // Despesas: faturas de cartão PAGAS aparecem como uma linha consolidada
-    // (paga). É apenas exibição — o valor já é contabilizado como fatura, então
-    // não criamos transação (evita contar em dobro).
+    // Despesas: cada fatura de cartão com valor no mês aparece como uma linha
+    // consolidada (paga ou "a pagar"), para o total do mês incluir os gastos de
+    // cartão. É só exibição — o valor já é contabilizado como fatura (não criamos
+    // transação, evita contar em dobro) e fica consistente com a tela Início.
     if (!isIncome) {
       global.Store.getData().cards.forEach(function (card) {
         const tot = F.invoiceTotal(card.id, state.year, state.month0);
-        if (tot > 0 && F.isInvoicePaid(card.id, state.year, state.month0)) {
+        if (tot > 0) {
           occ.push({
             id: 'inv@' + card.id, isInvoice: true, cardId: card.id, cardColor: card.color,
             date: U.buildISO(state.year, state.month0, card.dueDay),
             description: 'Fatura ' + card.name, amount: tot,
-            categoryId: '', type: 'expense', recurrence: 'none', paid: true
+            categoryId: '', type: 'expense', recurrence: 'none',
+            paid: F.isInvoicePaid(card.id, state.year, state.month0)
           });
         }
       });
@@ -360,14 +362,16 @@
                 ])
               ]),
               el('div', { class: 'txn-meta-line' }, [
-                el('span', { class: 'txn-meta', text: 'Pagamento da fatura' })
+                el('span', { class: 'txn-meta', text: o.paid ? 'Fatura paga' : 'Fatura em aberto' })
               ])
             ]),
             el('div', { class: 'txn-right' }, [
               el('span', { class: 'txn-amount neg', text: '- ' + U.formatBRL(o.amount) }),
               el('button', {
-                class: 'chip chip-on', title: 'Desmarcar fatura como paga',
-                text: '✓ Pago', onclick: function () { toggleInvoicePaid(o.cardId); }
+                class: 'chip ' + (o.paid ? 'chip-on' : ''),
+                title: o.paid ? 'Desmarcar fatura como paga' : 'Marcar fatura como paga',
+                text: o.paid ? '✓ Pago' : 'Marcar pago',
+                onclick: function () { toggleInvoicePaid(o.cardId); }
               })
             ])
           ]));
@@ -603,18 +607,35 @@
       }
 
       const searchIn = el('input', {
-        type: 'search', class: 'toolbar-search', placeholder: 'Buscar compra neste cartão…',
+        type: 'search', class: 'toolbar-search', placeholder: 'Buscar por nome ou valor neste cartão…',
         value: cardSearch[card.id] || ''
       });
       const list = el('div', { class: 'txn-list card-txn-list' });
 
       function fillList() {
         list.innerHTML = '';
-        const q = normName(searchIn.value.trim());
+        const raw = searchIn.value.trim();
+        const q = normName(raw);
+        // Dígitos da busca (para casar por valor: "47", "215,85", "1.295,10" etc.)
+        const qDigits = raw.replace(/[^0-9]/g, '');
+        function matchValue(ce) {
+          if (!qDigits) return false;
+          const inst = parseInt(ce.installments, 10) || 1;
+          const total = Number(ce.totalAmount) || 0;
+          const per = (inst > 1 && !(ce.recurrence && ce.recurrence !== 'none')) ? total / inst : total;
+          // compara pelos dígitos do valor cheio, da parcela e do valor com centavos
+          const cands = [total, per].map(function (v) {
+            return Math.abs(v).toFixed(2).replace(/[^0-9]/g, '');
+          });
+          return cands.some(function (s) { return s.indexOf(qDigits) > -1; });
+        }
         if (q) {
-          // Busca em TODAS as compras do cartão (qualquer mês)
+          // Busca em TODAS as compras do cartão (qualquer mês) — por nome OU por valor
           const matches = global.Store.getData().cardExpenses
-            .filter(function (ce) { return ce.cardId === card.id && normName(ce.description).indexOf(q) > -1; })
+            .filter(function (ce) {
+              return ce.cardId === card.id &&
+                (normName(ce.description).indexOf(q) > -1 || matchValue(ce));
+            })
             .sort(function (a, b) { return a.purchaseDate < b.purchaseDate ? 1 : -1; });
           if (!matches.length) {
             list.appendChild(el('p', { class: 'muted', text: 'Nenhuma compra encontrada.' }));
