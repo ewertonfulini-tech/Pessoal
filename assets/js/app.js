@@ -21,6 +21,8 @@
   const cardExpanded = {};
   // Busca por cartão (não persistido): cardId -> texto de busca
   const cardSearch = {};
+  // Escopo da busca por cartão: cardId -> 'fatura' (mês exibido) | 'todos'
+  const cardSearchScope = {};
 
   // Privacidade: valores ocultos por padrão a cada abertura (não é persistido,
   // então celular e computador sempre iniciam com os valores escondidos).
@@ -633,7 +635,28 @@
           });
           return cands.some(function (s) { return s.indexOf(qDigits) > -1; });
         }
-        if (q) {
+        const scope = cardSearchScope[card.id] || 'fatura';
+        if (q && scope === 'fatura') {
+          // Busca só na fatura do mês exibido — por nome OU por valor da parcela
+          const matched = items.filter(function (i) {
+            if (normName(i.description).indexOf(q) > -1) return true;
+            if (qDigits) {
+              const s = Math.abs(i.amount).toFixed(2).replace(/[^0-9]/g, '');
+              if (s.indexOf(qDigits) > -1) return true;
+            }
+            return false;
+          });
+          if (!matched.length) {
+            list.appendChild(el('p', { class: 'muted', text: 'Nada encontrado nesta fatura.' }));
+            return;
+          }
+          list.appendChild(el('div', { class: 'muted small', style: 'padding:4px 0 8px',
+            text: matched.length + ' de ' + items.length + ' lançamento(s) desta fatura' }));
+          matched.forEach(function (i) {
+            const ce = global.Store.getData().cardExpenses.find(function (x) { return x.id === i.cardExpenseId; });
+            list.appendChild(cardExpenseRow(i, ce));
+          });
+        } else if (q) {
           // Busca em TODAS as compras do cartão (qualquer mês) — por nome OU por valor
           const matches = global.Store.getData().cardExpenses
             .filter(function (ce) {
@@ -690,7 +713,26 @@
         fillList();
       });
 
-      panel.appendChild(el('div', { class: 'card-search' }, [searchIn]));
+      // Alternador de escopo: só a fatura do mês exibido × todos os meses
+      function scopeChip(value, label) {
+        const active = (cardSearchScope[card.id] || 'fatura') === value;
+        return el('button', {
+          class: 'chip ' + (active ? 'chip-on' : ''),
+          text: label,
+          onclick: function () {
+            cardSearchScope[card.id] = value;
+            scopeWrap.querySelectorAll('.chip').forEach(function (b) { b.classList.remove('chip-on'); });
+            this.classList.add('chip-on');
+            fillList();
+          }
+        });
+      }
+      const scopeWrap = el('div', { class: 'card-search-scope' }, [
+        scopeChip('fatura', 'Nesta fatura'),
+        scopeChip('todos', 'Todos os meses')
+      ]);
+
+      panel.appendChild(el('div', { class: 'card-search' }, [searchIn, scopeWrap]));
       panel.appendChild(list);
       fillList();
     }
