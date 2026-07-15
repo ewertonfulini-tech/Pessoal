@@ -10,9 +10,15 @@
  *   SA_JSON             Conteúdo COMPLETO do arquivo JSON da conta de serviço do
  *                       Firebase (recomendado — cole o arquivo inteiro). Substitui
  *                       FIREBASE_PROJECT_ID/SA_CLIENT_EMAIL/SA_PRIVATE_KEY.
- *   TARGET_UID          Seu "ID de sincronização" (Configurações → Sincronização)
- *   ALLOWED_CHAT_ID     Seu chat_id do Telegram (use /id no bot para descobrir)
+ *   TARGET_UID          (opcional) "ID de sincronização" do dono — compatibilidade.
+ *                       No modo multiusuário, cada pessoa usa /vincular SEU_ID.
+ *   ALLOWED_CHAT_ID     (opcional) chat_id do dono — se definido com TARGET_UID,
+ *                       o dono continua lançando sem precisar de /vincular.
  *   WEBHOOK_SECRET      (opcional) valida o cabeçalho secreto do webhook do Telegram
+ *
+ *   Multiusuário: cada pessoa envia "/vincular <ID de sincronização>" (do app,
+ *   em Ajustes → Sincronização). O bot guarda o vínculo em botlinks/<chatId> e
+ *   passa a lançar na conta certa. Um mesmo bot atende várias pessoas.
  *
  *   Alternativa a SA_JSON (campos separados): FIREBASE_PROJECT_ID, SA_CLIENT_EMAIL,
  *   SA_PRIVATE_KEY.
@@ -21,7 +27,11 @@
  */
 
 const HELP =
-  'Olá! Eu lanço no seu gestor financeiro. Exemplos:\n\n' +
+  'Olá! Eu lanço no seu gestor financeiro.\n\n' +
+  '<b>Primeiro passo — vincule sua conta:</b>\n' +
+  'Envie <code>/vincular SEU_ID</code> (o <b>ID de sincronização</b> fica no app em ' +
+  '<b>Ajustes → Sincronização na nuvem</b>). Cada pessoa vincula a própria conta.\n\n' +
+  '<b>Depois, é só mandar os lançamentos:</b>\n' +
   '• <b>50 mercado</b> → despesa de R$50 (Alimentação)\n' +
   '• <b>gastei 89,90 na farmácia</b> → despesa (Saúde)\n' +
   '• <b>1200 notebook 12x</b> → parcelado (já vai em 12x)\n' +
@@ -29,7 +39,7 @@ const HELP =
   'Em cada despesa eu pergunto <b>onde lançar</b>: toque no cartão ou em ' +
   '<b>Despesa</b> (sem cartão). Ao escolher um cartão, se você não escreveu as ' +
   'parcelas (ex.: "12x"), eu pergunto <b>à vista ou em quantas parcelas</b> com botões.\n\n' +
-  'Comandos: /id (mostra seu chat_id) • /ajuda';
+  'Comandos: /vincular SEU_ID • /desvincular • /id • /ajuda';
 
 // Palavras-chave que ajudam a adivinhar a categoria (nome deve existir no app)
 const SYNONYMS = {
@@ -72,6 +82,9 @@ export default {
     const text = msg.text.trim();
 
     try {
+      const sa = getServiceAccount(env);
+      const projectId = env.FIREBASE_PROJECT_ID || sa.project_id;
+
       if (/^\/id\b/.test(text)) {
         await reply(env, chatId, 'Seu chat_id é: <code>' + chatId + '</code>');
         return new Response('ok');
@@ -80,8 +93,33 @@ export default {
         await reply(env, chatId, HELP);
         return new Response('ok');
       }
-      if (env.ALLOWED_CHAT_ID && String(chatId) !== String(env.ALLOWED_CHAT_ID)) {
-        await reply(env, chatId, 'Você não tem permissão para usar este bot.');
+
+      // Vincular a conta do app a este Telegram: /vincular <ID de sincronização>
+      const mVinc = text.match(/^\/vincular\s+(\S+)/i);
+      if (mVinc) {
+        const token = await getAccessToken(sa);
+        const uid = mVinc[1].trim();
+        const vault = await getVault(projectId, uid, token);
+        if (!vault) {
+          await reply(env, chatId, 'Não encontrei uma conta com esse ID 🤔. No app, vá em ' +
+            '<b>Ajustes → Sincronização na nuvem</b>, faça login e sincronize uma vez; ' +
+            'depois copie o <b>ID de sincronização</b> e envie <code>/vincular SEU_ID</code>.');
+          return new Response('ok');
+        }
+        await setLink(projectId, chatId, token, uid);
+        await reply(env, chatId, '✅ Conta vinculada a este Telegram! Agora é só mandar ' +
+          'seus lançamentos. Para remover, use /desvincular.');
+        return new Response('ok');
+      }
+      if (/^\/vincular\b/i.test(text)) {
+        await reply(env, chatId, 'Use: <code>/vincular SEU_ID</code>\nO <b>ID de sincronização</b> ' +
+          'fica no app em <b>Ajustes → Sincronização na nuvem</b>.');
+        return new Response('ok');
+      }
+      if (/^\/desvincular\b/i.test(text)) {
+        const token = await getAccessToken(sa);
+        await deleteLink(projectId, chatId, token);
+        await reply(env, chatId, 'Conta desvinculada deste Telegram. Use /vincular para conectar de novo.');
         return new Response('ok');
       }
 
@@ -91,10 +129,19 @@ export default {
         return new Response('ok');
       }
 
-      const sa = getServiceAccount(env);
-      const projectId = env.FIREBASE_PROJECT_ID || sa.project_id;
       const token = await getAccessToken(sa);
-      const data = await getVault(projectId, env.TARGET_UID, token);
+      let targetUid = await getLink(projectId, chatId, token);
+      // Compatibilidade com a configuração antiga (dono com TARGET_UID + ALLOWED_CHAT_ID)
+      if (!targetUid && env.TARGET_UID && env.ALLOWED_CHAT_ID &&
+          String(chatId) === String(env.ALLOWED_CHAT_ID)) {
+        targetUid = env.TARGET_UID;
+      }
+      if (!targetUid) {
+        await reply(env, chatId, '🔗 Antes de lançar, vincule sua conta: envie ' +
+          '<code>/vincular SEU_ID</code>.\nO ID está no app em <b>Ajustes → Sincronização na nuvem</b>.');
+        return new Response('ok');
+      }
+      const data = await getVault(projectId, targetUid, token);
       if (!data) {
         await reply(env, chatId, 'Não encontrei seus dados. Abra o app, faça login e sincronize uma vez, depois tente de novo.');
         return new Response('ok');
@@ -108,7 +155,7 @@ export default {
       if (isIncome) {
         const result = applyMessage(data, text, amt);
         if (result.error) { await reply(env, chatId, result.error); return new Response('ok'); }
-        await saveVault(projectId, env.TARGET_UID, token, data);
+        await saveVault(projectId, targetUid, token, data);
         await reply(env, chatId, result.message);
         return new Response('ok');
       }
@@ -127,14 +174,14 @@ export default {
           id: uid('tx'), type: 'expense', description: description, amount: amt.value,
           date: todayBR(), categoryId: categoryId, recurrence: 'none', recurrenceEnd: '', accountId: ''
         });
-        await saveVault(projectId, env.TARGET_UID, token, data);
+        await saveVault(projectId, targetUid, token, data);
         await reply(env, chatId, '💸 Despesa de ' + brl(amt.value) + ' — "' + description +
           '" (' + catName(data.categories, categoryId) + ') lançada hoje.');
         return new Response('ok');
       }
 
       // Guarda o lançamento pendente e envia os botões
-      const pending = { v: amt.value, d: description, c: categoryId, i: installments, dt: todayBR() };
+      const pending = { v: amt.value, d: description, c: categoryId, i: installments, dt: todayBR(), uid: targetUid };
       await setPending(projectId, chatId, token, pending);
 
       const rows = cards.map(function (c) {
@@ -162,13 +209,6 @@ async function handleCallback(env, cb) {
   const msgId = cb.message && cb.message.message_id;
   const data0 = cb.data || '';
 
-  if (env.ALLOWED_CHAT_ID &&
-      String(cb.from && cb.from.id) !== String(env.ALLOWED_CHAT_ID) &&
-      String(chatId) !== String(env.ALLOWED_CHAT_ID)) {
-    await answerCb(env, cb.id, 'Sem permissão.');
-    return;
-  }
-
   const sa = getServiceAccount(env);
   const projectId = env.FIREBASE_PROJECT_ID || sa.project_id;
   const token = await getAccessToken(sa);
@@ -180,7 +220,9 @@ async function handleCallback(env, cb) {
     return;
   }
 
-  const data = await getVault(projectId, env.TARGET_UID, token);
+  // Conta alvo: gravada no pendente (multiusuário); fallback para a config antiga
+  const targetUid = pending.uid || env.TARGET_UID;
+  const data = await getVault(projectId, targetUid, token);
   if (!data) { await answerCb(env, cb.id, 'Não encontrei seus dados.'); return; }
   if (!Array.isArray(data.categories)) data.categories = [];
 
@@ -192,7 +234,7 @@ async function handleCallback(env, cb) {
     const card = (data.cards || []).find(function (c) { return c.id === pending.card; });
     if (!card) { await answerCb(env, cb.id, 'Cartão não encontrado.'); return; }
     const confirm = commitCardExpense(data, pending, card, n);
-    await saveVault(projectId, env.TARGET_UID, token, data);
+    await saveVault(projectId, targetUid, token, data);
     await deletePending(projectId, chatId, token);
     await answerCb(env, cb.id, 'Lançado!');
     await editMessage(env, chatId, msgId, confirm);
@@ -207,7 +249,7 @@ async function handleCallback(env, cb) {
     if (inst > 1) {
       // parcelas já informadas na mensagem — lança direto
       const confirm = commitCardExpense(data, pending, card, inst);
-      await saveVault(projectId, env.TARGET_UID, token, data);
+      await saveVault(projectId, targetUid, token, data);
       await deletePending(projectId, chatId, token);
       await answerCb(env, cb.id, 'Lançado!');
       await editMessage(env, chatId, msgId, confirm);
@@ -235,7 +277,7 @@ async function handleCallback(env, cb) {
     id: uid('tx'), type: 'expense', description: pending.d, amount: pending.v,
     date: pending.dt, categoryId: pending.c, recurrence: 'none', recurrenceEnd: '', accountId: ''
   });
-  await saveVault(projectId, env.TARGET_UID, token, data);
+  await saveVault(projectId, targetUid, token, data);
   await deletePending(projectId, chatId, token);
   await answerCb(env, cb.id, 'Lançado!');
   await editMessage(env, chatId, msgId, '💸 Despesa de ' + brl(pending.v) + ' — "' + pending.d +
@@ -468,6 +510,36 @@ async function getVault(projectId, targetUid, token) {
   const doc = await res.json();
   const json = doc.fields && doc.fields.json && doc.fields.json.stringValue;
   return json ? JSON.parse(json) : null;
+}
+
+// Vínculo Telegram→conta (multiusuário): mapeia o chat do Telegram ao UID do app.
+async function getLink(projectId, chatId, token) {
+  const res = await fetch(firestoreBase(projectId) + '/botlinks/' + chatId, {
+    headers: { Authorization: 'Bearer ' + token }
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error('Firestore link GET ' + res.status);
+  const doc = await res.json();
+  return (doc.fields && doc.fields.uid && doc.fields.uid.stringValue) || null;
+}
+
+async function setLink(projectId, chatId, token, uid) {
+  const body = { fields: {
+    uid: { stringValue: uid },
+    updatedAt: { integerValue: String(Date.now()) }
+  } };
+  const res = await fetch(firestoreBase(projectId) + '/botlinks/' + chatId, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error('Firestore link PATCH ' + res.status);
+}
+
+async function deleteLink(projectId, chatId, token) {
+  await fetch(firestoreBase(projectId) + '/botlinks/' + chatId, {
+    method: 'DELETE', headers: { Authorization: 'Bearer ' + token }
+  });
 }
 
 // Lançamento pendente (entre a mensagem e o toque no botão). Coleção separada,
