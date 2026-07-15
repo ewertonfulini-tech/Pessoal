@@ -164,14 +164,16 @@
     let scopeIn = null, scopeField = null;
     if (isRecurring && monthKey) {
       const mLabel = occCtx ? U.monthLabel(occCtx.year, occCtx.month0) : monthKey;
+      // Padrão: alterar só o mês em edição (recorrências costumam ter valores
+      // diferentes por mês; mudar todos deve ser uma escolha explícita).
       scopeIn = select([
         { value: 'month', label: 'Somente ' + mLabel },
         { value: 'all', label: 'Todos os meses' }
-      ], hasOverride ? 'month' : 'all');
+      ], 'month');
       scopeField = field('Aplicar o valor em', scopeIn,
         hasOverride
           ? 'Este mês já tem um valor personalizado. Escolha "Todos os meses" para voltar ao valor da recorrência.'
-          : 'Escolha se o novo valor vale só neste mês ou em todos os meses da recorrência.');
+          : 'Por padrão, altera só este mês. Escolha "Todos os meses" para mudar o valor de toda a recorrência.');
       // O seletor de escopo não faz sentido se a recorrência for removida
       function syncScope() { scopeField.style.display = recIn.value === 'none' ? 'none' : ''; }
       recIn.addEventListener('change', syncScope);
