@@ -1,27 +1,30 @@
 /* styles.css — Meu Gestor Financeiro */
 
 :root, :root[data-theme="dark"] {
-  --bg: #0d0c0f;
-  --bg-elev: #141117;
-  --panel: #15131a;
-  --panel-2: #1d1922;
-  --border: #2a2630;
-  --hair: #3a3342;
-  --track: #241f2a;
-  --text: #f3eee6;
-  --muted: #9a9089;
-  --primary: #c9a15a;
-  --primary-hover: #e0c088;
-  --on-primary: #1a140b;
-  --income: #7bbf98;
-  --expense: #d68a68;
-  --success: #7bbf98;
-  --danger: #d9694a;
-  --warn: #d9b46a;
-  --shadow: 0 20px 48px rgba(0, 0, 0, .55);
-  --radius: 16px;
-  --radius-sm: 10px;
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --bg: #0b1020;
+  --bg-elev: #111a30;
+  --panel: #141d33;
+  --panel-2: #1b2542;
+  --border: #273350;
+  --hair: #2f3c5c;
+  --track: #232f4c;
+  --text: #eef2fb;
+  --muted: #93a2c2;
+  --primary: #c8a860;
+  --primary-hover: #d8bd7e;
+  --on-primary: #1a1500;
+  --income: #3ad07e;
+  --expense: #f9776a;
+  --success: #3ad07e;
+  --danger: #f9776a;
+  --warn: #f5a94a;
+  --chrome: #0c1428;
+  --chrome-text: #e7ecf7;
+  --chrome-muted: #8fa0c4;
+  --shadow: 0 16px 40px rgba(0, 0, 0, .5);
+  --radius: 18px;
+  --radius-sm: 12px;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -29,11 +32,13 @@
 html, body {
   margin: 0;
   height: 100%;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--sans);
   background: var(--bg);
   color: var(--text);
   font-size: 15px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 #app {
@@ -476,13 +481,24 @@ html, body {
   .fab-main { transition: none; }
 }
 
-/* ================= Acabamento premium ================= */
+/* ================= Acabamento (banking limpo) ================= */
 
-/* Marca */
-.brand-logo { background: linear-gradient(135deg, #e3c78c, #a9863f); color: #17130c; }
-.brand-text strong { font-family: var(--serif); font-weight: 600; letter-spacing: .2px; }
+/* Marca — ícone laranja sobre a barra azul-marinho */
+.brand-logo { background: var(--primary); color: var(--on-primary); box-shadow: 0 4px 12px rgba(156, 124, 57, .32); }
+.brand-text strong { font-weight: 700; letter-spacing: -0.01em; color: var(--chrome-text); }
+.brand-text span { color: var(--chrome-muted); }
 
-/* Tipografia serifada nos valores e títulos */
+/* Barra lateral azul-marinho (chrome do "banco") no desktop */
+.sidebar { background: var(--chrome); border-right: none; }
+.nav-item { color: var(--chrome-muted); font-weight: 600; }
+.nav-item:hover { background: rgba(255, 255, 255, .08); color: var(--chrome-text); }
+.nav-item.active {
+  background: rgba(255, 255, 255, .10); color: #fff;
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+.sidebar-footer { color: var(--chrome-muted); }
+
+/* Tipografia — sans limpa, hierarquia forte, números tabulares nos valores */
 .section-title,
 .panel-title,
 .stat-value,
@@ -490,70 +506,53 @@ html, body {
 .day-subtotal,
 .account-balance-val,
 .card-metric-val,
-.goal-head strong,
-.hero .value { font-family: var(--serif); font-weight: 500; }
-.stat-value { letter-spacing: .5px; }
-.section-title { letter-spacing: .2px; }
+.goal-head strong { font-family: var(--sans); font-weight: 700; letter-spacing: -0.01em; }
+.stat-value, .txn-amount, .day-subtotal,
+.account-balance-val, .card-metric-val { font-variant-numeric: tabular-nums; }
+.section-title { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+.stat-value { font-size: 25px; }
 
-/* Rótulos em caixa-alta espaçada (ar premium) */
-.stat-label { letter-spacing: .1em; }
+/* Rótulos em sentence-case discreto (estilo app de banco) */
+.stat-label { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 13px; }
 
-/* Dourado com texto contrastante */
+/* Laranja com texto branco */
 .btn.primary { color: var(--on-primary); }
-.nav-item.active { color: var(--on-primary); }
-.fab-main { color: var(--on-primary); box-shadow: 0 12px 28px rgba(201, 161, 90, .42); }
+.fab-main { color: var(--on-primary); box-shadow: 0 12px 28px rgba(156, 124, 57, .4); }
 .fab.open .fab-main { color: var(--text); }
-.fab-a-dot.primary { color: var(--on-primary); }
 
 /* Divisória sutil no topo das seções */
-.section-header { border-bottom: 1px solid var(--border); padding-bottom: 14px; }
+.section-header { border-bottom: 1px solid var(--border); padding-bottom: 16px; }
 
-/* ---- Cartão premium (metálico) — nome do banco em destaque ---- */
-.card-panel { border-color: rgba(201, 161, 90, .22); }
+/* ---- Cartão de crédito — cabeçalho limpo ---- */
 .card-panel-header {
-  background: radial-gradient(130% 150% at 0% 0%, #3a3340 0%, #1a171d 45%, #0f0d11 100%);
-  border-bottom: 1px solid rgba(201, 161, 90, .28);
-  color: #efe6d4; position: relative; overflow: hidden;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
 }
-.card-panel-header::before {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(115deg, transparent 30%, rgba(227, 199, 140, .10) 46%, transparent 60%);
-}
-.card-panel-header > * { position: relative; }
-.card-badge {
-  background: linear-gradient(135deg, #e3c78c, #a9863f) !important;
-  color: #17130c; border-radius: 8px;
-}
-.card-headinfo strong {
-  font-family: var(--serif); font-size: 19px; letter-spacing: .04em; color: #f2e7cf;
-}
-.card-headinfo .muted { color: #b6ada0 !important; }
-.card-head-actions .icon-btn {
-  background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .16); color: #efe6d4;
-}
-.card-head-actions .btn.small.primary {
-  background: linear-gradient(135deg, #e3c78c, #b8893f); color: #17130c; border: none;
-}
+.card-badge { border-radius: 10px; }
+.card-headinfo strong { font-family: var(--sans); font-size: 17px; letter-spacing: 0; color: var(--text); }
 
-/* ---------------- Light theme (champagne) ---------------- */
+/* ---------------- Light theme (azul-marinho + laranja) ---------------- */
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #efe9dd; --bg-elev: #f7f3ea; --panel: #ffffff; --panel-2: #f4efe4;
-    --border: #ece4d5; --hair: #e0d7c6; --track: #eae2d3; --text: #211e18; --muted: #8a8175;
-    --primary: #a97e39; --primary-hover: #c69a4f; --on-primary: #ffffff;
-    --income: #4f9e73; --expense: #bf6a44; --success: #4f9e73; --danger: #bf6a44; --warn: #c08a2e;
-    --shadow: 0 20px 44px rgba(120, 100, 60, .16);
+    --bg: #eef0f4; --bg-elev: #ffffff; --panel: #ffffff; --panel-2: #f4f6f9;
+    --border: #e3e7ee; --hair: #eef1f5; --track: #e7ebf1; --text: #141a2e; --muted: #5f6b85;
+    --primary: #9c7c39; --primary-hover: #b18e46; --on-primary: #ffffff;
+    --income: #067647; --expense: #c0392b; --success: #067647; --danger: #c0392b; --warn: #b54708;
+    --chrome: #10204f; --chrome-text: #eef2fb; --chrome-muted: #a9b6d6;
+    --shadow: 0 10px 30px rgba(16, 32, 79, .10);
   }
   .btn.success { color: #fff; }
 }
 
 /* Toggle explícito de tema — tem prioridade sobre a preferência do sistema. */
 :root[data-theme="light"] {
-  --bg: #efe9dd; --bg-elev: #f7f3ea; --panel: #ffffff; --panel-2: #f4efe4;
-  --border: #ece4d5; --hair: #e0d7c6; --track: #eae2d3; --text: #211e18; --muted: #8a8175;
-  --primary: #a97e39; --primary-hover: #c69a4f; --on-primary: #ffffff;
-  --income: #4f9e73; --expense: #bf6a44; --success: #4f9e73; --danger: #bf6a44; --warn: #c08a2e;
-  --shadow: 0 20px 44px rgba(120, 100, 60, .16);
+  --bg: #eef0f4; --bg-elev: #ffffff; --panel: #ffffff; --panel-2: #f4f6f9;
+  --border: #e3e7ee; --hair: #eef1f5; --track: #e7ebf1; --text: #141a2e; --muted: #5f6b85;
+  --primary: #9c7c39; --primary-hover: #b18e46; --on-primary: #ffffff;
+  --income: #067647; --expense: #c0392b; --success: #067647; --danger: #c0392b; --warn: #b54708;
+  --chrome: #10204f; --chrome-text: #eef2fb; --chrome-muted: #a9b6d6;
+  --shadow: 0 10px 30px rgba(16, 32, 79, .10);
 }
 :root[data-theme="light"] .btn.success { color: #fff; }
 
@@ -584,9 +583,10 @@ html, body {
     flex: 1 1 0; min-width: 0; width: auto;
     flex-direction: column; align-items: center; justify-content: center;
     gap: 3px; padding: 9px 4px 8px; border-radius: 0;
+    color: var(--muted);
   }
   .nav-item:hover { background: transparent; color: var(--muted); }
-  .nav-item.active { background: transparent; color: var(--primary); }
+  .nav-item.active { background: transparent; color: var(--primary); box-shadow: none; }
   .nav-icon { font-size: 19px; width: auto; }
   .nav-label {
     font-size: 9px; font-weight: 600; max-width: 100%; letter-spacing: -0.2px;
