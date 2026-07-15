@@ -123,14 +123,20 @@ function parseAmount(text) {
 
 function findCategory(categories, type, text) {
   const n = normalize(text);
+  // casa por palavra inteira (evita "gás" casar dentro de "gastei", "99" dentro de "990" etc.)
+  function hasWord(w) {
+    w = normalize(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (!w) return false;
+    return new RegExp('(^|[^0-9a-z])' + w + '($|[^0-9a-z])').test(n);
+  }
   const list = categories.filter(function (c) { return c.type === type; });
   // 1) nome da categoria aparece no texto
   for (const c of list) {
-    if (n.indexOf(normalize(c.name)) > -1) return c.id;
+    if (hasWord(c.name)) return c.id;
   }
   // 2) sinônimos -> nome da categoria
   for (const catName in SYNONYMS) {
-    if (SYNONYMS[catName].some(function (w) { return n.indexOf(w) > -1; })) {
+    if (SYNONYMS[catName].some(hasWord)) {
       const c = list.find(function (x) { return normalize(x.name) === normalize(catName); });
       if (c) return c.id;
     }
@@ -140,11 +146,27 @@ function findCategory(categories, type, text) {
   return outros ? outros.id : (list[0] ? list[0].id : '');
 }
 
+// Extrai uma descrição limpa preservando o texto real (não remove conectores
+// no meio, para não quebrar "pão de queijo", "conta de luz", "posto da esquina").
 function cleanDescription(text, amountRaw) {
-  let d = text.replace(amountRaw, ' ');
-  d = d.replace(/\b(\d+)\s*x\b/gi, ' ');
-  d = d.replace(/\b(gastei|paguei|comprei|recebi|ganhei|receita|entrada|salario|salário|cartao|cartão|credito|crédito|reais|no|na|de|do|da|em|um|uma)\b/gi, ' ');
-  d = d.replace(/r\$/gi, ' ').replace(/\s+/g, ' ').trim();
+  let d = String(text);
+  // remove o valor digitado e o símbolo de moeda
+  if (amountRaw) d = d.replace(amountRaw, ' ');
+  d = d.replace(/r\$/gi, ' ');
+  // remove parcelas "12x"
+  d = d.replace(/\b\d+\s*x\b/gi, ' ');
+  // marcadores de canal/filler nunca são descrição — remove em qualquer posição
+  d = d.replace(/\b(cartao|cartão|cartões|cartoes|credito|crédito|reais|real)\b/gi, ' ');
+  d = d.replace(/\s+/g, ' ').trim();
+
+  // verbos/marcadores/conectores presos no INÍCIO (repete enquanto houver)
+  const lead = /^(gastei|gasto|paguei|pago|comprei|compra|comprar|recebi|ganhei|receita|entrada|despesa|saida|saída|de|do|da|no|na|em|com|pra|para|um|uma)\s+/i;
+  let prev;
+  do { prev = d; d = d.replace(lead, '').trim(); } while (d !== prev);
+  // conectores soltos no FIM (ex.: "... no", "... de")
+  const tail = /\s+(de|do|da|no|na|em|com|pra|para)$/i;
+  do { prev = d; d = d.replace(tail, '').trim(); } while (d !== prev);
+
   if (!d) return 'Lançamento';
   return d.charAt(0).toUpperCase() + d.slice(1);
 }
@@ -329,3 +351,6 @@ async function tg(env, method, payload) {
 function reply(env, chatId, text) {
   return tg(env, 'sendMessage', { chat_id: chatId, text: text, parse_mode: 'HTML' });
 }
+
+// Exportado apenas para testes (o Cloudflare Workers usa só o export default acima).
+export { cleanDescription, parseAmount, findCategory, applyMessage };
