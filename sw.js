@@ -4,7 +4,7 @@
  * reserva quando estiver offline. Requisições externas (Firebase/gstatic) NÃO são
  * interceptadas.
  */
-const CACHE = 'meugestor-v2';
+const CACHE = 'meugestor-v3';
 const SHELL = [
   './',
   './index.html',
@@ -41,9 +41,11 @@ self.addEventListener('fetch', function (e) {
   if (req.method !== 'GET') return;
   if (new URL(req.url).origin !== self.location.origin) return;
 
-  // Network-first: tenta a rede, atualiza o cache e cai para o cache se offline
+  // Network-first com revalidação: busca sempre a versão mais recente (ignora o
+  // cache HTTP do navegador com 'no-cache'), atualiza o cache do app e cai para o
+  // cache só quando estiver offline. Evita ficar preso numa versão antiga.
   e.respondWith(
-    fetch(req).then(function (res) {
+    fetch(req.url, { cache: 'no-cache' }).then(function (res) {
       if (res && res.status === 200) {
         const clone = res.clone();
         caches.open(CACHE).then(function (c) { c.put(req, clone); });
