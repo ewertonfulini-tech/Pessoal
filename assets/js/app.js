@@ -160,34 +160,6 @@
     ]);
     grid.appendChild(projCard);
     view.appendChild(grid);
-
-    // Próximos lançamentos do mês
-    const upcoming = s.expenses.concat(
-      s.incomes.map(function (i) { return Object.assign({}, i); })
-    ).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
-
-    const listPanel = el('div', { class: 'panel' }, [
-      el('h3', { class: 'panel-title', text: 'Lançamentos do mês' })
-    ]);
-    if (!upcoming.length) {
-      listPanel.appendChild(el('p', { class: 'muted', text: 'Nada lançado ainda neste mês.' }));
-    } else {
-      const list = el('div', { class: 'txn-list' });
-      upcoming.slice(0, 12).forEach(function (o) {
-        list.appendChild(el('div', { class: 'txn-row compact' }, [
-          el('div', { class: 'txn-main' }, [
-            el('span', { class: 'txn-desc', text: o.description }),
-            el('span', { class: 'txn-meta', text: U.formatDateBR(o.date) })
-          ]),
-          el('span', {
-            class: 'txn-amount ' + (o.type === 'income' ? 'pos' : 'neg'),
-            text: (o.type === 'income' ? '+ ' : '- ') + U.formatBRL(o.amount)
-          })
-        ]));
-      });
-      listPanel.appendChild(list);
-    }
-    view.appendChild(listPanel);
   }
 
   /* ================================================================== *
@@ -646,30 +618,30 @@
   }
 
   /* ================================================================== *
-   *  Aba: Contas                                                        *
+   *  Contas (seção embutida em Ajustes)                                 *
    * ================================================================== */
-  function renderAccounts() {
+  function accountsSection() {
     const d = global.Store.getData();
-    view.innerHTML = '';
     const addBtn = el('button', {
-      class: 'btn primary', text: '+ Nova conta',
+      class: 'btn small primary', text: '+ Nova conta',
       onclick: function () { global.UI.openAccountModal(null, refresh); }
     });
-    view.appendChild(sectionHeader('Contas', addBtn));
+    const wrap = el('div', { class: 'accounts-section' }, [
+      el('div', { class: 'panel-head-row' }, [
+        el('h3', { class: 'panel-title', text: 'Contas' }),
+        addBtn
+      ])
+    ]);
 
     if (!d.accounts.length) {
-      const b = el('button', {
-        class: 'btn primary', text: '+ Criar primeira conta',
-        onclick: function () { global.UI.openAccountModal(null, refresh); }
-      });
-      view.appendChild(emptyState(
+      wrap.appendChild(el('p', { class: 'muted small', text:
         'Cadastre suas contas (banco, carteira, dinheiro) para acompanhar o saldo real. ' +
-        'Depois vincule despesas, receitas e cartões a elas.', b));
-      return;
+        'Depois vincule despesas, receitas e cartões a elas.' }));
+      return wrap;
     }
 
     const totalBal = F.totalAccountsBalance();
-    view.appendChild(el('div', { class: 'stat-grid single' }, [
+    wrap.appendChild(el('div', { class: 'stat-grid single' }, [
       statCard('Saldo total das contas', U.formatBRL(totalBal),
         totalBal >= 0 ? 'positive' : 'negative', 'Somente lançamentos efetivados')
     ]));
@@ -703,7 +675,8 @@
         el('div', { class: 'muted small', text: 'Saldo inicial ' + U.formatBRL(acc.initialBalance || 0) })
       ]));
     });
-    view.appendChild(grid);
+    wrap.appendChild(grid);
+    return wrap;
   }
 
   function deleteAccount(acc) {
@@ -756,6 +729,9 @@
       panel.appendChild(chips);
       view.appendChild(panel);
     });
+
+    // Contas (movido da barra de navegação para melhorar o mobile)
+    view.appendChild(el('div', { class: 'panel' }, [accountsSection()]));
 
     // Sincronização na nuvem
     if (global.Sync) view.appendChild(renderSyncPanel());
@@ -1182,7 +1158,6 @@
       case 'receitas': renderTransactions('income'); break;
       case 'cartoes': renderCards(); break;
       case 'orcamento': renderBudgets(); break;
-      case 'contas': renderAccounts(); break;
       case 'patrimonio': global.Patrimonio.render(); break;
       case 'config': renderConfig(); break;
       default: renderDashboard();
