@@ -24,8 +24,10 @@ const HELP =
   'Olá! Eu lanço no seu gestor financeiro. Exemplos:\n\n' +
   '• <b>50 mercado</b> → despesa de R$50 (Alimentação)\n' +
   '• <b>gastei 89,90 na farmácia</b> → despesa (Saúde)\n' +
-  '• <b>receita 5000 salário</b> → receita\n' +
-  '• <b>cartao 1200 notebook 12x</b> → compra parcelada no cartão\n\n' +
+  '• <b>1200 notebook 12x</b> → parcelado (escolha o cartão)\n' +
+  '• <b>receita 5000 salário</b> → receita\n\n' +
+  'Em cada despesa eu pergunto <b>onde lançar</b>: toque no cartão (à vista ou ' +
+  'no número de parcelas que você escreveu) ou em <b>Despesa</b> (sem cartão).\n\n' +
   'Comandos: /id (mostra seu chat_id) • /ajuda';
 
 // Palavras-chave que ajudam a adivinhar a categoria (nome deve existir no app)
@@ -55,6 +57,13 @@ export default {
 
     let update;
     try { update = await request.json(); } catch (e) { return new Response('ok'); }
+
+    // Toque em botão (escolha de cartão/despesa)
+    if (update.callback_query) {
+      await handleCallback(env, update.callback_query).catch(function () {});
+      return new Response('ok');
+    }
+
     const msg = update.message || update.edited_message;
     if (!msg || !msg.text) return new Response('ok');
 
@@ -89,15 +98,54 @@ export default {
         await reply(env, chatId, 'Não encontrei seus dados. Abra o app, faça login e sincronize uma vez, depois tente de novo.');
         return new Response('ok');
       }
+      if (!Array.isArray(data.categories)) data.categories = [];
 
-      const result = applyMessage(data, text, amt);
-      if (result.error) {
-        await reply(env, chatId, result.error);
+      const n = normalize(text);
+      const isIncome = /\b(receita|recebi|salario|entrada|ganhei)\b/.test(n);
+
+      // Receitas: lançadas direto (cartão não se aplica)
+      if (isIncome) {
+        const result = applyMessage(data, text, amt);
+        if (result.error) { await reply(env, chatId, result.error); return new Response('ok'); }
+        await saveVault(projectId, env.TARGET_UID, token, data);
+        await reply(env, chatId, result.message);
         return new Response('ok');
       }
 
-      await saveVault(projectId, env.TARGET_UID, token, data);
-      await reply(env, chatId, result.message);
+      // Despesa: monta o lançamento e pergunta ONDE lançar (cartão ou despesa)
+      const categoryId = findCategory(data.categories, 'expense', text);
+      const description = cleanDescription(text, amt.raw);
+      const instMatch = n.match(/(\d+)\s*x\b/);
+      const installments = instMatch ? Math.max(1, parseInt(instMatch[1], 10)) : 1;
+      const cards = Array.isArray(data.cards) ? data.cards : [];
+
+      // Sem cartões cadastrados: não há o que escolher — lança direto como despesa
+      if (!cards.length) {
+        if (!Array.isArray(data.transactions)) data.transactions = [];
+        data.transactions.push({
+          id: uid('tx'), type: 'expense', description: description, amount: amt.value,
+          date: todayBR(), categoryId: categoryId, recurrence: 'none', recurrenceEnd: '', accountId: ''
+        });
+        await saveVault(projectId, env.TARGET_UID, token, data);
+        await reply(env, chatId, '💸 Despesa de ' + brl(amt.value) + ' — "' + description +
+          '" (' + catName(data.categories, categoryId) + ') lançada hoje.');
+        return new Response('ok');
+      }
+
+      // Guarda o lançamento pendente e envia os botões
+      const pending = { v: amt.value, d: description, c: categoryId, i: installments, dt: todayBR() };
+      await setPending(projectId, chatId, token, pending);
+
+      const rows = cards.map(function (c) {
+        const label = installments > 1 ? '💳 ' + c.name + ' (' + installments + 'x)' : '💳 ' + c.name;
+        return [{ text: label, callback_data: 'pk|c|' + c.id }];
+      });
+      rows.push([{ text: '💸 Despesa (sem cartão)', callback_data: 'pk|d' }]);
+
+      const parcela = installments > 1 ? ' em ' + installments + 'x de ' + brl(amt.value / installments) : '';
+      await sendKeyboard(env, chatId,
+        '🧾 <b>' + brl(amt.value) + '</b>' + parcela + ' — "' + description + '" (' +
+        catName(data.categories, categoryId) + ').\nOnde lançar?', rows);
       return new Response('ok');
     } catch (e) {
       await reply(env, chatId, '⚠️ Erro ao lançar: ' + (e && e.message ? e.message : e)).catch(function () {});
@@ -105,6 +153,66 @@ export default {
     }
   }
 };
+
+/* ---------- Callback (toque nos botões) ---------- */
+
+async function handleCallback(env, cb) {
+  const chatId = cb.message && cb.message.chat && cb.message.chat.id;
+  const msgId = cb.message && cb.message.message_id;
+  const data0 = cb.data || '';
+
+  if (env.ALLOWED_CHAT_ID &&
+      String(cb.from && cb.from.id) !== String(env.ALLOWED_CHAT_ID) &&
+      String(chatId) !== String(env.ALLOWED_CHAT_ID)) {
+    await answerCb(env, cb.id, 'Sem permissão.');
+    return;
+  }
+
+  const sa = getServiceAccount(env);
+  const projectId = env.FIREBASE_PROJECT_ID || sa.project_id;
+  const token = await getAccessToken(sa);
+
+  const pending = await getPending(projectId, chatId, token);
+  if (!pending) {
+    await answerCb(env, cb.id, 'Lançamento expirado. Envie de novo.');
+    await editMessage(env, chatId, msgId, '⌛ Este lançamento expirou. Envie a despesa de novo.');
+    return;
+  }
+
+  const data = await getVault(projectId, env.TARGET_UID, token);
+  if (!data) { await answerCb(env, cb.id, 'Não encontrei seus dados.'); return; }
+  if (!Array.isArray(data.categories)) data.categories = [];
+
+  const parts = data0.split('|');
+  let confirm;
+
+  if (parts[1] === 'c') {
+    const card = (data.cards || []).find(function (c) { return c.id === parts[2]; });
+    if (!card) { await answerCb(env, cb.id, 'Cartão não encontrado.'); return; }
+    if (!Array.isArray(data.cardExpenses)) data.cardExpenses = [];
+    data.cardExpenses.push({
+      id: uid('ce'), cardId: card.id, description: pending.d,
+      totalAmount: pending.v, purchaseDate: pending.dt,
+      installments: pending.i || 1, categoryId: pending.c
+    });
+    const extra = (pending.i || 1) > 1 ? ' em ' + pending.i + 'x de ' + brl(pending.v / pending.i) : '';
+    confirm = '💳 Cartão <b>' + card.name + '</b>: ' + brl(pending.v) + extra +
+      ' — "' + pending.d + '" (' + catName(data.categories, pending.c) + ').';
+  } else {
+    if (!Array.isArray(data.transactions)) data.transactions = [];
+    data.transactions.push({
+      id: uid('tx'), type: 'expense', description: pending.d, amount: pending.v,
+      date: pending.dt, categoryId: pending.c, recurrence: 'none', recurrenceEnd: '', accountId: ''
+    });
+    confirm = '💸 Despesa de ' + brl(pending.v) + ' — "' + pending.d +
+      '" (' + catName(data.categories, pending.c) + ') lançada.';
+  }
+
+  await saveVault(projectId, env.TARGET_UID, token, data);
+  await deletePending(projectId, chatId, token);
+  await answerCb(env, cb.id, 'Lançado!');
+  await editMessage(env, chatId, msgId, confirm);
+}
 
 /* ---------- Interpretação da mensagem ---------- */
 
@@ -320,6 +428,38 @@ async function getVault(projectId, targetUid, token) {
   return json ? JSON.parse(json) : null;
 }
 
+// Lançamento pendente (entre a mensagem e o toque no botão). Coleção separada,
+// não interfere no vault que o app sincroniza.
+async function setPending(projectId, chatId, token, obj) {
+  const body = { fields: {
+    json: { stringValue: JSON.stringify(obj) },
+    ts: { integerValue: String(Date.now()) }
+  } };
+  const res = await fetch(firestoreBase(projectId) + '/botpending/' + chatId, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error('Firestore pending PATCH ' + res.status);
+}
+
+async function getPending(projectId, chatId, token) {
+  const res = await fetch(firestoreBase(projectId) + '/botpending/' + chatId, {
+    headers: { Authorization: 'Bearer ' + token }
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error('Firestore pending GET ' + res.status);
+  const doc = await res.json();
+  const j = doc.fields && doc.fields.json && doc.fields.json.stringValue;
+  return j ? JSON.parse(j) : null;
+}
+
+async function deletePending(projectId, chatId, token) {
+  await fetch(firestoreBase(projectId) + '/botpending/' + chatId, {
+    method: 'DELETE', headers: { Authorization: 'Bearer ' + token }
+  });
+}
+
 async function saveVault(projectId, targetUid, token, data) {
   const body = {
     fields: {
@@ -350,6 +490,23 @@ async function tg(env, method, payload) {
 
 function reply(env, chatId, text) {
   return tg(env, 'sendMessage', { chat_id: chatId, text: text, parse_mode: 'HTML' });
+}
+
+function sendKeyboard(env, chatId, text, rows) {
+  return tg(env, 'sendMessage', {
+    chat_id: chatId, text: text, parse_mode: 'HTML',
+    reply_markup: { inline_keyboard: rows }
+  });
+}
+
+function editMessage(env, chatId, messageId, text) {
+  return tg(env, 'editMessageText', {
+    chat_id: chatId, message_id: messageId, text: text, parse_mode: 'HTML'
+  });
+}
+
+function answerCb(env, callbackQueryId, text) {
+  return tg(env, 'answerCallbackQuery', { callback_query_id: callbackQueryId, text: text });
 }
 
 // Exportado apenas para testes (o Cloudflare Workers usa só o export default acima).
