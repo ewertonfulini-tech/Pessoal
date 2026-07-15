@@ -313,8 +313,12 @@
     };
 
     const cardIn = select(cards, ce.cardId);
+    const typeIn = select([
+      { value: 'compra', label: 'Compra' },
+      { value: 'estorno', label: 'Estorno (crédito)' }
+    ], (Number(ce.totalAmount) < 0) ? 'estorno' : 'compra');
     const descIn = textInput(ce.description, { placeholder: 'Ex: Notebook, Mercado...' });
-    const amountIn = numberInput(ce.totalAmount ? U.formatNumber(ce.totalAmount) : '');
+    const amountIn = numberInput(ce.totalAmount ? U.formatNumber(Math.abs(ce.totalAmount)) : '');
     const dateIn = dateInput(ce.purchaseDate);
     const instIn = el('input', { type: 'number', min: 1, max: 120, value: ce.installments || 1 });
     const catIn = select(categoryOptions('expense'), ce.categoryId);
@@ -326,10 +330,15 @@
     const endField = field('Repetir até (opcional)', endIn, 'Deixe vazio para repetir indefinidamente.');
 
     const preview = el('div', { class: 'installment-preview' });
-    function isRecurring() { return recIn.value !== 'none'; }
+    function isEstorno() { return typeIn.value === 'estorno'; }
+    function isRecurring() { return !isEstorno() && recIn.value !== 'none'; }
     function updatePreview() {
       const total = U.parseAmount(amountIn.value);
       if (total <= 0) { preview.innerHTML = ''; return; }
+      if (isEstorno()) {
+        preview.innerHTML = U.escapeHtml('Estorno (crédito) de ' + U.formatBRL(total) + ' — abate da fatura.');
+        return;
+      }
       if (isRecurring()) {
         preview.innerHTML = U.escapeHtml('Cobrança ' + RECUR_LABEL[recIn.value] + ' de ' + U.formatBRL(total) +
           ' — lançada automaticamente na fatura de cada período.');
@@ -341,46 +350,50 @@
         ? U.escapeHtml(n + 'x de ' + U.formatBRL(per) + '  •  total ' + U.formatBRL(total))
         : U.escapeHtml('À vista: ' + U.formatBRL(total));
     }
-    function syncRecur() {
-      // Recorrente não parcela: esconde parcelas e mostra "repetir até"
-      parcelField.style.display = isRecurring() ? 'none' : '';
-      endField.style.display = isRecurring() ? '' : 'none';
-      if (isRecurring()) instIn.value = 1;
+    const recurRow = el('div', { class: 'field-row' }, [field('Recorrência', recIn), endField]);
+    function syncAll() {
+      const est = isEstorno();
+      recurRow.style.display = est ? 'none' : '';
+      parcelField.style.display = (est || isRecurring()) ? 'none' : '';
+      endField.style.display = (!est && isRecurring()) ? '' : 'none';
+      if (est || isRecurring()) instIn.value = 1;
       updatePreview();
     }
     amountIn.addEventListener('input', updatePreview);
     instIn.addEventListener('input', updatePreview);
-    recIn.addEventListener('change', syncRecur);
+    recIn.addEventListener('change', syncAll);
+    typeIn.addEventListener('change', syncAll);
 
     const body = el('div', { class: 'modal-body' }, [
       field('Cartão', cardIn),
+      field('Tipo', typeIn),
       field('Descrição', descIn),
       el('div', { class: 'field-row' }, [
-        field('Valor total (R$)', amountIn),
+        field('Valor (R$)', amountIn),
         parcelField
       ]),
       el('div', { class: 'field-row' }, [
-        field('Data da compra', dateIn),
+        field('Data', dateIn),
         field('Categoria', catIn)
       ]),
-      el('div', { class: 'field-row' }, [
-        field('Recorrência', recIn),
-        endField
-      ]),
+      recurRow,
       preview
     ]);
-    syncRecur();
+    syncAll();
 
     function save(close) {
       const total = U.parseAmount(amountIn.value);
       if (!descIn.value.trim()) { U.toast('Informe uma descrição.', 'error'); return; }
       if (total <= 0) { U.toast('Informe um valor maior que zero.', 'error'); return; }
       const d = global.Store.getData();
-      const recurrence = recIn.value;
+      const est = isEstorno();
+      const recurrence = est ? 'none' : recIn.value;
       const payload = {
         cardId: cardIn.value, description: descIn.value.trim(),
-        totalAmount: total, purchaseDate: dateIn.value,
-        installments: recurrence === 'none' ? Math.max(1, parseInt(instIn.value, 10) || 1) : 1,
+        // Estorno é lançado como valor negativo (crédito que abate a fatura)
+        totalAmount: est ? -Math.abs(total) : total,
+        purchaseDate: dateIn.value,
+        installments: (est || recurrence !== 'none') ? 1 : Math.max(1, parseInt(instIn.value, 10) || 1),
         categoryId: catIn.value,
         recurrence: recurrence,
         recurrenceEnd: recurrence === 'none' ? '' : (endIn.value || '')
@@ -391,12 +404,13 @@
         d.cardExpenses.push(Object.assign({ id: U.uid('ce') }, payload));
       }
       global.Store.save();
-      U.toast(isEdit ? 'Compra atualizada.' : 'Compra adicionada.', 'success');
+      const label = est ? 'Estorno' : 'Compra';
+      U.toast(isEdit ? (label + ' atualizado(a).') : (label + ' adicionado(a).'), 'success');
       close();
       onSaved && onSaved();
     }
 
-    openModal(isEdit ? 'Editar compra' : 'Nova compra no cartão', body, {
+    openModal(isEdit ? 'Editar lançamento' : 'Novo lançamento no cartão', body, {
       buttons: [
         { label: 'Cancelar', variant: 'ghost', onClick: function (c) { c(); } },
         { label: 'Salvar', variant: 'primary', onClick: save }
