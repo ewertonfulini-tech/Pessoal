@@ -17,6 +17,9 @@
     }
   };
 
+  // Estado de UI (não persistido): quais cartões estão com a lista expandida
+  const cardExpanded = {};
+
   const view = document.getElementById('view');
 
   /* ================================================================== *
@@ -492,9 +495,23 @@
     const panel = el('div', { class: 'panel card-panel' }, [header, metrics]);
 
     if (!items.length) {
-      panel.appendChild(el('p', { class: 'muted', text: 'Sem lançamentos nesta fatura.' }));
-    } else {
-      const list = el('div', { class: 'txn-list' });
+      panel.appendChild(el('p', { class: 'muted card-empty', text: 'Sem lançamentos nesta fatura.' }));
+      return panel;
+    }
+
+    const expanded = !!cardExpanded[card.id];
+    const toggle = el('button', {
+      class: 'card-toggle' + (expanded ? ' open' : ''),
+      onclick: function () { cardExpanded[card.id] = !expanded; renderCards(); }
+    }, [
+      el('span', { class: 'card-toggle-caret', text: expanded ? '▾' : '▸' }),
+      el('span', { text: (expanded ? 'Ocultar lançamentos' : 'Ver lançamentos') +
+        ' (' + items.length + ')' })
+    ]);
+    panel.appendChild(toggle);
+
+    if (expanded) {
+      const list = el('div', { class: 'txn-list card-txn-list' });
       items.forEach(function (i) {
         const ce = global.Store.getData().cardExpenses.find(function (x) { return x.id === i.cardExpenseId; });
         const instTag = i.of > 1
