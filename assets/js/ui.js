@@ -125,7 +125,9 @@
   ];
 
   /* ---------- Modal: Despesa / Receita ---------- */
-  function openTransactionModal(type, existing, onSaved) {
+  // occCtx (opcional): { year, month0 } do mês em edição — habilita escolher o
+  // escopo do valor numa recorrência ("só este mês" vs "todos os meses").
+  function openTransactionModal(type, existing, onSaved, occCtx) {
     const isEdit = !!existing;
     const tx = existing || {
       type: type, description: '', amount: '', date: U.todayISO(),
@@ -133,8 +135,19 @@
     };
     const title = (isEdit ? 'Editar ' : 'Nova ') + (type === 'income' ? 'receita' : 'despesa');
 
+    // Contexto de recorrência: só oferecemos escopo de valor ao editar uma
+    // recorrência dentro de um mês específico.
+    const isRecurring = isEdit && tx.recurrence && tx.recurrence !== 'none';
+    const monthKey = occCtx ? U.monthKey(occCtx.year, occCtx.month0)
+      : (isEdit ? U.monthKey(U.parseISO(tx.date).year, U.parseISO(tx.date).month0) : null);
+    const overrideKey = (isRecurring && monthKey) ? (tx.id + ':' + monthKey) : null;
+    const overrides = global.Store.getData().amountOverrides || {};
+    const hasOverride = overrideKey && overrides[overrideKey] != null;
+    // Valor efetivo do mês em edição (exceção, se houver)
+    const effectiveAmount = hasOverride ? overrides[overrideKey] : tx.amount;
+
     const descIn = textInput(tx.description, { placeholder: 'Ex: Aluguel, Salário...' });
-    const amountIn = numberInput(tx.amount ? U.formatNumber(tx.amount) : '');
+    const amountIn = numberInput(effectiveAmount ? U.formatNumber(effectiveAmount) : '');
     const dateIn = dateInput(tx.date);
     const catIn = select(categoryOptions(type), tx.categoryId);
     const recIn = select(RECURRENCE_OPTS, tx.recurrence || 'none');
@@ -147,12 +160,31 @@
     recIn.addEventListener('change', syncEnd);
     syncEnd();
 
+    // Escopo do valor (só ao editar uma recorrência dentro de um mês)
+    let scopeIn = null, scopeField = null;
+    if (isRecurring && monthKey) {
+      const mLabel = occCtx ? U.monthLabel(occCtx.year, occCtx.month0) : monthKey;
+      scopeIn = select([
+        { value: 'month', label: 'Somente ' + mLabel },
+        { value: 'all', label: 'Todos os meses' }
+      ], hasOverride ? 'month' : 'all');
+      scopeField = field('Aplicar o valor em', scopeIn,
+        hasOverride
+          ? 'Este mês já tem um valor personalizado. Escolha "Todos os meses" para voltar ao valor da recorrência.'
+          : 'Escolha se o novo valor vale só neste mês ou em todos os meses da recorrência.');
+      // O seletor de escopo não faz sentido se a recorrência for removida
+      function syncScope() { scopeField.style.display = recIn.value === 'none' ? 'none' : ''; }
+      recIn.addEventListener('change', syncScope);
+      syncScope();
+    }
+
     const body = el('div', { class: 'modal-body' }, [
       field('Descrição', descIn),
       el('div', { class: 'field-row' }, [
         field('Valor (R$)', amountIn),
         field(type === 'income' ? 'Data prevista' : 'Data', dateIn)
       ]),
+      scopeField,
       el('div', { class: 'field-row' }, [
         field('Categoria', catIn),
         field('Recorrência', recIn)
@@ -171,11 +203,21 @@
       const accountId = acctIn ? acctIn.value : (tx.accountId || '');
       if (isEdit) {
         const ref = d.transactions.find(function (t) { return t.id === tx.id; });
-        Object.assign(ref, {
-          description: descIn.value.trim(), amount: amount, date: dateIn.value,
-          categoryId: catIn.value, recurrence: recIn.value, accountId: accountId,
-          recurrenceEnd: recIn.value === 'none' ? '' : (endIn.value || '')
-        });
+        // Campos da série sempre aplicam à recorrência inteira
+        ref.description = descIn.value.trim();
+        ref.date = dateIn.value;
+        ref.categoryId = catIn.value;
+        ref.recurrence = recIn.value;
+        ref.accountId = accountId;
+        ref.recurrenceEnd = recIn.value === 'none' ? '' : (endIn.value || '');
+        // Valor: "só este mês" grava uma exceção; "todos os meses" grava na série
+        const scope = (scopeIn && recIn.value !== 'none') ? scopeIn.value : 'all';
+        if (scope === 'month' && overrideKey) {
+          d.amountOverrides[overrideKey] = amount;
+        } else {
+          ref.amount = amount;
+          if (overrideKey && d.amountOverrides[overrideKey] != null) delete d.amountOverrides[overrideKey];
+        }
       } else {
         d.transactions.push({
           id: U.uid('tx'), type: type,

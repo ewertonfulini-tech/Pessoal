@@ -339,6 +339,8 @@
         const tx = d.transactions.find(function (t) { return t.id === o.txId; });
         const recTag = o.recurrence !== 'none'
           ? el('span', { class: 'tag', text: recurrenceLabel(o.recurrence) }) : null;
+        const ovTag = o.overridden
+          ? el('span', { class: 'tag', title: 'Valor personalizado só neste mês', text: '✎ valor ajustado' }) : null;
         const acc = tx && tx.accountId ? F.getAccount(tx.accountId) : null;
         const accTag = acc
           ? el('span', { class: 'tag tag-account' }, [
@@ -355,7 +357,7 @@
         container.appendChild(el('div', { class: 'txn-row' }, [
           el('div', { class: 'txn-main' }, [
             el('div', { class: 'txn-title-line' }, [
-              el('span', { class: 'txn-desc', text: o.description }), recTag, accTag
+              el('span', { class: 'txn-desc', text: o.description }), recTag, ovTag, accTag
             ]),
             el('div', { class: 'txn-meta-line' }, [ catBadge(o.categoryId) ])
           ]),
@@ -366,7 +368,7 @@
             }),
             paidBtn,
             rowActions(
-              function () { global.UI.openTransactionModal(type, tx, refresh); },
+              function () { global.UI.openTransactionModal(type, tx, refresh, { year: state.year, month0: state.month0 }); },
               function () { deleteTransaction(tx, o.recurrence !== 'none'); }
             )
           ])

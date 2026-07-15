@@ -22,19 +22,25 @@
     const rec = tx.recurrence || 'none';
 
     function makeOcc(dateISO) {
+      const store = global.Store.getData();
       const key = tx.id + ':' + U.monthKey(year, month0);
-      const paid = !!global.Store.getData().paidOverrides[key];
+      const paid = !!store.paidOverrides[key];
+      const ov = store.amountOverrides ? store.amountOverrides[key] : undefined;
+      const overridden = (ov !== undefined && ov !== null);
       return {
         id: tx.id + '@' + dateISO,
         txId: tx.id,
         date: dateISO,
-        amount: Number(tx.amount) || 0,
+        amount: (overridden ? Number(ov) : Number(tx.amount)) || 0,
         description: tx.description,
         categoryId: tx.categoryId,
         type: tx.type,
         recurrence: rec,
         paidKey: key,
-        paid: paid
+        paid: paid,
+        // Valor personalizado só neste mês (exceção da recorrência)
+        amountKey: key,
+        overridden: overridden
       };
     }
 
