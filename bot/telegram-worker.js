@@ -24,10 +24,11 @@ const HELP =
   'Olá! Eu lanço no seu gestor financeiro. Exemplos:\n\n' +
   '• <b>50 mercado</b> → despesa de R$50 (Alimentação)\n' +
   '• <b>gastei 89,90 na farmácia</b> → despesa (Saúde)\n' +
-  '• <b>1200 notebook 12x</b> → parcelado (escolha o cartão)\n' +
+  '• <b>1200 notebook 12x</b> → parcelado (já vai em 12x)\n' +
   '• <b>receita 5000 salário</b> → receita\n\n' +
-  'Em cada despesa eu pergunto <b>onde lançar</b>: toque no cartão (à vista ou ' +
-  'no número de parcelas que você escreveu) ou em <b>Despesa</b> (sem cartão).\n\n' +
+  'Em cada despesa eu pergunto <b>onde lançar</b>: toque no cartão ou em ' +
+  '<b>Despesa</b> (sem cartão). Ao escolher um cartão, se você não escreveu as ' +
+  'parcelas (ex.: "12x"), eu pergunto <b>à vista ou em quantas parcelas</b> com botões.\n\n' +
   'Comandos: /id (mostra seu chat_id) • /ajuda';
 
 // Palavras-chave que ajudam a adivinhar a categoria (nome deve existir no app)
@@ -115,7 +116,7 @@ export default {
       // Despesa: monta o lançamento e pergunta ONDE lançar (cartão ou despesa)
       const categoryId = findCategory(data.categories, 'expense', text);
       const description = cleanDescription(text, amt.raw);
-      const instMatch = n.match(/(\d+)\s*x\b/);
+      const instMatch = n.match(/(\d+)\s*(?:x|vezes?|parcelas?)\b/);
       const installments = instMatch ? Math.max(1, parseInt(instMatch[1], 10)) : 1;
       const cards = Array.isArray(data.cards) ? data.cards : [];
 
@@ -184,34 +185,74 @@ async function handleCallback(env, cb) {
   if (!Array.isArray(data.categories)) data.categories = [];
 
   const parts = data0.split('|');
-  let confirm;
 
+  // Passo 2: escolha das parcelas (pc|<n>)
+  if (parts[0] === 'pc') {
+    const n = Math.max(1, parseInt(parts[1], 10) || 1);
+    const card = (data.cards || []).find(function (c) { return c.id === pending.card; });
+    if (!card) { await answerCb(env, cb.id, 'Cartão não encontrado.'); return; }
+    const confirm = commitCardExpense(data, pending, card, n);
+    await saveVault(projectId, env.TARGET_UID, token, data);
+    await deletePending(projectId, chatId, token);
+    await answerCb(env, cb.id, 'Lançado!');
+    await editMessage(env, chatId, msgId, confirm);
+    return;
+  }
+
+  // Passo 1: escolha do cartão (pk|c|<id>) ou despesa sem cartão (pk|d)
   if (parts[1] === 'c') {
     const card = (data.cards || []).find(function (c) { return c.id === parts[2]; });
     if (!card) { await answerCb(env, cb.id, 'Cartão não encontrado.'); return; }
-    if (!Array.isArray(data.cardExpenses)) data.cardExpenses = [];
-    data.cardExpenses.push({
-      id: uid('ce'), cardId: card.id, description: pending.d,
-      totalAmount: pending.v, purchaseDate: pending.dt,
-      installments: pending.i || 1, categoryId: pending.c
-    });
-    const extra = (pending.i || 1) > 1 ? ' em ' + pending.i + 'x de ' + brl(pending.v / pending.i) : '';
-    confirm = '💳 Cartão <b>' + card.name + '</b>: ' + brl(pending.v) + extra +
-      ' — "' + pending.d + '" (' + catName(data.categories, pending.c) + ').';
-  } else {
-    if (!Array.isArray(data.transactions)) data.transactions = [];
-    data.transactions.push({
-      id: uid('tx'), type: 'expense', description: pending.d, amount: pending.v,
-      date: pending.dt, categoryId: pending.c, recurrence: 'none', recurrenceEnd: '', accountId: ''
-    });
-    confirm = '💸 Despesa de ' + brl(pending.v) + ' — "' + pending.d +
-      '" (' + catName(data.categories, pending.c) + ') lançada.';
+    const inst = pending.i || 1;
+    if (inst > 1) {
+      // parcelas já informadas na mensagem — lança direto
+      const confirm = commitCardExpense(data, pending, card, inst);
+      await saveVault(projectId, env.TARGET_UID, token, data);
+      await deletePending(projectId, chatId, token);
+      await answerCb(env, cb.id, 'Lançado!');
+      await editMessage(env, chatId, msgId, confirm);
+      return;
+    }
+    // pergunta as parcelas
+    pending.card = card.id;
+    await setPending(projectId, chatId, token, pending);
+    await answerCb(env, cb.id, '');
+    const rows = [
+      [{ text: 'À vista', callback_data: 'pc|1' }],
+      [{ text: '2x', callback_data: 'pc|2' }, { text: '3x', callback_data: 'pc|3' }, { text: '4x', callback_data: 'pc|4' }],
+      [{ text: '5x', callback_data: 'pc|5' }, { text: '6x', callback_data: 'pc|6' }, { text: '10x', callback_data: 'pc|10' }],
+      [{ text: '12x', callback_data: 'pc|12' }, { text: '18x', callback_data: 'pc|18' }, { text: '24x', callback_data: 'pc|24' }]
+    ];
+    await editMessageKb(env, chatId, msgId,
+      '💳 <b>' + card.name + '</b> — ' + brl(pending.v) + ' "' + pending.d +
+      '".\nÀ vista ou em quantas parcelas?', rows);
+    return;
   }
 
+  // Despesa (sem cartão)
+  if (!Array.isArray(data.transactions)) data.transactions = [];
+  data.transactions.push({
+    id: uid('tx'), type: 'expense', description: pending.d, amount: pending.v,
+    date: pending.dt, categoryId: pending.c, recurrence: 'none', recurrenceEnd: '', accountId: ''
+  });
   await saveVault(projectId, env.TARGET_UID, token, data);
   await deletePending(projectId, chatId, token);
   await answerCb(env, cb.id, 'Lançado!');
-  await editMessage(env, chatId, msgId, confirm);
+  await editMessage(env, chatId, msgId, '💸 Despesa de ' + brl(pending.v) + ' — "' + pending.d +
+    '" (' + catName(data.categories, pending.c) + ') lançada.');
+}
+
+// Cria a compra no cartão (n parcelas) e retorna o texto de confirmação
+function commitCardExpense(data, pending, card, n) {
+  if (!Array.isArray(data.cardExpenses)) data.cardExpenses = [];
+  data.cardExpenses.push({
+    id: uid('ce'), cardId: card.id, description: pending.d,
+    totalAmount: pending.v, purchaseDate: pending.dt,
+    installments: n || 1, categoryId: pending.c
+  });
+  const extra = (n || 1) > 1 ? ' em ' + n + 'x de ' + brl(pending.v / n) : ' à vista';
+  return '💳 Cartão <b>' + card.name + '</b>: ' + brl(pending.v) + extra +
+    ' — "' + pending.d + '" (' + catName(data.categories, pending.c) + ').';
 }
 
 /* ---------- Interpretação da mensagem ---------- */
@@ -261,8 +302,9 @@ function cleanDescription(text, amountRaw) {
   // remove o valor digitado e o símbolo de moeda
   if (amountRaw) d = d.replace(amountRaw, ' ');
   d = d.replace(/r\$/gi, ' ');
-  // remove parcelas "12x"
-  d = d.replace(/\b\d+\s*x\b/gi, ' ');
+  // remove parcelas "12x", "12 vezes", "12 parcelas" e a palavra "parcelado"
+  d = d.replace(/\b\d+\s*(?:x|vezes?|parcelas?)\b/gi, ' ');
+  d = d.replace(/\bparcelad[oa]s?\b/gi, ' ');
   // marcadores de canal/filler nunca são descrição — remove em qualquer posição
   d = d.replace(/\b(cartao|cartão|cartões|cartoes|credito|crédito|reais|real)\b/gi, ' ');
   d = d.replace(/\s+/g, ' ').trim();
@@ -502,6 +544,13 @@ function sendKeyboard(env, chatId, text, rows) {
 function editMessage(env, chatId, messageId, text) {
   return tg(env, 'editMessageText', {
     chat_id: chatId, message_id: messageId, text: text, parse_mode: 'HTML'
+  });
+}
+
+function editMessageKb(env, chatId, messageId, text, rows) {
+  return tg(env, 'editMessageText', {
+    chat_id: chatId, message_id: messageId, text: text, parse_mode: 'HTML',
+    reply_markup: { inline_keyboard: rows }
   });
 }
 
