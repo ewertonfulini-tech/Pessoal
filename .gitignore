@@ -5,3 +5,5 @@ node_modules/
 # Dados financeiros locais (não publicar)
 santander-julho.json
 *-fatura*.json
+santander-julho.csv
+*-fatura*.csv

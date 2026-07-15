@@ -779,17 +779,18 @@
         'são ignorados para evitar duplicidade.<br>Para lançar uma <b>compra no cartão</b>, ' +
         'inclua o campo <code>card</code> (nome do cartão) no item; valor negativo vira estorno.' }),
       el('div', { class: 'button-row' }, [
-        el('button', { class: 'btn primary', text: '↥ Importar lançamentos (JSON)',
+        el('button', { class: 'btn primary', text: '↥ Importar lançamentos (JSON ou CSV)',
           onclick: function () { document.getElementById('importTxFile').click(); } }),
         el('button', { class: 'btn danger', text: '🗑 Remover lançamentos deste arquivo',
           onclick: function () { document.getElementById('removeTxFile').click(); } })
       ]),
-      el('small', { class: 'field-hint', text:
-        'Para desfazer uma importação, selecione o MESMO arquivo em "Remover": ' +
-        'apaga apenas os lançamentos idênticos aos do arquivo.' }),
-      el('input', { type: 'file', id: 'importTxFile', accept: '.json,application/json',
+      el('small', { class: 'field-hint', html:
+        'CSV (do Excel/Sheets: <b>Salvar como CSV</b>) com colunas <b>Data, Descrição, ' +
+        'Categoria, Valor</b> e, opcionais, <b>Cartão</b> e <b>Parcelas</b>. ' +
+        'Para desfazer uma importação, selecione o MESMO arquivo em "Remover".' }),
+      el('input', { type: 'file', id: 'importTxFile', accept: '.json,.csv,application/json,text/csv',
         style: 'display:none', onchange: onImportTxFile }),
-      el('input', { type: 'file', id: 'removeTxFile', accept: '.json,application/json',
+      el('input', { type: 'file', id: 'removeTxFile', accept: '.json,.csv,application/json,text/csv',
         style: 'display:none', onchange: onRemoveTxFile })
     ]);
     view.appendChild(importPanel);
@@ -1034,6 +1035,81 @@
     return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
   }
 
+  /* ---------- CSV: conversão para a lista de importação ---------- */
+  // Detecta ; ou , como separador, respeita aspas e "" escapado.
+  function parseCsvRows(text) {
+    text = String(text).replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+    const first = text.split('\n')[0] || '';
+    const sep = (first.split(';').length > first.split(',').length) ? ';' : ',';
+    const rows = []; let cur = [], val = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) {
+        if (c === '"') { if (text[i + 1] === '"') { val += '"'; i++; } else q = false; }
+        else val += c;
+      } else {
+        if (c === '"') q = true;
+        else if (c === sep) { cur.push(val); val = ''; }
+        else if (c === '\n') { cur.push(val); rows.push(cur); cur = []; val = ''; }
+        else val += c;
+      }
+    }
+    if (val.length || cur.length) { cur.push(val); rows.push(cur); }
+    return rows.filter(function (r) { return r.some(function (c) { return String(c).trim() !== ''; }); });
+  }
+  function csvHead(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+  }
+  function csvPick(cols, names) {
+    for (let i = 0; i < names.length; i++) { const j = cols.indexOf(names[i]); if (j >= 0) return j; }
+    return -1;
+  }
+  // Converte um CSV (colunas Data, Descrição, Categoria, Valor, [Cartão], [Parcelas], [Tipo])
+  // na lista de itens que o importTransactions entende.
+  function csvToImportList(text) {
+    const rows = parseCsvRows(text);
+    if (rows.length < 2) throw new Error('CSV vazio ou sem cabeçalho.');
+    const cols = rows[0].map(csvHead);
+    const iData = csvPick(cols, ['data', 'date', 'dt']);
+    const iDesc = csvPick(cols, ['descricao', 'description', 'historico', 'lancamento', 'nome', 'estabelecimento']);
+    const iCat = csvPick(cols, ['categoria', 'category', 'classe']);
+    const iVal = csvPick(cols, ['valor', 'value', 'amount', 'montante', 'total']);
+    const iCard = csvPick(cols, ['cartao', 'card']);
+    const iInst = csvPick(cols, ['parcelas', 'installments', 'parcela']);
+    const iType = csvPick(cols, ['tipo', 'type']);
+    if (iData < 0 || iVal < 0) {
+      throw new Error('O CSV precisa ter pelo menos as colunas "Data" e "Valor".');
+    }
+    const list = [];
+    for (let r = 1; r < rows.length; r++) {
+      const row = rows[r];
+      const cell = function (idx) { return (idx >= 0 && idx < row.length) ? String(row[idx]).trim() : ''; };
+      const item = {
+        date: cell(iData),
+        description: cell(iDesc) || 'Lançamento',
+        category: cell(iCat),
+        amount: U.parseAmount(cell(iVal))
+      };
+      const card = cell(iCard); if (card) item.card = card;
+      const inst = cell(iInst).replace(/[^0-9]/g, ''); if (inst) item.installments = parseInt(inst, 10);
+      if (/receita|entrada|credito|income/.test(csvHead(cell(iType)))) item.type = 'income';
+      list.push(item);
+    }
+    return list;
+  }
+
+  // Lê um arquivo importado como JSON ou CSV e devolve a lista de itens.
+  function parseImportContent(fileName, content) {
+    if (/\.csv$/i.test(fileName || '')) return csvToImportList(content);
+    try {
+      const parsed = JSON.parse(content);
+      return Array.isArray(parsed) ? parsed : parsed.transactions;
+    } catch (err) {
+      // Não é JSON válido — tenta CSV como fallback
+      return csvToImportList(content);
+    }
+  }
+
   // Acha a categoria (tipo expense/income) pelo nome; '' se não existir (não cria).
   function matchCategoryByName(d, type, name) {
     const nm = String(name || '').trim();
@@ -1147,10 +1223,9 @@
     reader.onload = function () {
       let list;
       try {
-        const parsed = JSON.parse(reader.result);
-        list = Array.isArray(parsed) ? parsed : parsed.transactions;
+        list = parseImportContent(file.name, reader.result);
       } catch (err) {
-        U.toast('Arquivo inválido (não é JSON).', 'error'); return;
+        U.toast(err.message || 'Arquivo inválido (use JSON ou CSV).', 'error'); return;
       }
       global.UI.confirmModal('Remover lançamentos',
         'Isso vai apagar os lançamentos deste aparelho que forem idênticos aos do ' +
@@ -1174,10 +1249,9 @@
     reader.onload = function () {
       let list;
       try {
-        const parsed = JSON.parse(reader.result);
-        list = Array.isArray(parsed) ? parsed : parsed.transactions;
+        list = parseImportContent(file.name, reader.result);
       } catch (err) {
-        U.toast('Arquivo inválido (não é JSON).', 'error'); return;
+        U.toast(err.message || 'Arquivo inválido (use JSON ou CSV).', 'error'); return;
       }
       try {
         const r = importTransactions(list);
