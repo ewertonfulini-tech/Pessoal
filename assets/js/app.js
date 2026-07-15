@@ -556,19 +556,16 @@
 
     const panel = el('div', { class: 'panel card-panel' }, [header, metrics]);
 
-    if (!items.length) {
-      panel.appendChild(el('p', { class: 'muted card-empty', text: 'Sem lançamentos nesta fatura.' }));
-      return panel;
-    }
-
     const expanded = !!cardExpanded[card.id];
+    const toggleText = items.length
+      ? (expanded ? 'Ocultar lançamentos' : 'Ver lançamentos') + ' (' + items.length + ')'
+      : (expanded ? 'Ocultar' : 'Ver / buscar lançamentos');
     const toggle = el('button', {
       class: 'card-toggle' + (expanded ? ' open' : ''),
       onclick: function () { cardExpanded[card.id] = !expanded; renderCards(); }
     }, [
       el('span', { class: 'card-toggle-caret', text: expanded ? '▾' : '▸' }),
-      el('span', { text: (expanded ? 'Ocultar lançamentos' : 'Ver lançamentos') +
-        ' (' + items.length + ')' })
+      el('span', { text: toggleText })
     ]);
     panel.appendChild(toggle);
 
@@ -588,7 +585,8 @@
             ]),
             el('div', { class: 'txn-meta-line' }, [
               catBadge(i.categoryId),
-              el('span', { class: 'txn-meta', text: 'Compra ' + U.formatDateBR(i.purchaseDate) })
+              el('span', { class: 'txn-meta', text: 'Compra ' + U.formatDateBR(i.purchaseDate) +
+                (i.subNote ? ' · ' + i.subNote : '') })
             ])
           ]),
           el('div', { class: 'txn-right' }, [
@@ -623,14 +621,22 @@
           list.appendChild(el('div', { class: 'muted small', style: 'padding:4px 0 8px',
             text: matches.length + ' compra(s) encontrada(s) — todos os meses' }));
           matches.forEach(function (ce) {
+            const isRec = ce.recurrence && ce.recurrence !== 'none';
             const inst = parseInt(ce.installments, 10) || 1;
+            const total = Number(ce.totalAmount) || 0;
+            // Parcelado: mostra o valor da parcela (como na fatura) e o total como nota
+            const perMonth = (!isRec && inst > 1) ? Math.round((total / inst) * 100) / 100 : total;
             list.appendChild(cardExpenseRow({
               description: ce.description, categoryId: ce.categoryId, purchaseDate: ce.purchaseDate,
-              amount: Number(ce.totalAmount) || 0,
-              instText: (ce.recurrence && ce.recurrence !== 'none') ? '' : (inst > 1 ? inst + 'x' : ''),
-              recurring: ce.recurrence && ce.recurrence !== 'none'
+              amount: perMonth,
+              instText: isRec ? '' : (inst > 1 ? inst + 'x' : ''),
+              subNote: (!isRec && inst > 1) ? ('total ' + U.formatBRL(total)) : '',
+              recurring: isRec
             }, ce));
           });
+        } else if (!items.length) {
+          list.appendChild(el('p', { class: 'muted', text:
+            'Sem lançamentos nesta fatura. Use a busca acima para achar compras de outros meses.' }));
         } else {
           // Fatura do mês exibido
           items.forEach(function (i) {
