@@ -502,10 +502,12 @@
         const ce = global.Store.getData().cardExpenses.find(function (x) { return x.id === i.cardExpenseId; });
         const instTag = i.of > 1
           ? el('span', { class: 'tag', text: i.n + '/' + i.of }) : null;
+        const isCredit = i.amount < 0;
+        const creditTag = isCredit ? el('span', { class: 'tag', text: 'estorno' }) : null;
         list.appendChild(el('div', { class: 'txn-row' }, [
           el('div', { class: 'txn-main' }, [
             el('div', { class: 'txn-title-line' }, [
-              el('span', { class: 'txn-desc', text: i.description }), instTag
+              el('span', { class: 'txn-desc', text: i.description }), instTag, creditTag
             ]),
             el('div', { class: 'txn-meta-line' }, [
               catBadge(i.categoryId),
@@ -513,7 +515,8 @@
             ])
           ]),
           el('div', { class: 'txn-right' }, [
-            el('span', { class: 'txn-amount neg', text: '- ' + U.formatBRL(i.amount) }),
+            el('span', { class: 'txn-amount ' + (isCredit ? 'pos' : 'neg'),
+              text: (isCredit ? '+ ' : '- ') + U.formatBRL(Math.abs(i.amount)) }),
             rowActions(
               function () { global.UI.openCardExpenseModal(card.id, ce, refresh); },
               function () { deleteCardExpense(ce); }
@@ -769,10 +772,12 @@
     // Importar lançamentos (soma, não substitui)
     const importPanel = el('div', { class: 'panel' }, [
       el('h3', { class: 'panel-title', text: 'Importar lançamentos' }),
-      el('p', { class: 'muted', text:
+      el('p', { class: 'muted', html:
         'Adiciona vários lançamentos de uma vez (ex.: exportação de outra planilha), ' +
-        'sem apagar o que já existe. Categorias novas são criadas automaticamente e ' +
-        'lançamentos idênticos são ignorados para evitar duplicidade.' }),
+        'sem apagar o que já existe. As categorias são associadas pelo nome às que ' +
+        'já existem (as demais entram como "a classificar") e lançamentos idênticos ' +
+        'são ignorados para evitar duplicidade.<br>Para lançar uma <b>compra no cartão</b>, ' +
+        'inclua o campo <code>card</code> (nome do cartão) no item; valor negativo vira estorno.' }),
       el('div', { class: 'button-row' }, [
         el('button', { class: 'btn primary', text: '↥ Importar lançamentos (JSON)',
           onclick: function () { document.getElementById('importTxFile').click(); } }),
@@ -1029,6 +1034,16 @@
     return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
   }
 
+  // Acha a categoria (tipo expense/income) pelo nome; '' se não existir (não cria).
+  function matchCategoryByName(d, type, name) {
+    const nm = String(name || '').trim();
+    if (!nm) return '';
+    const cat = d.categories.find(function (c) {
+      return c.type === type && normName(c.name) === normName(nm);
+    });
+    return cat ? cat.id : '';
+  }
+
   function importTransactions(list) {
     if (!Array.isArray(list)) throw new Error('O arquivo deve conter uma lista de lançamentos.');
     const d = global.Store.getData();
@@ -1036,31 +1051,47 @@
     // linhas repetidas dentro do mesmo arquivo são todas importadas).
     const existing = {};
     d.transactions.forEach(function (t) {
-      existing[t.type + '|' + t.date + '|' + normName(t.description) + '|' + (Number(t.amount) || 0)] = true;
+      existing['tx|' + t.type + '|' + t.date + '|' + normName(t.description) + '|' + (Number(t.amount) || 0)] = true;
     });
-    let added = 0, dupes = 0, invalid = 0, uncategorized = 0;
+    const existingCard = {};
+    (d.cardExpenses || []).forEach(function (ce) {
+      existingCard['ce|' + ce.cardId + '|' + ce.purchaseDate + '|' + normName(ce.description) + '|' + (Number(ce.totalAmount) || 0)] = true;
+    });
+    let added = 0, addedCard = 0, dupes = 0, invalid = 0, uncategorized = 0, noCard = 0;
 
     list.forEach(function (item) {
-      const type = item.type === 'income' ? 'income' : 'expense';
       const amount = Math.round((Number(item.amount) || 0) * 100) / 100;
       const date = normImportDate(item.date);
-      if (amount <= 0 || !date) { invalid++; return; }
       const desc = String(item.description || 'Lançamento').trim();
-      const key = type + '|' + date + '|' + normName(desc) + '|' + amount;
-      if (existing[key]) { dupes++; return; }
 
-      // Não cria categorias: usa só as já existentes (nome igual); senão, deixa
-      // sem categoria ("a classificar").
-      const catName = String(item.category || '').trim();
-      let categoryId = '';
-      if (catName) {
-        const cat = d.categories.find(function (c) {
-          return c.type === type && normName(c.name) === normName(catName);
+      // Compra no cartão: item.card = nome do cartão (aceita valor negativo = estorno)
+      const cardName = String(item.card || '').trim();
+      if (cardName) {
+        if (!date || amount === 0) { invalid++; return; }
+        const card = (d.cards || []).find(function (c) { return normName(c.name) === normName(cardName); });
+        if (!card) { noCard++; return; }
+        const key = 'ce|' + card.id + '|' + date + '|' + normName(desc) + '|' + amount;
+        if (existingCard[key]) { dupes++; return; }
+        const categoryId = matchCategoryByName(d, 'expense', item.category);
+        if (!categoryId) uncategorized++;
+        if (!Array.isArray(d.cardExpenses)) d.cardExpenses = [];
+        d.cardExpenses.push({
+          id: U.uid('ce'), cardId: card.id, description: desc,
+          totalAmount: amount, purchaseDate: date,
+          installments: Math.max(1, parseInt(item.installments, 10) || 1),
+          categoryId: categoryId
         });
-        if (cat) categoryId = cat.id;
+        addedCard++;
+        return;
       }
-      if (!categoryId) uncategorized++;
 
+      // Despesa/receita normal (valor deve ser > 0)
+      const type = item.type === 'income' ? 'income' : 'expense';
+      if (amount <= 0 || !date) { invalid++; return; }
+      const key = 'tx|' + type + '|' + date + '|' + normName(desc) + '|' + amount;
+      if (existing[key]) { dupes++; return; }
+      const categoryId = matchCategoryByName(d, type, item.category);
+      if (!categoryId) uncategorized++;
       d.transactions.push({
         id: U.uid('tx'), type: type, description: desc, amount: amount, date: date,
         categoryId: categoryId, recurrence: 'none', recurrenceEnd: '', accountId: ''
@@ -1069,28 +1100,42 @@
     });
 
     global.Store.save();
-    return { added: added, dupes: dupes, invalid: invalid, uncategorized: uncategorized };
+    return { added: added, addedCard: addedCard, dupes: dupes, invalid: invalid,
+      uncategorized: uncategorized, noCard: noCard };
   }
 
   // Remove os lançamentos que batem (tipo+data+descrição+valor) com os do arquivo
   function removeTransactions(list) {
     if (!Array.isArray(list)) throw new Error('O arquivo deve conter uma lista de lançamentos.');
     const d = global.Store.getData();
-    const targets = {};
+    const targets = {};       // despesas/receitas normais
+    const cardTargets = {};    // compras de cartão
     list.forEach(function (item) {
-      const type = item.type === 'income' ? 'income' : 'expense';
       const amount = Math.round((Number(item.amount) || 0) * 100) / 100;
       const date = normImportDate(item.date);
       const desc = String(item.description || 'Lançamento').trim();
-      if (amount <= 0 || !date) return;
-      targets[type + '|' + date + '|' + normName(desc) + '|' + amount] = true;
+      if (!date || amount === 0) return;
+      const cardName = String(item.card || '').trim();
+      if (cardName) {
+        const card = (d.cards || []).find(function (c) { return normName(c.name) === normName(cardName); });
+        if (card) cardTargets[card.id + '|' + date + '|' + normName(desc) + '|' + amount] = true;
+      } else {
+        const type = item.type === 'income' ? 'income' : 'expense';
+        if (amount > 0) targets[type + '|' + date + '|' + normName(desc) + '|' + amount] = true;
+      }
     });
-    const before = d.transactions.length;
+    const before = d.transactions.length + (d.cardExpenses ? d.cardExpenses.length : 0);
     d.transactions = d.transactions.filter(function (t) {
       const key = t.type + '|' + t.date + '|' + normName(t.description) + '|' + (Number(t.amount) || 0);
       return !targets[key];
     });
-    const removed = before - d.transactions.length;
+    if (Array.isArray(d.cardExpenses)) {
+      d.cardExpenses = d.cardExpenses.filter(function (ce) {
+        const key = ce.cardId + '|' + ce.purchaseDate + '|' + normName(ce.description) + '|' + (Number(ce.totalAmount) || 0);
+        return !cardTargets[key];
+      });
+    }
+    const removed = before - (d.transactions.length + (d.cardExpenses ? d.cardExpenses.length : 0));
     global.Store.save();
     return { removed: removed };
   }
@@ -1138,11 +1183,13 @@
         const r = importTransactions(list);
         global.UI.confirmModal('Importação concluída',
           r.added + ' lançamento(s) importado(s). ' +
+          (r.addedCard ? r.addedCard + ' compra(s) no cartão. ' : '') +
           (r.uncategorized ? r.uncategorized + ' sem categoria (a classificar). ' : '') +
           (r.dupes ? r.dupes + ' duplicado(s) ignorado(s). ' : '') +
+          (r.noCard ? r.noCard + ' com cartão não encontrado (verifique o nome). ' : '') +
           (r.invalid ? r.invalid + ' inválido(s) ignorado(s).' : ''),
           function () { render(); });
-        U.toast(r.added + ' lançamentos importados.', 'success');
+        U.toast((r.added + r.addedCard) + ' lançamentos importados.', 'success');
         render();
       } catch (err) {
         U.toast(err.message, 'error');
