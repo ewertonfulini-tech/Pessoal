@@ -301,7 +301,8 @@
   }
 
   /* ---------- Modal: Compra no cartão ---------- */
-  function openCardExpenseModal(defaultCardId, existing, onSaved) {
+  // defaults (opcional): { type: 'estorno' } abre já no modo estorno
+  function openCardExpenseModal(defaultCardId, existing, onSaved, defaults) {
     const isEdit = !!existing;
     const cards = cardOptions();
     if (!cards.length) { U.toast('Cadastre um cartão primeiro.', 'error'); return; }
@@ -312,11 +313,13 @@
       categoryId: (categoryOptions('expense')[0] || {}).value
     };
 
+    const initialType = (Number(ce.totalAmount) < 0) ? 'estorno'
+      : (defaults && defaults.type === 'estorno' ? 'estorno' : 'compra');
     const cardIn = select(cards, ce.cardId);
     const typeIn = select([
       { value: 'compra', label: 'Compra' },
       { value: 'estorno', label: 'Estorno (crédito)' }
-    ], (Number(ce.totalAmount) < 0) ? 'estorno' : 'compra');
+    ], initialType);
     const descIn = textInput(ce.description, { placeholder: 'Ex: Notebook, Mercado...' });
     const amountIn = numberInput(ce.totalAmount ? U.formatNumber(Math.abs(ce.totalAmount)) : '');
     const dateIn = dateInput(ce.purchaseDate);

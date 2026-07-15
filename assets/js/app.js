@@ -526,6 +526,10 @@
           class: 'btn small primary', text: '+ Compra',
           onclick: function () { global.UI.openCardExpenseModal(card.id, null, refresh); }
         }),
+        el('button', {
+          class: 'btn small', text: '↩ Estorno', title: 'Lançar estorno (crédito na fatura)',
+          onclick: function () { global.UI.openCardExpenseModal(card.id, null, refresh, { type: 'estorno' }); }
+        }),
         el('button', { class: 'icon-btn small', text: '✎', title: 'Editar cartão',
           onclick: function () { global.UI.openCardModal(card, refresh); } }),
         el('button', { class: 'icon-btn small', text: '🧹', title: 'Limpar todos os lançamentos deste cartão',
