@@ -1,0 +1,468 @@
+<title>Proposta de Layout — Studio Rio de Janeiro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --sand:#EFE9DE; --paper:#F8F4EC; --paper-2:#F1EBDF;
+    --ink:#2A2621; --ink-soft:#6C6558; --ink-faint:#928A7B;
+    --line:#DAD1C1; --line-soft:#E7E0D2;
+    --olive:#59613F; --olive-ink:#454C31;
+    --brass:#A9772F; --brass-ink:#8A6023;
+    --wood:#B98F5C; --wood-soft:#D9C4A3;
+    --wet:#9FB2AE; --soft:#C9BBA4;
+    --shadow:0 1px 2px rgba(42,38,33,.05),0 8px 30px rgba(42,38,33,.07);
+    --font-display:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif;
+    --font-body:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;
+    --maxw:920px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --sand:#16130E; --paper:#201C15; --paper-2:#262117;
+      --ink:#EEE7D8; --ink-soft:#AEA492; --ink-faint:#847B6B;
+      --line:#352E23; --line-soft:#2C261C;
+      --olive:#A2AE7E; --olive-ink:#B4BF92;
+      --brass:#D2A560; --brass-ink:#E0B876;
+      --wood:#9A744A; --wood-soft:#5C4A32;
+      --wet:#5E736F; --soft:#5B4F3B;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 34px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="light"]{
+    --sand:#EFE9DE; --paper:#F8F4EC; --paper-2:#F1EBDF;
+    --ink:#2A2621; --ink-soft:#6C6558; --ink-faint:#928A7B;
+    --line:#DAD1C1; --line-soft:#E7E0D2;
+    --olive:#59613F; --olive-ink:#454C31; --brass:#A9772F; --brass-ink:#8A6023;
+    --wood:#B98F5C; --wood-soft:#D9C4A3; --wet:#9FB2AE; --soft:#C9BBA4;
+    --shadow:0 1px 2px rgba(42,38,33,.05),0 8px 30px rgba(42,38,33,.07);
+  }
+  :root[data-theme="dark"]{
+    --sand:#16130E; --paper:#201C15; --paper-2:#262117;
+    --ink:#EEE7D8; --ink-soft:#AEA492; --ink-faint:#847B6B;
+    --line:#352E23; --line-soft:#2C261C;
+    --olive:#A2AE7E; --olive-ink:#B4BF92; --brass:#D2A560; --brass-ink:#E0B876;
+    --wood:#9A744A; --wood-soft:#5C4A32; --wet:#5E736F; --soft:#5B4F3B;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 34px rgba(0,0,0,.4);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--sand);color:var(--ink);
+    font-family:var(--font-body);line-height:1.6;-webkit-font-smoothing:antialiased;
+    font-size:16px;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+
+  .eyebrow{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--brass);font-weight:600}
+  h1{font-family:var(--font-display);font-weight:600;line-height:1.06;
+    font-size:clamp(2.1rem,6vw,3.4rem);margin:.35em 0 .3em;letter-spacing:-.01em;
+    text-wrap:balance}
+  h2{font-family:var(--font-display);font-weight:600;font-size:clamp(1.5rem,3.4vw,2rem);
+    margin:0 0 .1em;letter-spacing:-.01em;text-wrap:balance}
+  h3{font-family:var(--font-display);font-weight:600;font-size:1.16rem;margin:0 0 .25em}
+  p{margin:0 0 1em;max-width:64ch}
+  a{color:var(--olive)}
+
+  /* HERO */
+  header.hero{padding:clamp(48px,9vw,96px) 0 30px;
+    background:
+      radial-gradient(120% 90% at 92% 0%, color-mix(in srgb,var(--brass) 10%,transparent), transparent 55%),
+      radial-gradient(90% 70% at 0% 100%, color-mix(in srgb,var(--olive) 12%,transparent), transparent 60%);
+    border-bottom:1px solid var(--line);}
+  .hero .lead{font-size:clamp(1.05rem,2.2vw,1.28rem);color:var(--ink-soft);max-width:60ch}
+  .stats{display:flex;flex-wrap:wrap;gap:0;margin-top:30px;
+    border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--paper);
+    box-shadow:var(--shadow)}
+  .stat{flex:1 1 140px;padding:16px 18px;border-right:1px solid var(--line-soft)}
+  .stat:last-child{border-right:0}
+  .stat .k{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-faint)}
+  .stat .v{font-family:var(--font-display);font-size:1.35rem;margin-top:3px;line-height:1.2}
+  .stat .v small{font-size:.72em;color:var(--ink-soft)}
+
+  section{padding:clamp(38px,6vw,62px) 0}
+  section+section{border-top:1px solid var(--line-soft)}
+  .sec-head{margin-bottom:26px}
+  .sec-head .eyebrow{display:block;margin-bottom:8px}
+
+  /* Planta layout */
+  .plan-grid{display:grid;grid-template-columns:minmax(260px,1fr) 1.05fr;gap:30px;align-items:start}
+  @media(max-width:760px){.plan-grid{grid-template-columns:1fr}}
+  .plan-card{background:var(--paper);border:1px solid var(--line);border-radius:16px;
+    padding:14px;box-shadow:var(--shadow)}
+  .plan-card svg{width:100%;height:auto;display:block}
+  .plan-cap{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-faint);text-align:center;margin-top:8px}
+
+  .legend{list-style:none;padding:0;margin:0;display:grid;gap:2px}
+  .legend li{display:flex;gap:12px;align-items:baseline;padding:8px 4px;
+    border-bottom:1px solid var(--line-soft)}
+  .legend li:last-child{border-bottom:0}
+  .legend .n{flex:0 0 auto;width:22px;height:22px;border-radius:50%;
+    display:grid;place-items:center;font-family:var(--font-mono);font-size:11px;font-weight:600;
+    background:var(--olive);color:var(--sand);align-self:center}
+  .legend .t b{font-weight:600}
+  .legend .t span{color:var(--ink-soft);font-size:.92em}
+
+  /* Zonas */
+  .zones{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:680px){.zones{grid-template-columns:1fr}}
+  .zone{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:22px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .zone .tag{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--brass);font-weight:600}
+  .zone ul{margin:.6em 0 0;padding-left:1.05em}
+  .zone li{margin-bottom:.3em;color:var(--ink-soft)}
+  .zone li b{color:var(--ink);font-weight:600}
+
+  /* Paleta */
+  .swatches{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:26px}
+  .sw{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--paper)}
+  .sw .chip{height:64px}
+  .sw .lab{padding:9px 11px}
+  .sw .lab b{display:block;font-size:.92rem}
+  .sw .lab span{font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);letter-spacing:.04em}
+
+  .matgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:680px){.matgrid{grid-template-columns:1fr}}
+  .matgrid h3{color:var(--olive-ink);font-size:1rem;margin-bottom:.4em}
+  .matgrid ul{margin:0;padding-left:1.05em;color:var(--ink-soft)}
+  .matgrid li{margin-bottom:.35em}
+  .matgrid li b{color:var(--ink);font-weight:600}
+
+  /* Tabela */
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--paper);
+    box-shadow:var(--shadow)}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-size:.94rem}
+  th,td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  thead th{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-faint);font-weight:600;background:var(--paper-2)}
+  tbody tr:last-child td{border-bottom:0}
+  td.dim{font-family:var(--font-mono);font-size:.86rem;color:var(--ink-soft);white-space:nowrap}
+  td b{font-weight:600}
+
+  /* Otimizações */
+  .tips{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:680px){.tips{grid-template-columns:1fr}}
+  .tip{display:flex;gap:13px;padding:16px;background:var(--paper);border:1px solid var(--line);
+    border-radius:12px}
+  .tip .ic{flex:0 0 auto;width:30px;height:30px;border-radius:8px;background:color-mix(in srgb,var(--olive) 16%,transparent);
+    display:grid;place-items:center;color:var(--olive-ink);font-family:var(--font-display);font-weight:700;font-size:1rem}
+  .tip b{font-weight:600}
+  .tip p{margin:.15em 0 0;font-size:.92rem;color:var(--ink-soft)}
+
+  .note{background:color-mix(in srgb,var(--brass) 9%,var(--paper));border:1px solid color-mix(in srgb,var(--brass) 30%,var(--line));
+    border-left:3px solid var(--brass);border-radius:10px;padding:16px 18px;margin-top:8px}
+  .note b{color:var(--brass-ink)}
+  .note p{margin:0;color:var(--ink-soft)}
+
+  footer{padding:40px 0 60px;border-top:1px solid var(--line);color:var(--ink-faint);font-size:.85rem}
+  footer .eyebrow{color:var(--ink-faint)}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Proposta de Interiores · Studio · Rio de Janeiro</span>
+    <h1>Um studio de 28&nbsp;m² com alma de suíte</h1>
+    <p class="lead">Uma planta longa e estreita transformada em quatro ambientes encadeados ao longo do eixo — molhados agrupados na entrada, cama banhada de luz na face da janela. Funcional para locação de curta duração, com o aconchego artesanal de Trancoso e o refinamento do Fasano.</p>
+    <div class="stats">
+      <div class="stat"><div class="k">Área útil aprox.</div><div class="v">≈ 28 m²</div></div>
+      <div class="stat"><div class="k">Dimensões</div><div class="v">3,09 × 9,65 <small>m</small></div></div>
+      <div class="stat"><div class="k">Tipologia</div><div class="v">Studio</div></div>
+      <div class="stat"><div class="k">Uso</div><div class="v">Aluguel curta duração</div></div>
+      <div class="stat"><div class="k">Capacidade</div><div class="v">2 <small>+ 2 (sofá-cama)</small></div></div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">O conceito</span>
+      <h2>Estratégia para um espaço passante</h2>
+    </div>
+    <p>O apartamento é praticamente um retângulo de 3&nbsp;m de largura por 9,65&nbsp;m de profundidade, com uma única grande fonte de luz na extremidade oposta à porta. Em plantas assim, a leitura correta é <b>enfileirar as funções ao longo do comprimento</b>, do mais público (entrada) ao mais íntimo (dormir), deixando um corredor de circulação contínuo e desimpedido.</p>
+    <p>Três decisões estruturam todo o projeto: <b>(1)</b> agrupar as áreas molhadas — a cozinha compacta encosta na parede hidráulica do banheiro existente, barateando a obra; <b>(2)</b> concentrar toda a guarda em uma <b>marcenaria contínua</b> na parede da direita, que nasce como armário junto à porta e vira bancada de trabalho, depois closet; <b>(3)</b> reservar a face da esquadria, a mais iluminada e com a vista, para a <b>cama Queen</b> — o hóspede acorda olhando para fora, como numa suíte de hotel.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Planta proposta · escala aproximada</span>
+      <h2>Layout em quatro zonas</h2>
+    </div>
+    <div class="plan-grid">
+      <div>
+        <div class="plan-card">
+          <svg viewBox="0 0 320 706" role="img" aria-label="Planta baixa proposta do studio com mobiliário">
+            <defs>
+              <pattern id="rip" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(90)">
+                <rect width="5" height="5" fill="var(--wood)"/>
+                <line x1="0" y1="0" x2="0" y2="5" stroke="var(--sand)" stroke-width="1.4"/>
+              </pattern>
+            </defs>
+
+            <!-- OUTER WALL -->
+            <rect x="64" y="56" width="207.6" height="614.3" rx="3" fill="var(--ink-soft)"/>
+            <!-- INTERIOR FLOOR -->
+            <rect x="72" y="64" width="191.6" height="598.3" fill="var(--paper-2)"/>
+
+            <!-- BATHROOM zone tint -->
+            <rect x="72" y="64" width="83.7" height="151.9" fill="var(--wet)" opacity=".28"/>
+            <!-- bathroom walls -->
+            <rect x="151.7" y="64" width="4" height="88" fill="var(--ink-soft)"/>
+            <rect x="151.7" y="188" width="4" height="27.9" fill="var(--ink-soft)"/>
+            <rect x="72" y="211.9" width="83.7" height="4" fill="var(--ink-soft)"/>
+            <!-- shower riser -->
+            <rect x="80" y="76" width="26" height="42" fill="none" stroke="var(--ink-soft)" stroke-width="1.2"/>
+            <line x1="80" y1="76" x2="106" y2="118" stroke="var(--ink-soft)" stroke-width="1"/>
+            <line x1="106" y1="76" x2="80" y2="118" stroke="var(--ink-soft)" stroke-width="1"/>
+
+            <!-- ENTRY DOOR (top wall gap + swing) -->
+            <rect x="171" y="54" width="56" height="10" fill="var(--sand)"/>
+            <path d="M171 64 A56 56 0 0 1 227 64" fill="none" stroke="var(--ink-faint)" stroke-width="1" stroke-dasharray="3 3"/>
+            <line x1="171" y1="64" x2="171" y2="20" stroke="var(--olive)" stroke-width="1.4"/>
+            <path d="M171 30 l0 -12 M167 24 l4 -6 4 6" fill="none" stroke="var(--olive)" stroke-width="1.4"/>
+
+            <!-- WINDOW bottom (double line) + chamfer -->
+            <line x1="115.4" y1="660.3" x2="263.6" y2="660.3" stroke="var(--brass)" stroke-width="2"/>
+            <line x1="115.4" y1="664.3" x2="263.6" y2="664.3" stroke="var(--brass)" stroke-width="2"/>
+            <line x1="72" y1="640" x2="115.4" y2="662.3" stroke="var(--ink-soft)" stroke-width="4"/>
+
+            <!-- ===== FURNITURE ===== -->
+            <!-- 2 kitchen -->
+            <rect x="72" y="222.1" width="38" height="124" fill="var(--wood)" opacity=".55" stroke="var(--wood)" stroke-width="1"/>
+            <line x1="72" y1="263" x2="110" y2="263" stroke="var(--sand)" stroke-width="1"/>
+            <line x1="72" y1="304" x2="110" y2="304" stroke="var(--sand)" stroke-width="1"/>
+            <circle cx="91" cy="284" r="6" fill="none" stroke="var(--sand)" stroke-width="1.2"/>
+
+            <!-- 3 wardrobe entry + 4 desk + 5 closet (right millwork run) -->
+            <rect x="226.4" y="79.5" width="37.2" height="80.6" fill="var(--wood)" opacity=".8"/>
+            <rect x="232.6" y="163.2" width="31" height="80.6" fill="var(--wood-soft)" opacity=".9"/>
+            <!-- desk chair -->
+            <rect x="205" y="188" width="22" height="24" rx="4" fill="none" stroke="var(--ink-soft)" stroke-width="1.3"/>
+            <rect x="226.4" y="250" width="37.2" height="99.2" fill="var(--wood)" opacity=".8"/>
+            <line x1="245" y1="250" x2="245" y2="349" stroke="var(--sand)" stroke-width="1"/>
+
+            <!-- 6 sofa-bed (left wall, living) -->
+            <rect x="72" y="361.6" width="59" height="117.8" rx="5" fill="var(--soft)"/>
+            <rect x="72" y="361.6" width="16" height="117.8" fill="color-mix(in srgb,var(--ink) 8%,var(--soft))"/>
+            <line x1="88" y1="401" x2="131" y2="401" stroke="var(--sand)" stroke-width="1"/>
+            <line x1="88" y1="440" x2="131" y2="440" stroke="var(--sand)" stroke-width="1"/>
+
+            <!-- coffee table -->
+            <rect x="150" y="392" width="33" height="52" rx="7" fill="none" stroke="var(--brass)" stroke-width="1.6"/>
+            <!-- 7 armchair -->
+            <rect x="198" y="405" width="46" height="50" rx="8" fill="var(--soft)" opacity=".85"/>
+            <path d="M198 413 v34 M244 413 v34" stroke="color-mix(in srgb,var(--ink) 12%,var(--soft))" stroke-width="4"/>
+
+            <!-- 8 partition ripado + TV -->
+            <rect x="72" y="482.5" width="124" height="6" fill="url(#rip)"/>
+            <rect x="118" y="474" width="34" height="5" rx="1.5" fill="var(--ink)"/>
+
+            <!-- 9 bed Queen -->
+            <rect x="165.6" y="494.9" width="98" height="122.8" rx="4" fill="var(--paper)" stroke="var(--olive)" stroke-width="1.4"/>
+            <rect x="165.6" y="494.9" width="98" height="16" fill="var(--olive)" opacity=".35"/>
+            <path d="M165.6 522 q49 26 98 0" fill="none" stroke="var(--olive)" stroke-width="1" opacity=".5"/>
+            <rect x="182" y="516" width="30" height="26" rx="3" fill="var(--paper)" stroke="var(--olive)" stroke-width="1" opacity=".8"/>
+            <rect x="217" y="516" width="30" height="26" rx="3" fill="var(--paper)" stroke="var(--olive)" stroke-width="1" opacity=".8"/>
+            <!-- 10 nightstand -->
+            <rect x="136" y="494.9" width="25" height="28" rx="3" fill="var(--wood)" opacity=".7"/>
+
+            <!-- 11 bench window -->
+            <rect x="121.6" y="628" width="111" height="21.7" rx="4" fill="var(--soft)" opacity=".7"/>
+            <!-- shaft bottom right -->
+            <rect x="233.2" y="622" width="30.4" height="40.3" fill="var(--ink-soft)" opacity=".5"/>
+            <line x1="233.2" y1="622" x2="263.6" y2="662.3" stroke="var(--ink-soft)" stroke-width="1"/>
+            <line x1="263.6" y1="622" x2="233.2" y2="662.3" stroke="var(--ink-soft)" stroke-width="1"/>
+
+            <!-- ===== LEGEND NUMBERS ===== -->
+            <g font-family="var(--font-mono)" font-size="11" font-weight="700" text-anchor="middle">
+              <g><circle cx="113" cy="140" r="10" fill="var(--wet)"/><text x="113" y="144" fill="#fff">1</text></g>
+              <g><circle cx="91" cy="284" r="10" fill="var(--olive)"/><text x="91" y="288" fill="var(--sand)">2</text></g>
+              <g><circle cx="245" cy="120" r="10" fill="var(--olive)"/><text x="245" y="124" fill="var(--sand)">3</text></g>
+              <g><circle cx="248" cy="203" r="10" fill="var(--olive)"/><text x="248" y="207" fill="var(--sand)">4</text></g>
+              <g><circle cx="245" cy="300" r="10" fill="var(--olive)"/><text x="245" y="304" fill="var(--sand)">5</text></g>
+              <g><circle cx="101" cy="420" r="10" fill="var(--olive)"/><text x="101" y="424" fill="var(--sand)">6</text></g>
+              <g><circle cx="221" cy="430" r="10" fill="var(--olive)"/><text x="221" y="434" fill="var(--sand)">7</text></g>
+              <g><circle cx="96" cy="470" r="10" fill="var(--brass)"/><text x="96" y="474" fill="#fff">8</text></g>
+              <g><circle cx="214" cy="575" r="10" fill="var(--olive)"/><text x="214" y="579" fill="var(--sand)">9</text></g>
+              <g><circle cx="148" cy="509" r="10" fill="var(--olive)"/><text x="148" y="513" fill="var(--sand)">10</text></g>
+              <g><circle cx="160" cy="639" r="10" fill="var(--olive)"/><text x="160" y="643" fill="var(--sand)">11</text></g>
+              <g><circle cx="190" cy="655" r="10" fill="var(--brass)"/><text x="190" y="659" fill="#fff">12</text></g>
+            </g>
+
+            <!-- DIMENSIONS -->
+            <g font-family="var(--font-mono)" font-size="11" fill="var(--ink-faint)">
+              <text x="167" y="692" text-anchor="middle">3,09 m</text>
+              <text x="285" y="360" text-anchor="middle" transform="rotate(90 285 360)">9,65 m</text>
+              <text x="205" y="48" text-anchor="middle">entrada</text>
+              <text x="190" y="700" text-anchor="middle" fill="var(--brass)">esquadria · luz &amp; vista</text>
+            </g>
+          </svg>
+          <div class="plan-cap">Norte esquemático · porta ao topo, esquadria na base</div>
+        </div>
+      </div>
+      <div>
+        <ol class="legend" start="1">
+          <li><span class="n" style="background:var(--wet)">1</span><span class="t"><b>Banheiro</b> <span>— existente, mantido</span></span></li>
+          <li><span class="n">2</span><span class="t"><b>Cozinha compacta linear</b> <span>— encostada na prumada do banheiro</span></span></li>
+          <li><span class="n">3</span><span class="t"><b>Armário / guarda-volumes de entrada</b> <span>— início da marcenaria contínua</span></span></li>
+          <li><span class="n">4</span><span class="t"><b>Bancada de trabalho</b> <span>— contínua ao armário, junto à porta</span></span></li>
+          <li><span class="n">5</span><span class="t"><b>Closet principal</b> <span>— guarda-roupa alto, portas de correr</span></span></li>
+          <li><span class="n">6</span><span class="t"><b>Sofá-cama</b> <span>— estar + 2 hóspedes extras</span></span></li>
+          <li><span class="n">7</span><span class="t"><b>Poltrona + mesa lateral</b> <span>— canto de leitura</span></span></li>
+          <li><span class="n" style="background:var(--brass)">8</span><span class="t"><b>Painel ripado (divisória) + TV</b> <span>— separa estar e dormir sem bloquear luz</span></span></li>
+          <li><span class="n">9</span><span class="t"><b>Cama Queen (1,58 × 1,98 m)</b> <span>— voltada para a vista</span></span></li>
+          <li><span class="n">10</span><span class="t"><b>Criado-mudo</b> <span>— com arandela de leitura</span></span></li>
+          <li><span class="n">11</span><span class="t"><b>Banco / baú sob a janela</b> <span>— apoio de malas e guarda</span></span></li>
+          <li><span class="n" style="background:var(--brass)">12</span><span class="t"><b>Esquadria existente</b> <span>— luz natural e vista</span></span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="note" style="margin-top:22px">
+      <p><b>Circulação garantida:</b> a marcenaria fica toda na parede direita (prof. 50–60 cm) e a cozinha na esquerda, deixando um corredor central livre de ~1,80 m. Ao lado da cama sobra um vão de ~1,50 m para acesso confortável e criado-mudo.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Ambiente a ambiente</span>
+      <h2>As quatro zonas em detalhe</h2>
+    </div>
+    <div class="zones">
+      <div class="zone">
+        <span class="tag">Zona 1 · Entrada + Trabalho</span>
+        <h3>Marcenaria contínua junto à porta</h3>
+        <ul>
+          <li>Ao abrir a porta, à direita, uma <b>marcenaria única</b> nasce como armário fechado (casacos, malas, produtos de limpeza) e segue como <b>bancada de trabalho</b> de ~1,20 m com prateleira e ponto de tomada — exatamente o "escritório contínuo ao armário" pedido.</li>
+          <li>Cadeira de trabalho leve que se recolhe sob a bancada.</li>
+          <li>Espelho alto no fim do armário: amplia o corredor e serve de espelho de corpo inteiro.</li>
+          <li>Aparador raso + gancheira discreta como <b>drop zone</b> de chaves e cartão de acesso.</li>
+        </ul>
+      </div>
+      <div class="zone">
+        <span class="tag">Zona 2 · Cozinha</span>
+        <h3>Cozinha compacta na parede molhada</h3>
+        <ul>
+          <li>Bancada linear de ~2,0 m encostada na prumada do banheiro: <b>cooktop por indução (2 bocas), cuba, frigobar/geladeira de embutir</b> e micro-ondas em nicho.</li>
+          <li>Torre de armários até o teto para louças e enxoval de locação.</li>
+          <li>Bancada em pedra (quartzito claro) que avança 25 cm como <b>apoio de café da manhã</b> com 2 banquetas.</li>
+          <li>Marcenaria com frentes ripadas ou lisas amadeiradas para "sumir" a cozinha no ambiente.</li>
+        </ul>
+      </div>
+      <div class="zone">
+        <span class="tag">Zona 3 · Estar</span>
+        <h3>Lounge flexível no miolo</h3>
+        <ul>
+          <li><b>Sofá-cama</b> de 1,90 m encostado na parede: sala de estar de dia, cama para 3º/4º hóspede à noite — sobe a capacidade e o valor da diária.</li>
+          <li>Poltrona assinada (linha Mole / Sergio Rodrigues) + mesa lateral formando canto de leitura perto da luz.</li>
+          <li>Mesa de centro leve em madeira e palhinha; tapete de fibra natural delimita a zona.</li>
+          <li>TV fixa no <b>painel ripado</b> que divide estar e dormir.</li>
+        </ul>
+      </div>
+      <div class="zone">
+        <span class="tag">Zona 4 · Dormir + Closet</span>
+        <h3>Suíte voltada para a vista</h3>
+        <ul>
+          <li><b>Cama Queen (1,58 × 1,98 m)</b> com cabeceira no painel ripado, de frente para a esquadria — clima de suíte de hotel.</li>
+          <li>Vão de ~1,50 m de um lado para criado-mudo e circulação; arandelas articuladas liberam a cabeceira.</li>
+          <li><b>Closet principal</b> na marcenaria da direita (portas de correr) complementa o armário da entrada.</li>
+          <li>Banco/baú sob a janela para malas; <b>cortina dupla</b> (voil + blackout) essencial para locação.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">
+      <p><b>Alternativa de layout:</b> se preferir acesso à cama pelos dois lados, ela pode girar 90° (cabeceira numa parede lateral), com um lado de ~1,05 m livre. Perde-se um pouco do enquadramento da vista deitado, mas ganha-se simetria de criados-mudos.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Direção estética · Trancoso × Fasano Boa Nova</span>
+      <h2>Paleta &amp; materiais</h2>
+    </div>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#EFE9DE"></div><div class="lab"><b>Areia / linho</b><span>base, paredes, têxteis</span></div></div>
+      <div class="sw"><div class="chip" style="background:#B98F5C"></div><div class="lab"><b>Madeira freijó</b><span>marcenaria, pisos</span></div></div>
+      <div class="sw"><div class="chip" style="background:#59613F"></div><div class="lab"><b>Verde-mata</b><span>acento, cabeceira</span></div></div>
+      <div class="sw"><div class="chip" style="background:#A9772F"></div><div class="lab"><b>Latão / âmbar</b><span>metais, luminárias</span></div></div>
+      <div class="sw"><div class="chip" style="background:#C9BBA4"></div><div class="lab"><b>Palha / fibra</b><span>palhinha, tapetes</span></div></div>
+      <div class="sw"><div class="chip" style="background:#2A2621"></div><div class="lab"><b>Grafite quente</b><span>detalhes, molduras</span></div></div>
+    </div>
+    <div class="matgrid">
+      <div>
+        <h3>Superfícies</h3>
+        <ul>
+          <li><b>Piso:</b> porcelanato amadeirado retificado (freijó) — bonito e durável para locação.</li>
+          <li><b>Cozinha/banho:</b> quartzito ou porcelanato pedra em tom claro; metais em latão escovado.</li>
+          <li><b>Marcenaria:</b> lâmina de freijó ou ripado vertical; frentes lisas onde precisar "sumir".</li>
+          <li><b>Parede de acento:</b> cabeceira em painel ripado ou textura mineral (cimento queimado suave).</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Têxteis, luz &amp; peças</h3>
+        <ul>
+          <li><b>Têxteis:</b> linho lavado, algodão cru, tramas naturais; cores areia com um acento verde/terracota.</li>
+          <li><b>Iluminação:</b> temperatura 2700 K, dimerizável; arandelas, pendente artesanal em fibra, luz indireta no ripado.</li>
+          <li><b>Fibras:</b> palhinha (cadeiras/painéis), tapete de juta, cestaria — o toque Trancoso.</li>
+          <li><b>Assinatura:</b> uma poltrona icônica + arte/cerâmica local como ponto focal (referência Fasano).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Especificação</span>
+      <h2>Enxoval de mobiliário</h2>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Descrição</th><th>Dim. aprox.</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>Marcenaria contínua</b></td><td>Armário de entrada + bancada de trabalho + closet (parede direita)</td><td class="dim">~4,4 m · prof. 50–60 cm</td></tr>
+          <tr><td><b>Cozinha compacta</b></td><td>Cooktop indução, cuba, frigobar de embutir, micro-ondas, torre alta</td><td class="dim">~2,0 m linear</td></tr>
+          <tr><td><b>Cama Queen</b></td><td>Colchão Queen + cabeceira integrada ao painel ripado</td><td class="dim">1,58 × 1,98 m</td></tr>
+          <tr><td><b>Sofá-cama</b></td><td>2 lugares, abertura fácil, tecido de performance (limpável)</td><td class="dim">~1,90 × 0,90 m</td></tr>
+          <tr><td><b>Poltrona + mesa lateral</b></td><td>Canto de leitura junto à luz; peça de design brasileiro</td><td class="dim">~0,75 × 0,80 m</td></tr>
+          <tr><td><b>Painel ripado + TV</b></td><td>Divisória vazada estar/dormir com TV e nicho</td><td class="dim">~2,0 m · alt. até teto</td></tr>
+          <tr><td><b>Criado-mudo</b></td><td>1 un., com gaveta; arandela de leitura acima</td><td class="dim">0,40 × 0,45 m</td></tr>
+          <tr><td><b>Banco / baú janela</b></td><td>Apoio de malas + guarda de enxoval sob a esquadria</td><td class="dim">~1,80 × 0,40 m</td></tr>
+          <tr><td><b>Mesa de centro + banquetas</b></td><td>Mesa leve (madeira/palhinha) + 2 banquetas de apoio</td><td class="dim">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Retorno do investimento</span>
+      <h2>Otimizações para locação de curta duração</h2>
+    </div>
+    <div class="tips">
+      <div class="tip"><div class="ic">+</div><div><b>Capacidade 2 → 4</b><p>O sofá-cama acomoda hóspedes extras e permite anunciar para até 4 pessoas, elevando a diária.</p></div></div>
+      <div class="tip"><div class="ic">☾</div><div><b>Blackout obrigatório</b><p>Cortina dupla (voil + blackout) na esquadria — item nº1 de avaliações negativas quando falta.</p></div></div>
+      <div class="tip"><div class="ic">◫</div><div><b>Acabamentos resistentes</b><p>Porcelanato, quartzito e tecidos de performance: fáceis de limpar e resistentes ao alto giro.</p></div></div>
+      <div class="tip"><div class="ic">⌘</div><div><b>Fechadura digital</b><p>Check-in autônomo (smart lock) + Wi-Fi forte e ponto de trabalho: essenciais para nômades digitais.</p></div></div>
+      <div class="tip"><div class="ic">▤</div><div><b>Guarda do anfitrião</b><p>Um módulo trancado na marcenaria/baú guarda enxoval reserva e produtos entre estadias.</p></div></div>
+      <div class="tip"><div class="ic">◐</div><div><b>Cara de suíte nas fotos</b><p>Cama voltada à vista + painel ripado + peça assinada rendem as fotos que vendem o anúncio.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span class="eyebrow">Próximos passos</span>
+    <p style="margin-top:10px;color:var(--ink-soft)">Confirmar pé-direito, posição exata das prumadas hidráulicas e o lado da vista permite evoluir para plantas cotadas, elevações da marcenaria e um moodboard de acabamentos. Proposta conceitual — medidas a validar em campo antes da execução.</p>
+  </div>
+</footer>
