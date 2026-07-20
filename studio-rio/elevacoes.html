@@ -1,0 +1,320 @@
+<title>Elevações Executivas — Marcenaria & Cozinha Bar</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --sand:#EFE9DE;--paper:#F8F4EC;--ink:#2A2621;--ink-soft:#6C6558;--ink-faint:#928A7B;
+    --line:#DAD1C1;--olive:#59613F;--brass:#A9772F;
+    --wood:#C49A66;--woodL:#E0CBA8;--woodD:#9E7743;--stone:#E4DDCE;--metal:#B7B0A2;--glass:#BFD0CC;
+    --dimc:#9a917f;
+    --font-display:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+    --font-body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--sand:#16130E;--paper:#201C15;--ink:#EEE7D8;--ink-soft:#AEA492;--ink-faint:#847B6B;
+      --line:#352E23;--olive:#A2AE7E;--brass:#D2A560;
+      --wood:#9A744A;--woodL:#5C4A32;--woodD:#C49A66;--stone:#3A3324;--metal:#5A5548;--glass:#39504C;--dimc:#9a917f;}
+  }
+  :root[data-theme="light"]{--sand:#EFE9DE;--paper:#F8F4EC;--ink:#2A2621;--ink-soft:#6C6558;--ink-faint:#928A7B;--line:#DAD1C1;--olive:#59613F;--brass:#A9772F;--wood:#C49A66;--woodL:#E0CBA8;--woodD:#9E7743;--stone:#E4DDCE;--metal:#B7B0A2;--glass:#BFD0CC;--dimc:#9a917f;}
+  :root[data-theme="dark"]{--sand:#16130E;--paper:#201C15;--ink:#EEE7D8;--ink-soft:#AEA492;--ink-faint:#847B6B;--line:#352E23;--olive:#A2AE7E;--brass:#D2A560;--wood:#9A744A;--woodL:#5C4A32;--woodD:#C49A66;--stone:#3A3324;--metal:#5A5548;--glass:#39504C;--dimc:#9a917f;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--sand);color:var(--ink);font-family:var(--font-body);line-height:1.6}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 22px}
+  header{padding:52px 0 20px}
+  .eyebrow{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--brass);font-weight:600}
+  h1{font-family:var(--font-display);font-weight:600;font-size:clamp(2rem,5vw,2.9rem);margin:.3em 0 .2em;letter-spacing:-.01em}
+  .lead{color:var(--ink-soft);max-width:64ch;font-size:1.06rem}
+  section{padding:22px 0}
+  h2{font-family:var(--font-display);font-weight:600;font-size:clamp(1.4rem,3vw,1.85rem);margin:0 0 4px}
+  .sub{color:var(--ink-soft);max-width:62ch;margin:0 0 14px}
+  .board{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px;
+    box-shadow:0 1px 2px rgba(42,38,33,.05),0 10px 34px rgba(42,38,33,.08)}
+  .board svg{width:100%;height:auto;display:block}
+  figcaption{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);text-align:center;margin-top:10px}
+  /* svg classes */
+  .car{fill:none;stroke:var(--ink);stroke-width:2}
+  .wood{fill:var(--wood)}.woodL{fill:var(--woodL)}.woodD{fill:var(--woodD)}
+  .stone{fill:var(--stone)}.metal{fill:var(--metal)}.glass{fill:var(--glass)}
+  .olive{fill:var(--olive)}
+  .pan{stroke:var(--woodD);stroke-width:1.2}
+  .edge{fill:none;stroke:var(--ink);stroke-width:1.3}
+  .hl{fill:none;stroke:var(--ink);stroke-width:.8;opacity:.5}
+  .dsh{fill:none;stroke:var(--ink);stroke-width:1;stroke-dasharray:5 4;opacity:.55}
+  .floor{stroke:var(--ink);stroke-width:2.5}
+  .ceil{stroke:var(--ink-faint);stroke-width:1;stroke-dasharray:2 4}
+  .dl{stroke:var(--dimc);stroke-width:1}
+  .dt{stroke:var(--dimc);stroke-width:1}
+  .dnum{font-family:var(--font-mono);font-size:12px;fill:var(--ink);font-weight:600}
+  .lbl{font-family:var(--font-body);font-size:12px;fill:var(--ink-soft)}
+  .lblb{font-family:var(--font-body);font-size:12.5px;fill:var(--ink);font-weight:600}
+  .tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;fill:var(--brass);font-weight:700}
+  .hatch{stroke:var(--ink-faint);stroke-width:.7;opacity:.35}
+  /* notes / keyplan */
+  .grid2{display:grid;grid-template-columns:1.3fr .7fr;gap:18px;align-items:start}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+  .notes{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+  .notes h3{font-family:var(--font-display);margin:0 0 8px;font-size:1.1rem}
+  .notes ul{margin:0;padding-left:1.1em;color:var(--ink-soft)}
+  .notes li{margin-bottom:.4em}.notes li b{color:var(--ink)}
+  .keyplan{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .keyplan svg{width:100%;height:auto}
+  footer{padding:30px 0 60px;color:var(--ink-faint);font-size:.85rem;border-top:1px solid var(--line);margin-top:18px}
+</style>
+
+<header>
+  <div class="wrap">
+    <span class="eyebrow">Detalhamento Executivo · Studio Rio de Janeiro</span>
+    <h1>Elevações — Marcenaria & Cozinha Bar</h1>
+    <p class="lead">Vistas frontais cotadas para orçamento e execução em marcenaria. Cotas em metros, pé-direito de referência 2,60 m (a confirmar em obra). Materiais: lâmina de freijó, bancada em quartzito claro, ferragens em latão escovado.</p>
+  </div>
+</header>
+
+<!-- KEY PLAN -->
+<section>
+  <div class="wrap">
+    <div class="grid2">
+      <div class="keyplan">
+        <div class="tag" style="margin-bottom:6px;font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);font-weight:700">Planta-chave</div>
+        <svg viewBox="0 0 220 300" role="img" aria-label="Planta-chave com localização das elevações A e B">
+          <rect x="55" y="18" width="120" height="266" rx="3" fill="none" stroke="var(--ink)" stroke-width="2"/>
+          <!-- bathroom -->
+          <rect x="55" y="18" width="52" height="66" fill="var(--glass)" opacity=".4"/>
+          <text x="81" y="55" text-anchor="middle" class="lbl" font-size="10">banho</text>
+          <!-- door top -->
+          <line x1="120" y1="18" x2="150" y2="18" stroke="var(--sand)" stroke-width="4"/>
+          <!-- window bottom -->
+          <line x1="80" y1="284" x2="175" y2="284" stroke="var(--brass)" stroke-width="3"/>
+          <text x="128" y="298" text-anchor="middle" class="lbl" font-size="9" fill="var(--brass)">baía</text>
+          <!-- Elevation A on right wall (entry) -->
+          <rect x="164" y="26" width="11" height="92" fill="var(--brass)"/>
+          <text x="150" y="74" text-anchor="middle" class="dnum" fill="var(--brass)">A</text>
+          <!-- Elevation B on left wall (kitchen) -->
+          <rect x="55" y="96" width="11" height="70" fill="var(--olive)"/>
+          <text x="80" y="135" text-anchor="middle" class="dnum" fill="var(--olive)">B</text>
+        </svg>
+        <div style="font-size:.82rem;color:var(--ink-soft);margin-top:8px"><b style="color:var(--brass)">A</b> — parede direita (entrada) · <b style="color:var(--olive)">B</b> — parede esquerda (cozinha)</div>
+      </div>
+      <div class="notes">
+        <h3>Especificações gerais</h3>
+        <ul>
+          <li><b>Corpos:</b> MDF 18 mm revestido em lâmina de freijó; interiores em MDF branco/areia.</li>
+          <li><b>Bancadas:</b> quartzito claro 2 cm (cozinha e trabalho).</li>
+          <li><b>Ferragens:</b> corrediças e dobradiças com amortecedor; puxadores tipo cava ou perfil em latão.</li>
+          <li><b>Iluminação:</b> fita LED 2700 K sob prateleiras e superiores; sensor nas portas do armário.</li>
+          <li><b>Rodapé:</b> recuo de 10 cm (pé nivelador oculto).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ELEVATION A -->
+<section>
+  <div class="wrap">
+    <h2>A · Marcenaria da entrada</h2>
+    <p class="sub">Armário junto à porta + bancada de trabalho contínua ao lado (parede direita). Profundidade: armário 0,60 m · bancada 0,50 m.</p>
+    <figure class="board">
+      <svg viewBox="0 0 720 630" role="img" aria-label="Elevação A da marcenaria da entrada, cotada">
+        <text x="90" y="30" class="tag">A · Marcenaria da entrada</text>
+        <!-- ceiling & floor -->
+        <line x1="90" y1="42" x2="630" y2="42" class="ceil"/>
+        <line x1="60" y1="540" x2="672" y2="540" class="floor"/>
+        <!-- hatch under floor -->
+        <g class="hatch"><line x1="70" y1="540" x2="60" y2="552"/><line x1="110" y1="540" x2="100" y2="552"/><line x1="150" y1="540" x2="140" y2="552"/><line x1="190" y1="540" x2="180" y2="552"/><line x1="230" y1="540" x2="220" y2="552"/><line x1="270" y1="540" x2="260" y2="552"/><line x1="310" y1="540" x2="300" y2="552"/><line x1="350" y1="540" x2="340" y2="552"/><line x1="390" y1="540" x2="380" y2="552"/><line x1="430" y1="540" x2="420" y2="552"/><line x1="470" y1="540" x2="460" y2="552"/><line x1="510" y1="540" x2="500" y2="552"/><line x1="550" y1="540" x2="540" y2="552"/><line x1="590" y1="540" x2="580" y2="552"/><line x1="630" y1="540" x2="620" y2="552"/></g>
+
+        <!-- ===== ARMÁRIO (x90..360) ===== -->
+        <rect x="90" y="60" width="270" height="480" class="woodL"/>
+        <!-- base gaveteiro 0,80 (3 gavetas) -->
+        <rect x="90" y="380" width="270" height="160" class="wood"/>
+        <line x1="90" y1="433" x2="360" y2="433" class="pan"/>
+        <line x1="90" y1="486" x2="360" y2="486" class="pan"/>
+        <line x1="205" y1="398" x2="245" y2="398" class="edge"/>
+        <line x1="205" y1="451" x2="245" y2="451" class="edge"/>
+        <line x1="205" y1="504" x2="245" y2="504" class="edge"/>
+        <!-- left door (closed) -->
+        <rect x="92" y="62" width="131" height="316" class="wood"/>
+        <line x1="210" y1="180" x2="210" y2="250" class="edge"/>
+        <!-- divider -->
+        <line x1="225" y1="62" x2="225" y2="378" class="pan"/>
+        <!-- right interior (revealed) -->
+        <rect x="227" y="62" width="131" height="316" class="woodL"/>
+        <line x1="229" y1="96" x2="356" y2="96" class="dsh"/>
+        <!-- hangers -->
+        <g class="hl"><path d="M250 96 v10 a4 4 0 0 0 8 0"/><path d="M280 96 v10 a4 4 0 0 0 8 0"/><path d="M310 96 v10 a4 4 0 0 0 8 0"/></g>
+        <line x1="229" y1="235" x2="356" y2="235" class="pan"/>
+        <line x1="229" y1="300" x2="356" y2="300" class="pan"/>
+        <text x="292" y="86" text-anchor="middle" class="lbl" font-size="10">cabide</text>
+        <text x="292" y="228" text-anchor="middle" class="lbl" font-size="10">prateleiras</text>
+        <text x="157" y="220" text-anchor="middle" class="lbl" font-size="10" transform="rotate(-90 157 220)">porta de correr</text>
+        <text x="292" y="465" text-anchor="middle" class="lbl" font-size="10">gaveteiro</text>
+        <rect x="90" y="60" width="270" height="480" class="car"/>
+
+        <!-- ===== BANCADA DE TRABALHO (x360..630) ===== -->
+        <!-- back panel amadeirado -->
+        <rect x="360" y="236" width="270" height="156" class="woodL" opacity=".55"/>
+        <!-- shelves -->
+        <rect x="362" y="236" width="264" height="6" class="wood"/>
+        <rect x="362" y="306" width="264" height="6" class="wood"/>
+        <!-- worktop 0,74 -->
+        <rect x="360" y="388" width="270" height="6" class="stone"/>
+        <line x1="360" y1="394" x2="630" y2="394" class="edge"/>
+        <!-- suspended drawer unit -->
+        <rect x="520" y="394" width="108" height="60" class="wood"/>
+        <line x1="558" y1="404" x2="590" y2="404" class="edge"/>
+        <!-- chair (dashed) -->
+        <path d="M430 456 h50 M432 456 v-58 M478 456 v-30" class="dsh"/>
+        <!-- sockets -->
+        <rect x="470" y="368" width="12" height="12" class="metal"/><rect x="492" y="368" width="12" height="12" class="metal"/>
+        <text x="446" y="430" text-anchor="middle" class="lbl" font-size="10">vão da cadeira</text>
+        <text x="574" y="475" text-anchor="middle" class="lbl" font-size="10">gaveta</text>
+        <text x="512" y="362" class="lbl" font-size="10">tomadas</text>
+
+        <!-- ===== DIMENSIONS ===== -->
+        <!-- vertical 2,60 (x48) -->
+        <g><line x1="48" y1="42" x2="48" y2="540" class="dl"/>
+          <line x1="43" y1="42" x2="53" y2="42" class="dt"/><line x1="43" y1="540" x2="53" y2="540" class="dt"/>
+          <text x="40" y="295" text-anchor="middle" class="dnum" transform="rotate(-90 40 295)">2,60</text></g>
+        <!-- vertical 2,40 armário (x72) -->
+        <g><line x1="72" y1="60" x2="72" y2="540" class="dl"/>
+          <line x1="67" y1="60" x2="77" y2="60" class="dt"/><line x1="67" y1="540" x2="77" y2="540" class="dt"/>
+          <text x="64" y="300" text-anchor="middle" class="dnum" transform="rotate(-90 64 300)">2,40</text></g>
+        <!-- right dims -->
+        <g><line x1="648" y1="388" x2="648" y2="540" class="dl"/>
+          <line x1="643" y1="388" x2="653" y2="388" class="dt"/><line x1="643" y1="540" x2="653" y2="540" class="dt"/>
+          <text x="662" y="468" text-anchor="middle" class="dnum" transform="rotate(-90 662 468)">0,74</text></g>
+        <g><line x1="672" y1="306" x2="672" y2="540" class="dl"/>
+          <line x1="667" y1="306" x2="677" y2="306" class="dt"/><line x1="667" y1="540" x2="677" y2="540" class="dt"/>
+          <text x="686" y="425" text-anchor="middle" class="dnum" transform="rotate(-90 686 425)">1,15</text></g>
+        <g><line x1="696" y1="236" x2="696" y2="540" class="dl"/>
+          <line x1="691" y1="236" x2="701" y2="236" class="dt"/><line x1="691" y1="540" x2="701" y2="540" class="dt"/>
+          <text x="710" y="388" text-anchor="middle" class="dnum" transform="rotate(-90 710 388)">1,50</text></g>
+        <!-- horizontal -->
+        <g><line x1="90" y1="566" x2="360" y2="566" class="dl"/>
+          <line x1="90" y1="561" x2="90" y2="571" class="dt"/><line x1="360" y1="561" x2="360" y2="571" class="dt"/>
+          <text x="225" y="582" text-anchor="middle" class="dnum">1,35</text></g>
+        <g><line x1="360" y1="566" x2="630" y2="566" class="dl"/>
+          <line x1="360" y1="561" x2="360" y2="571" class="dt"/><line x1="630" y1="561" x2="630" y2="571" class="dt"/>
+          <text x="495" y="582" text-anchor="middle" class="dnum">1,35</text></g>
+        <g><line x1="90" y1="596" x2="630" y2="596" class="dl"/>
+          <line x1="90" y1="591" x2="90" y2="601" class="dt"/><line x1="630" y1="591" x2="630" y2="601" class="dt"/>
+          <text x="360" y="612" text-anchor="middle" class="dnum">2,70</text></g>
+        <!-- titles -->
+        <text x="225" y="628" text-anchor="middle" class="lblb">ARMÁRIO</text>
+        <text x="495" y="628" text-anchor="middle" class="lblb">BANCADA DE TRABALHO</text>
+      </svg>
+      <figcaption>Elevação A · cotas em metros · esc. aproximada</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ELEVATION B -->
+<section>
+  <div class="wrap">
+    <h2>B · Cozinha bar</h2>
+    <p class="sub">Balcão compacto na prumada do banheiro — cooktop de indução, cuba, frigobar (sem geladeira) e micro-ondas em nicho. Profundidade: bancada 0,60 m · superiores 0,35 m.</p>
+    <figure class="board">
+      <svg viewBox="0 0 620 630" role="img" aria-label="Elevação B da cozinha bar, cotada">
+        <text x="90" y="30" class="tag">B · Cozinha bar</text>
+        <line x1="90" y1="42" x2="450" y2="42" class="ceil"/>
+        <line x1="60" y1="540" x2="500" y2="540" class="floor"/>
+        <g class="hatch"><line x1="70" y1="540" x2="60" y2="552"/><line x1="110" y1="540" x2="100" y2="552"/><line x1="150" y1="540" x2="140" y2="552"/><line x1="190" y1="540" x2="180" y2="552"/><line x1="230" y1="540" x2="220" y2="552"/><line x1="270" y1="540" x2="260" y2="552"/><line x1="310" y1="540" x2="300" y2="552"/><line x1="350" y1="540" x2="340" y2="552"/><line x1="390" y1="540" x2="380" y2="552"/><line x1="430" y1="540" x2="420" y2="552"/><line x1="470" y1="540" x2="460" y2="552"/></g>
+
+        <!-- toe kick -->
+        <rect x="96" y="520" width="348" height="20" class="woodD" opacity=".5"/>
+        <!-- base cabinets (0,90) -->
+        <rect x="90" y="360" width="360" height="160" class="wood"/>
+        <!-- module dividers -->
+        <line x1="210" y1="360" x2="210" y2="520" class="pan"/>
+        <line x1="330" y1="360" x2="330" y2="520" class="pan"/>
+        <!-- mod1 door -->
+        <line x1="140" y1="430" x2="140" y2="470" class="edge"/>
+        <!-- mod2 drawers -->
+        <line x1="210" y1="440" x2="330" y2="440" class="pan"/>
+        <line x1="255" y1="398" x2="285" y2="398" class="edge"/>
+        <line x1="255" y1="478" x2="285" y2="478" class="edge"/>
+        <!-- mod3 frigobar -->
+        <rect x="336" y="366" width="108" height="148" class="woodL"/>
+        <line x1="360" y1="374" x2="420" y2="374" class="hl"/>
+        <line x1="360" y1="380" x2="420" y2="380" class="hl"/>
+        <line x1="424" y1="420" x2="424" y2="460" class="edge"/>
+        <text x="390" y="500" text-anchor="middle" class="lbl" font-size="10">frigobar</text>
+
+        <!-- counter top 0,90 + bar edge -->
+        <rect x="86" y="352" width="368" height="8" class="stone"/>
+        <rect x="86" y="360" width="368" height="6" class="woodD" opacity=".6"/>
+        <text x="462" y="360" class="lbl" font-size="10">borda de bar</text>
+        <!-- cooktop 2 bocas -->
+        <ellipse cx="252" cy="351" rx="9" ry="3.4" class="metal"/><ellipse cx="292" cy="351" rx="9" ry="3.4" class="metal"/>
+        <!-- cuba -->
+        <ellipse cx="150" cy="352" rx="20" ry="4.5" fill="none" class="dsh"/>
+
+        <!-- backsplash to 1,50 -->
+        <rect x="90" y="240" width="360" height="112" class="stone" opacity=".5"/>
+        <line x1="90" y1="296" x2="450" y2="296" class="hatch"/>
+        <rect x="398" y="300" width="12" height="12" class="metal"/>
+        <text x="416" y="310" class="lbl" font-size="10">tomada 1,10</text>
+
+        <!-- uppers mod1-2 (1,50..2,20) -->
+        <rect x="90" y="100" width="240" height="140" class="wood"/>
+        <line x1="210" y1="100" x2="210" y2="240" class="pan"/>
+        <line x1="195" y1="222" x2="225" y2="222" class="edge"/>
+        <line x1="115" y1="222" x2="145" y2="222" class="edge"/>
+        <!-- slim hood over cooktop -->
+        <rect x="210" y="240" width="120" height="14" class="metal"/>
+        <text x="270" y="234" text-anchor="middle" class="lbl" font-size="10">coifa slim</text>
+        <!-- tower upper mod3 -->
+        <rect x="330" y="100" width="120" height="50" class="wood"/>
+        <line x1="405" y1="140" x2="435" y2="140" class="edge"/>
+        <rect x="334" y="152" width="112" height="86" class="woodD" opacity=".35"/>
+        <rect x="344" y="166" width="92" height="56" class="metal"/>
+        <line x1="428" y1="180" x2="428" y2="208" class="edge"/>
+        <text x="390" y="248" text-anchor="middle" class="lbl" font-size="10">micro-ondas</text>
+        <text x="210" y="170" text-anchor="middle" class="lbl" font-size="10">superiores</text>
+
+        <rect x="90" y="360" width="360" height="160" class="car"/>
+
+        <!-- DIMENSIONS -->
+        <g><line x1="48" y1="42" x2="48" y2="540" class="dl"/>
+          <line x1="43" y1="42" x2="53" y2="42" class="dt"/><line x1="43" y1="540" x2="53" y2="540" class="dt"/>
+          <text x="40" y="295" text-anchor="middle" class="dnum" transform="rotate(-90 40 295)">2,60</text></g>
+        <g><line x1="72" y1="360" x2="72" y2="540" class="dl"/>
+          <line x1="67" y1="360" x2="77" y2="360" class="dt"/><line x1="67" y1="540" x2="77" y2="540" class="dt"/>
+          <text x="64" y="450" text-anchor="middle" class="dnum" transform="rotate(-90 64 450)">0,90</text></g>
+        <g><line x1="470" y1="240" x2="470" y2="540" class="dl"/>
+          <line x1="465" y1="240" x2="475" y2="240" class="dt"/><line x1="465" y1="540" x2="475" y2="540" class="dt"/>
+          <text x="484" y="390" text-anchor="middle" class="dnum" transform="rotate(-90 484 390)">1,50</text></g>
+        <g><line x1="494" y1="100" x2="494" y2="540" class="dl"/>
+          <line x1="489" y1="100" x2="499" y2="100" class="dt"/><line x1="489" y1="540" x2="499" y2="540" class="dt"/>
+          <text x="508" y="320" text-anchor="middle" class="dnum" transform="rotate(-90 508 320)">2,20</text></g>
+        <g><line x1="90" y1="566" x2="210" y2="566" class="dl"/>
+          <line x1="90" y1="561" x2="90" y2="571" class="dt"/><line x1="210" y1="561" x2="210" y2="571" class="dt"/>
+          <text x="150" y="582" text-anchor="middle" class="dnum">0,60</text></g>
+        <g><line x1="210" y1="566" x2="330" y2="566" class="dl"/>
+          <line x1="210" y1="561" x2="210" y2="571" class="dt"/><line x1="330" y1="561" x2="330" y2="571" class="dt"/>
+          <text x="270" y="582" text-anchor="middle" class="dnum">0,60</text></g>
+        <g><line x1="330" y1="566" x2="450" y2="566" class="dl"/>
+          <line x1="330" y1="561" x2="330" y2="571" class="dt"/><line x1="450" y1="561" x2="450" y2="571" class="dt"/>
+          <text x="390" y="582" text-anchor="middle" class="dnum">0,60</text></g>
+        <g><line x1="90" y1="596" x2="450" y2="596" class="dl"/>
+          <line x1="90" y1="591" x2="90" y2="601" class="dt"/><line x1="450" y1="591" x2="450" y2="601" class="dt"/>
+          <text x="270" y="612" text-anchor="middle" class="dnum">1,80</text></g>
+        <text x="150" y="628" text-anchor="middle" class="lblb">CUBA</text>
+        <text x="270" y="628" text-anchor="middle" class="lblb">COOKTOP</text>
+        <text x="390" y="628" text-anchor="middle" class="lblb">FRIGOBAR / TORRE</text>
+      </svg>
+      <figcaption>Elevação B · cotas em metros · esc. aproximada</figcaption>
+    </figure>
+    <div class="notes" style="margin-top:14px">
+      <h3>Notas — cozinha bar</h3>
+      <ul>
+        <li><b>Cooktop:</b> indução 2 bocas embutido; <b>coifa slim</b> de embutir sob o armário superior (ou depurador recirculante).</li>
+        <li><b>Frigobar</b> de embutir com porta revestida (sem geladeira de piso); prever ventilação inferior.</li>
+        <li><b>Micro-ondas</b> em nicho ventilado a 1,20–1,50 m (altura ergonômica).</li>
+        <li><b>Bancada</b> em quartzito 2 cm com borda de bar de 4 cm; <b>frontão/backsplash</b> na mesma pedra até 1,50 m.</li>
+        <li><b>Tomadas</b> a 1,10 m acima da bancada; pontos de água/esgoto reaproveitando a prumada do banheiro.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer><div class="wrap">Elevações conceituais para orçamento — cotas e prumadas a confirmar em campo antes da execução. Studio Rio de Janeiro · ~28 m².</div></footer>
