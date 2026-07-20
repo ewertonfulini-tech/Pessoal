@@ -9,14 +9,16 @@ Abra **`index.html`** para ver a proposta completa com a planta redesenhada em e
 Planta longa e estreita com a esquadria — e a **Baía de Guanabara** — na extremidade oposta à porta. Estratégia: **enfileirar as funções ao longo do comprimento** mantendo uma **linha de visão desobstruída da porta até a água**; só móveis baixos junto à janela.
 
 1. **Entrada + Trabalho** — marcenaria contínua na parede direita: armário junto à porta que vira bancada de trabalho (o "escritório contínuo ao armário").
-2. **Cozinha** — bancada linear compacta encostada na prumada do banheiro (áreas molhadas agrupadas = obra mais barata).
+2. **Cozinha bar + Jantar** — cozinha bar enxuta (só frigobar, sem geladeira) na prumada do banheiro; **mesa de jantar redonda** (2–4 lugares) no lugar do antigo closet.
 3. **Estar** — lounge aberto (sem divisórias) com sofá-cama na parede direita, mesma da cabeceira (capacidade 2 → 4).
-4. **Dormir + Mirante** — **cama Queen (1,58 × 1,98 m)** com cabeceira na parede direita e criados-mudos simétricos; banco-mirante e poltrona sob a janela para contemplação frontal; closet principal.
+4. **Dormir + Mirante** — **cama Queen (1,58 × 1,98 m)** com cabeceira na parede direita e criados-mudos simétricos; banco-mirante e poltrona sob a janela para contemplação frontal. Guarda de roupa no armário da entrada.
 
 ## Decisões estruturais
 
-- **Molhados agrupados** — cozinha encosta no banheiro existente.
-- **Marcenaria única** na parede direita — armário (na porta) → bancada de trabalho ao lado → closet.
+- **Molhados agrupados** — cozinha bar encosta no banheiro existente.
+- **Marcenaria de entrada** na parede direita — armário (na porta) → bancada de trabalho ao lado.
+- **Sem closet** — espaço convertido em mesa de jantar redonda; guarda no armário da entrada.
+- **Cozinha bar** — só frigobar (sem geladeira), balcão com borda de bar.
 - **Sofá na mesma parede da cabeceira** (direita); **cama com cabeceira na parede direita** e criados-mudos simétricos.
 - **Sem painel ripado / sem divisórias** — ambiente integrado para a baía ser vista de qualquer ponto.
 - **TV em braço articulado** na parede esquerda, orientável para sofá e cama.
