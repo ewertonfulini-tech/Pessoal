@@ -64,8 +64,8 @@
 <header>
   <div class="wrap">
     <span class="eyebrow">Detalhamento Executivo · Studio Rio de Janeiro</span>
-    <h1>Elevações — Marcenaria & Cozinha Bar</h1>
-    <p class="lead">Vistas frontais cotadas para orçamento e execução em marcenaria. Cotas em metros, pé-direito de referência 2,60 m (a confirmar em obra). Materiais: lâmina de freijó, bancada em quartzito claro, ferragens em latão escovado.</p>
+    <h1>Elevações — Marcenaria, Cozinha, Cama & Mídia</h1>
+    <p class="lead">Vistas frontais cotadas para orçamento e execução em marcenaria. Cotas em metros, pé-direito de referência 2,60 m (a confirmar em obra). Materiais: lâmina de freijó, bancada em quartzito claro, painéis ripados de acento, ferragens em latão escovado.</p>
   </div>
 </header>
 
@@ -86,13 +86,19 @@
           <line x1="80" y1="284" x2="175" y2="284" stroke="var(--brass)" stroke-width="3"/>
           <text x="128" y="298" text-anchor="middle" class="lbl" font-size="9" fill="var(--brass)">baía</text>
           <!-- Elevation A on right wall (entry) -->
-          <rect x="164" y="26" width="11" height="92" fill="var(--brass)"/>
-          <text x="150" y="74" text-anchor="middle" class="dnum" fill="var(--brass)">A</text>
+          <rect x="164" y="26" width="11" height="80" fill="var(--brass)"/>
+          <text x="150" y="70" text-anchor="middle" class="dnum" fill="var(--brass)">A</text>
           <!-- Elevation B on left wall (kitchen) -->
-          <rect x="55" y="96" width="11" height="70" fill="var(--olive)"/>
-          <text x="80" y="135" text-anchor="middle" class="dnum" fill="var(--olive)">B</text>
+          <rect x="55" y="96" width="11" height="60" fill="var(--olive)"/>
+          <text x="80" y="130" text-anchor="middle" class="dnum" fill="var(--olive)">B</text>
+          <!-- Elevation D media wall (left) -->
+          <rect x="55" y="162" width="11" height="30" fill="#5E736F"/>
+          <text x="80" y="182" text-anchor="middle" class="dnum" fill="#5E736F">D</text>
+          <!-- Elevation C bed wall (right, bedroom) -->
+          <rect x="164" y="210" width="11" height="46" fill="#9c6b3f"/>
+          <text x="150" y="238" text-anchor="middle" class="dnum" fill="#9c6b3f">C</text>
         </svg>
-        <div style="font-size:.82rem;color:var(--ink-soft);margin-top:8px"><b style="color:var(--brass)">A</b> — parede direita (entrada) · <b style="color:var(--olive)">B</b> — parede esquerda (cozinha)</div>
+        <div style="font-size:.82rem;color:var(--ink-soft);margin-top:8px"><b style="color:var(--brass)">A</b> marcenaria · <b style="color:var(--olive)">B</b> cozinha · <b style="color:#9c6b3f">C</b> parede da cama · <b style="color:#5E736F">D</b> parede de mídia</div>
       </div>
       <div class="notes">
         <h3>Especificações gerais</h3>
@@ -312,6 +318,126 @@
         <li><b>Micro-ondas</b> em nicho ventilado a 1,20–1,50 m (altura ergonômica).</li>
         <li><b>Bancada</b> em quartzito 2 cm com borda de bar de 4 cm; <b>frontão/backsplash</b> na mesma pedra até 1,50 m.</li>
         <li><b>Tomadas</b> a 1,10 m acima da bancada; pontos de água/esgoto reaproveitando a prumada do banheiro.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ELEVATION C -->
+<section>
+  <div class="wrap">
+    <h2>C · Parede da cama</h2>
+    <p class="sub">Parede direita no dormir: cabeceira estofada em verde-mata sobre painel ripado de freijó, criados-mudos simétricos e arandelas de latão. Profundidade do painel: 0,04 m (ripado aplicado).</p>
+    <figure class="board">
+      <svg viewBox="0 0 720 630" role="img" aria-label="Elevação C da parede da cama, cotada">
+        <defs><pattern id="ripC" width="12" height="12" patternUnits="userSpaceOnUse">
+          <rect width="12" height="12" fill="var(--wood)"/><rect width="2.4" height="12" fill="var(--woodD)" opacity=".55"/></pattern></defs>
+        <text x="90" y="30" class="tag">C · Parede da cama</text>
+        <line x1="90" y1="42" x2="660" y2="42" class="ceil"/>
+        <line x1="60" y1="540" x2="690" y2="540" class="floor"/>
+        <g class="hatch"><line x1="70" y1="540" x2="60" y2="552"/><line x1="130" y1="540" x2="120" y2="552"/><line x1="190" y1="540" x2="180" y2="552"/><line x1="250" y1="540" x2="240" y2="552"/><line x1="310" y1="540" x2="300" y2="552"/><line x1="370" y1="540" x2="360" y2="552"/><line x1="430" y1="540" x2="420" y2="552"/><line x1="490" y1="540" x2="480" y2="552"/><line x1="550" y1="540" x2="540" y2="552"/><line x1="610" y1="540" x2="600" y2="552"/><line x1="670" y1="540" x2="660" y2="552"/></g>
+
+        <!-- ripado accent wall -->
+        <rect x="90" y="44" width="570" height="496" fill="url(#ripC)"/>
+        <rect x="90" y="44" width="570" height="496" class="edge"/>
+
+        <!-- nightstands -->
+        <rect x="120" y="440" width="90" height="100" class="woodD"/>
+        <line x1="150" y1="452" x2="180" y2="452" class="edge"/>
+        <rect x="540" y="440" width="90" height="100" class="woodD"/>
+        <line x1="570" y1="452" x2="600" y2="452" class="edge"/>
+
+        <!-- bed base + duvet -->
+        <rect x="210" y="432" width="330" height="108" class="woodL"/>
+        <rect x="210" y="432" width="330" height="46" class="stone"/>
+        <!-- headboard upholstered (verde-mata) -->
+        <rect x="228" y="290" width="294" height="142" class="olive"/>
+        <g stroke="#000" opacity=".12" stroke-width="1"><line x1="277" y1="298" x2="277" y2="424"/><line x1="326" y1="298" x2="326" y2="424"/><line x1="375" y1="298" x2="375" y2="424"/><line x1="424" y1="298" x2="424" y2="424"/><line x1="473" y1="298" x2="473" y2="424"/></g>
+        <!-- pillows -->
+        <rect x="250" y="360" width="130" height="70" rx="12" fill="#F6F1E6" stroke="var(--ink)" stroke-width="1"/>
+        <rect x="386" y="360" width="130" height="70" rx="12" fill="#F6F1E6" stroke="var(--ink)" stroke-width="1"/>
+        <!-- sconces (brass) -->
+        <g><line x1="165" y1="270" x2="165" y2="300" stroke="var(--brass)" stroke-width="2"/><circle cx="165" cy="262" r="11" fill="var(--brass)"/></g>
+        <g><line x1="585" y1="270" x2="585" y2="300" stroke="var(--brass)" stroke-width="2"/><circle cx="585" cy="262" r="11" fill="var(--brass)"/></g>
+
+        <text x="375" y="345" text-anchor="middle" class="lbl" font-size="11" fill="#fff">cabeceira estofada · verde-mata</text>
+        <text x="165" y="495" text-anchor="middle" class="lbl" font-size="10">criado-mudo</text>
+        <text x="600" y="250" text-anchor="middle" class="lbl" font-size="10">arandela latão</text>
+        <text x="600" y="120" text-anchor="middle" class="lbl" font-size="10">painel ripado freijó</text>
+
+        <!-- DIMS -->
+        <g><line x1="48" y1="42" x2="48" y2="540" class="dl"/><line x1="43" y1="42" x2="53" y2="42" class="dt"/><line x1="43" y1="540" x2="53" y2="540" class="dt"/>
+          <text x="40" y="295" text-anchor="middle" class="dnum" transform="rotate(-90 40 295)">2,60</text></g>
+        <g><line x1="678" y1="290" x2="678" y2="540" class="dl"/><line x1="673" y1="290" x2="683" y2="290" class="dt"/><line x1="673" y1="540" x2="683" y2="540" class="dt"/>
+          <text x="692" y="415" text-anchor="middle" class="dnum" transform="rotate(-90 692 415)">1,25</text></g>
+        <g><line x1="702" y1="440" x2="702" y2="540" class="dl"/><line x1="697" y1="440" x2="707" y2="440" class="dt"/><line x1="697" y1="540" x2="707" y2="540" class="dt"/>
+          <text x="716" y="490" text-anchor="middle" class="dnum" transform="rotate(-90 716 490)">0,50</text></g>
+        <g><line x1="120" y1="566" x2="210" y2="566" class="dl"/><line x1="120" y1="561" x2="120" y2="571" class="dt"/><line x1="210" y1="561" x2="210" y2="571" class="dt"/>
+          <text x="165" y="582" text-anchor="middle" class="dnum">0,45</text></g>
+        <g><line x1="210" y1="566" x2="540" y2="566" class="dl"/><line x1="210" y1="561" x2="210" y2="571" class="dt"/><line x1="540" y1="561" x2="540" y2="571" class="dt"/>
+          <text x="375" y="582" text-anchor="middle" class="dnum">1,65 (cama)</text></g>
+        <g><line x1="540" y1="566" x2="630" y2="566" class="dl"/><line x1="540" y1="561" x2="540" y2="571" class="dt"/><line x1="630" y1="561" x2="630" y2="571" class="dt"/>
+          <text x="585" y="582" text-anchor="middle" class="dnum">0,45</text></g>
+        <g><line x1="90" y1="596" x2="660" y2="596" class="dl"/><line x1="90" y1="591" x2="90" y2="601" class="dt"/><line x1="660" y1="591" x2="660" y2="601" class="dt"/>
+          <text x="375" y="612" text-anchor="middle" class="dnum">2,85 (painel de acento)</text></g>
+      </svg>
+      <figcaption>Elevação C · cotas em metros · esc. aproximada</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ELEVATION D -->
+<section>
+  <div class="wrap">
+    <h2>D · Parede de mídia / TV</h2>
+    <p class="sub">Parede esquerda, em frente ao sofá: painel ripado de freijó com TV em suporte articulado (gira para o sofá e para a cama) e rack suspenso. Profundidade: painel 0,04 m · rack 0,35 m.</p>
+    <figure class="board">
+      <svg viewBox="0 0 620 630" role="img" aria-label="Elevação D da parede de mídia, cotada">
+        <defs><pattern id="ripD" width="12" height="12" patternUnits="userSpaceOnUse">
+          <rect width="12" height="12" fill="var(--wood)"/><rect width="2.4" height="12" fill="var(--woodD)" opacity=".55"/></pattern></defs>
+        <text x="90" y="30" class="tag">D · Parede de mídia / TV</text>
+        <line x1="90" y1="42" x2="490" y2="42" class="ceil"/>
+        <line x1="60" y1="540" x2="520" y2="540" class="floor"/>
+        <g class="hatch"><line x1="70" y1="540" x2="60" y2="552"/><line x1="130" y1="540" x2="120" y2="552"/><line x1="190" y1="540" x2="180" y2="552"/><line x1="250" y1="540" x2="240" y2="552"/><line x1="310" y1="540" x2="300" y2="552"/><line x1="370" y1="540" x2="360" y2="552"/><line x1="430" y1="540" x2="420" y2="552"/><line x1="490" y1="540" x2="480" y2="552"/></g>
+
+        <!-- ripado media panel -->
+        <rect x="120" y="44" width="340" height="496" fill="url(#ripD)"/>
+        <rect x="120" y="44" width="340" height="496" class="edge"/>
+
+        <!-- TV -->
+        <rect x="168" y="216" width="244" height="146" rx="4" fill="#26221C" stroke="var(--ink)" stroke-width="1.5"/>
+        <!-- swivel indication -->
+        <path d="M300 289 m-70 0 a70 40 0 0 1 140 0" fill="none" class="dsh"/>
+        <text x="300" y="245" text-anchor="middle" class="lbl" font-size="11" fill="#cfc7b6">TV ~55&quot;</text>
+        <text x="300" y="335" text-anchor="middle" class="lbl" font-size="10" fill="#cfc7b6">suporte articulado</text>
+
+        <!-- floating rack -->
+        <rect x="150" y="430" width="280" height="46" class="woodD"/>
+        <line x1="290" y1="430" x2="290" y2="476" class="pan"/>
+        <line x1="205" y1="453" x2="235" y2="453" class="edge"/>
+        <line x1="345" y1="453" x2="375" y2="453" class="edge"/>
+        <text x="290" y="500" text-anchor="middle" class="lbl" font-size="10">rack suspenso</text>
+        <text x="440" y="120" text-anchor="middle" class="lbl" font-size="10">painel ripado freijó</text>
+
+        <!-- DIMS -->
+        <g><line x1="48" y1="42" x2="48" y2="540" class="dl"/><line x1="43" y1="42" x2="53" y2="42" class="dt"/><line x1="43" y1="540" x2="53" y2="540" class="dt"/>
+          <text x="40" y="295" text-anchor="middle" class="dnum" transform="rotate(-90 40 295)">2,60</text></g>
+        <g><line x1="508" y1="362" x2="508" y2="540" class="dl"/><line x1="503" y1="362" x2="513" y2="362" class="dt"/><line x1="503" y1="540" x2="513" y2="540" class="dt"/>
+          <text x="522" y="451" text-anchor="middle" class="dnum" transform="rotate(-90 522 451)">0,90</text></g>
+        <g><line x1="532" y1="216" x2="532" y2="362" class="dl"/><line x1="527" y1="216" x2="537" y2="216" class="dt"/><line x1="527" y1="362" x2="537" y2="362" class="dt"/>
+          <text x="546" y="289" text-anchor="middle" class="dnum" transform="rotate(-90 546 289)">0,73</text></g>
+        <g><line x1="120" y1="566" x2="460" y2="566" class="dl"/><line x1="120" y1="561" x2="120" y2="571" class="dt"/><line x1="460" y1="561" x2="460" y2="571" class="dt"/>
+          <text x="290" y="582" text-anchor="middle" class="dnum">1,70 (painel ripado)</text></g>
+      </svg>
+      <figcaption>Elevação D · cotas em metros · esc. aproximada</figcaption>
+    </figure>
+    <div class="notes" style="margin-top:14px">
+      <h3>Notas — cama & mídia</h3>
+      <ul>
+        <li><b>Cabeceira</b> estofada em linho/veludo verde-mata (~1,25 m de altura) sobre painel ripado de freijó do piso ao teto — o ripado é acabamento de parede, não divisória.</li>
+        <li><b>Arandelas</b> de latão articuladas sobre os criados-mudos (leitura), interruptor individual.</li>
+        <li><b>TV ~55"</b> em <b>suporte articulado</b> (braço giratório) fixado no painel; gira do sofá para a cama. Eletrocalha embutida para cabos.</li>
+        <li><b>Rack suspenso</b> (0,35 m prof.) para receiver, controles e enxoval de mídia.</li>
       </ul>
     </div>
   </div>

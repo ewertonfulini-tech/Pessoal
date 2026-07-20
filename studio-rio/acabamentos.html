@@ -1,0 +1,167 @@
+<title>Caderno de Acabamentos — Studio Rio de Janeiro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --sand:#EFE9DE;--paper:#F8F4EC;--paper2:#F1EBDF;--ink:#2A2621;--ink-soft:#6C6558;--ink-faint:#928A7B;
+    --line:#DAD1C1;--line-soft:#E7E0D2;--olive:#59613F;--brass:#A9772F;
+    --font-display:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+    --font-body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{--sand:#16130E;--paper:#201C15;--paper2:#262117;--ink:#EEE7D8;--ink-soft:#AEA492;--ink-faint:#847B6B;--line:#352E23;--line-soft:#2C261C;--olive:#A2AE7E;--brass:#D2A560;}}
+  :root[data-theme="light"]{--sand:#EFE9DE;--paper:#F8F4EC;--paper2:#F1EBDF;--ink:#2A2621;--ink-soft:#6C6558;--ink-faint:#928A7B;--line:#DAD1C1;--line-soft:#E7E0D2;--olive:#59613F;--brass:#A9772F;}
+  :root[data-theme="dark"]{--sand:#16130E;--paper:#201C15;--paper2:#262117;--ink:#EEE7D8;--ink-soft:#AEA492;--ink-faint:#847B6B;--line:#352E23;--line-soft:#2C261C;--olive:#A2AE7E;--brass:#D2A560;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--sand);color:var(--ink);font-family:var(--font-body);line-height:1.6}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 22px}
+  header{padding:52px 0 22px}
+  .eyebrow{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--brass);font-weight:600}
+  h1{font-family:var(--font-display);font-weight:600;font-size:clamp(2rem,5vw,2.9rem);margin:.3em 0 .2em;letter-spacing:-.01em}
+  .lead{color:var(--ink-soft);max-width:64ch;font-size:1.06rem}
+  section{padding:24px 0;border-top:1px solid var(--line-soft)}
+  h2{font-family:var(--font-display);font-weight:600;font-size:clamp(1.35rem,3vw,1.75rem);margin:0 0 4px}
+  .sub{color:var(--ink-soft);margin:0 0 16px;max-width:62ch}
+  /* palette */
+  .pal{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin:10px 0}
+  .sw{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--paper)}
+  .sw .c{height:58px}.sw .l{padding:8px 10px}.sw .l b{display:block;font-size:.9rem}
+  .sw .l span{font-family:var(--font-mono);font-size:10px;color:var(--ink-faint)}
+  /* table */
+  .tbl{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--paper);box-shadow:0 1px 2px rgba(42,38,33,.05),0 8px 26px rgba(42,38,33,.06)}
+  table{border-collapse:collapse;width:100%;min-width:640px;font-size:.93rem}
+  th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  thead th{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;background:var(--paper2)}
+  tbody tr:last-child td{border-bottom:0}
+  td b{font-weight:600}
+  .chip{display:inline-block;width:16px;height:16px;border-radius:4px;border:1px solid rgba(0,0,0,.15);vertical-align:-3px;margin-right:6px}
+  .code{font-family:var(--font-mono);font-size:.82rem;color:var(--ink-soft)}
+  .note{background:color-mix(in srgb,var(--brass) 9%,var(--paper));border:1px solid color-mix(in srgb,var(--brass) 30%,var(--line));border-left:3px solid var(--brass);border-radius:10px;padding:14px 16px;color:var(--ink-soft);font-size:.92rem;margin-top:18px}
+  footer{padding:30px 0 60px;color:var(--ink-faint);font-size:.85rem;border-top:1px solid var(--line);margin-top:8px}
+</style>
+
+<header>
+  <div class="wrap">
+    <span class="eyebrow">Caderno de Acabamentos · Studio Rio de Janeiro</span>
+    <h1>Materiais, cores & referências</h1>
+    <p class="lead">Especificação de acabamentos, mobiliário e iluminação para o studio, no fio Trancoso / Fasano Boa Nova. As marcas e códigos são <b>referências de mercado</b> para cotação — confirmar disponibilidade, lote e preço com o fornecedor. “ou similar” subentendido em todos os itens.</p>
+  </div>
+</header>
+
+<section style="border-top:0">
+  <div class="wrap">
+    <h2>Paleta base</h2>
+    <div class="pal">
+      <div class="sw"><div class="c" style="background:#EFE9DE"></div><div class="l"><b>Areia</b><span>#EFE9DE · paredes/linho</span></div></div>
+      <div class="sw"><div class="c" style="background:#B98F5C"></div><div class="l"><b>Freijó</b><span>#B98F5C · madeira</span></div></div>
+      <div class="sw"><div class="c" style="background:#59613F"></div><div class="l"><b>Verde-mata</b><span>#59613F · acento</span></div></div>
+      <div class="sw"><div class="c" style="background:#A9772F"></div><div class="l"><b>Latão</b><span>#A9772F · metais</span></div></div>
+      <div class="sw"><div class="c" style="background:#C9BBA4"></div><div class="l"><b>Palha</b><span>#C9BBA4 · fibras</span></div></div>
+      <div class="sw"><div class="c" style="background:#E4DDCE"></div><div class="l"><b>Pedra clara</b><span>#E4DDCE · quartzito</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Superfícies</h2>
+    <p class="sub">Pisos, paredes e pedras — durabilidade para alto giro de locação, com cara natural.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Item</th><th>Especificação / referência</th><th>Aplicação</th></tr></thead>
+      <tbody>
+        <tr><td><b><span class="chip" style="background:#C79A63"></span>Piso porcelanato amadeirado</b></td><td>Portobello <b>Elemento Nature</b> ou Portinari <b>Ottawa Freijó</b>, 20×120 cm, retificado, acetinado <span class="code">(PEI 4+)</span></td><td>Todo o studio</td></tr>
+        <tr><td><b><span class="chip" style="background:#EDE7D8"></span>Tinta parede</b></td><td>Suvinil <b>“Areia”</b> / Coral <b>“Camurça”</b>, acrílico acetinado lavável</td><td>Paredes gerais e teto</td></tr>
+        <tr><td><b><span class="chip" style="background:#59613F"></span>Tinta acento (opcional)</b></td><td>Suvinil <b>“Verde Sombra”</b> / <b>“Folhagem”</b></td><td>Nicho / detalhe</td></tr>
+        <tr><td><b><span class="chip" style="background:#E4DDCE"></span>Bancadas pedra</b></td><td>Quartzito <b>Taj Mahal</b> ou <b>Mont Blanc</b> (ou porcelanato Portobello <b>Onice</b>), esp. 2 cm</td><td>Cozinha bar, bancada de trabalho</td></tr>
+        <tr><td><b><span class="chip" style="background:#BFD0CC"></span>Revestimento banho</b></td><td>Porcelanato acetinado tom areia + faixa em cimentício; box em vidro</td><td>Banheiro</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Marcenaria & ferragens</h2>
+    <p class="sub">Armário da entrada, bancada de trabalho, cozinha bar, painéis ripados de acento.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Item</th><th>Especificação / referência</th><th>Aplicação</th></tr></thead>
+      <tbody>
+        <tr><td><b><span class="chip" style="background:#B98F5C"></span>Lâmina de madeira</b></td><td>Freijó natural (lâmina Guararapes/Duratex) ou MDF <b>Duratex Freijó Puro</b>, verniz fosco</td><td>Marcenaria e painéis ripados</td></tr>
+        <tr><td><b><span class="chip" style="background:#EFE9DE"></span>Laca / interiores</b></td><td>Laca fosca tom areia; interiores em MDF branco/areia</td><td>Frentes lisas, gaveteiros</td></tr>
+        <tr><td><b><span class="chip" style="background:#A9772F"></span>Puxadores</b></td><td>Perfil/cava em <b>latão escovado</b> (ref. Puxador Cava, Zen Design/Placax)</td><td>Armário, cozinha, rack</td></tr>
+        <tr><td><b>Corrediças / dobradiças</b></td><td><b>Blum</b> ou <b>Hettich</b> com amortecedor (soft-close)</td><td>Gavetas e portas</td></tr>
+        <tr><td><b>Ripado de acento</b></td><td>Sarrafos de freijó ~ 2×2 cm, espaçamento 1 cm, sobre base</td><td>Parede da cama e de mídia</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Metais, louças & eletros</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>Item</th><th>Especificação / referência</th><th>Aplicação</th></tr></thead>
+      <tbody>
+        <tr><td><b>Torneira cozinha</b></td><td>Docol/Deca <b>gourmet</b> em <b>latão escovado / gold</b></td><td>Cozinha bar</td></tr>
+        <tr><td><b>Cuba</b></td><td>Cuba inox ou de embutir tom champagne, 34 cm</td><td>Cozinha bar</td></tr>
+        <tr><td><b>Cooktop</b></td><td>Cooktop <b>indução 2 bocas</b> de embutir (Tramontina/Electrolux)</td><td>Cozinha bar</td></tr>
+        <tr><td><b>Frigobar / micro-ondas</b></td><td>Frigobar de embutir (~120 L) c/ porta revestida; micro em nicho</td><td>Cozinha bar</td></tr>
+        <tr><td><b>Metais banho</b></td><td>Deca linha <b>Level</b>/<b>Clean</b> + ducha, acabamento latão</td><td>Banheiro</td></tr>
+        <tr><td><b>Louças</b></td><td>Cuba de apoio + vaso com caixa acoplada (Deca/Celite)</td><td>Banheiro</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Têxteis & cortinas</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>Item</th><th>Especificação / referência</th><th>Aplicação</th></tr></thead>
+      <tbody>
+        <tr><td><b><span class="chip" style="background:#CDBEA4"></span>Estofado sofá</b></td><td>Linho/sarja tom cru-areia, <b>tecido de performance</b> (impermeabilizado)</td><td>Sofá-cama</td></tr>
+        <tr><td><b><span class="chip" style="background:#59613F"></span>Cabeceira</b></td><td>Veludo ou linho <b>verde-mata</b></td><td>Cabeceira da cama</td></tr>
+        <tr><td><b>Roupa de cama</b></td><td>Linho lavado branco + areia; mix de almofadas terra/verde/palha</td><td>Cama e sofá</td></tr>
+        <tr><td><b><span class="chip" style="background:#C9BBA4"></span>Tapetes</b></td><td>Fibra natural (sisal/juta), ref. By Kamy / Tok&amp;Stok</td><td>Estar e cama</td></tr>
+        <tr><td><b>Cortinas</b></td><td><b>Voil</b> de linho + <b>blackout</b> (trilho duplo)</td><td>Esquadria da baía</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Iluminação</h2>
+    <p class="sub">Tudo em 2700 K (luz quente), circuitos dimerizáveis e cenas separadas.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Item</th><th>Especificação / referência</th><th>Aplicação</th></tr></thead>
+      <tbody>
+        <tr><td><b>Pendente jantar</b></td><td>Cúpula em <b>fibra natural / rattan</b> (ref. artesanal ou Oxente/S812)</td><td>Sobre a mesa de jantar</td></tr>
+        <tr><td><b>Arandelas</b></td><td><b>Latão</b> articuladas (ref. Dominici / Golden Art)</td><td>Cabeceira (2 un.)</td></tr>
+        <tr><td><b>Spots / trilho</b></td><td>Spots embutidos ou trilho, foco 24°, 2700 K</td><td>Circulação e cozinha</td></tr>
+        <tr><td><b>Fita LED</b></td><td>Fita 2700 K + perfil, IRC&gt;90</td><td>Sob superiores, prateleiras, ripados</td></tr>
+        <tr><td><b>Abajur / piso</b></td><td>Luminária de piso em latão + cúpula linho</td><td>Poltrona-mirante</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Mobiliário</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>Item</th><th>Especificação / referência</th><th>Obs.</th></tr></thead>
+      <tbody>
+        <tr><td><b>Sofá-cama</b></td><td>2 lugares, retrátil/abertura fácil, linho performance</td><td>Capacidade +2</td></tr>
+        <tr><td><b>Poltrona assinada</b></td><td><b>Mole</b> (Sergio Rodrigues / Linbrasil) ou poltrona <b>Oscar</b> em couro/linho</td><td>Ponto focal, junto à vista</td></tr>
+        <tr><td><b>Mesa de jantar</b></td><td>Redonda, madeira maciça, Ø 0,90–1,00 m (tampo fixo ou abas)</td><td>2–4 lugares</td></tr>
+        <tr><td><b>Cadeiras</b></td><td>Madeira + <b>palhinha</b> (ref. cadeira Tião/Marcela)</td><td>4 un.</td></tr>
+        <tr><td><b>Mesa de centro</b></td><td>Madeira e palhinha, baixa</td><td>Frente ao sofá</td></tr>
+        <tr><td><b>Banco-mirante</b></td><td>Estofado baixo com baú, sob a janela</td><td>Guarda de malas</td></tr>
+        <tr><td><b>TV</b></td><td>~55" 4K + <b>suporte articulado</b> (braço giratório)</td><td>Painel de mídia</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note"><b>Importante:</b> marcas, linhas e códigos são <b>referências</b> para orientar a cotação e podem variar por região/estoque. Validar medidas com as elevações executivas e as prumadas em campo antes da compra. Priorizar acabamentos de <b>alta durabilidade e fácil limpeza</b> pelo uso em locação de curta duração.</div>
+  </div>
+</section>
+
+<footer><div class="wrap">Caderno de acabamentos conceitual · Studio Rio de Janeiro · ~28 m² · estética Trancoso / Fasano Boa Nova.</div></footer>
