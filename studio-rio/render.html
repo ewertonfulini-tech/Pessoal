@@ -1,0 +1,377 @@
+<title>Vistas Renderizadas — Studio Rio de Janeiro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --sand:#EFE9DE; --paper:#F8F4EC; --ink:#2A2621; --ink-soft:#6C6558; --ink-faint:#928A7B;
+    --line:#DAD1C1; --olive:#59613F; --brass:#A9772F;
+    --font-display:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+    --font-body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--sand:#16130E;--paper:#201C15;--ink:#EEE7D8;--ink-soft:#AEA492;--ink-faint:#847B6B;
+      --line:#352E23;--olive:#A2AE7E;--brass:#D2A560;}
+  }
+  :root[data-theme="light"]{--sand:#EFE9DE;--paper:#F8F4EC;--ink:#2A2621;--ink-soft:#6C6558;--ink-faint:#928A7B;--line:#DAD1C1;--olive:#59613F;--brass:#A9772F;}
+  :root[data-theme="dark"]{--sand:#16130E;--paper:#201C15;--ink:#EEE7D8;--ink-soft:#AEA492;--ink-faint:#847B6B;--line:#352E23;--olive:#A2AE7E;--brass:#D2A560;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--sand);color:var(--ink);font-family:var(--font-body);line-height:1.6}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 22px}
+  header{padding:56px 0 24px}
+  .eyebrow{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--brass);font-weight:600}
+  h1{font-family:var(--font-display);font-weight:600;font-size:clamp(2rem,5vw,3rem);margin:.3em 0 .2em;letter-spacing:-.01em}
+  .lead{color:var(--ink-soft);max-width:62ch;font-size:1.08rem}
+  figure{margin:0 0 14px}
+  .scene{background:linear-gradient(160deg,#f3ece0,#e7dcc8);border:1px solid var(--line);border-radius:18px;
+    padding:12px;box-shadow:0 1px 2px rgba(42,38,33,.05),0 12px 40px rgba(42,38,33,.10);overflow:hidden}
+  @media (prefers-color-scheme:dark){.scene{background:linear-gradient(160deg,#2a2419,#1c1810)}}
+  :root[data-theme="dark"] .scene{background:linear-gradient(160deg,#2a2419,#1c1810)}
+  :root[data-theme="light"] .scene{background:linear-gradient(160deg,#f3ece0,#e7dcc8)}
+  canvas{width:100%;height:auto;display:block;border-radius:10px}
+  figcaption{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);text-align:center;margin-top:10px}
+  section{padding:26px 0}
+  h2{font-family:var(--font-display);font-weight:600;font-size:clamp(1.4rem,3vw,1.9rem);margin:0 0 6px}
+  .sub{color:var(--ink-soft);max-width:60ch;margin:0 0 16px}
+  .legend-row{display:flex;flex-wrap:wrap;gap:8px 16px;margin:14px 0 4px}
+  .lg{display:flex;align-items:center;gap:7px;font-size:.86rem;color:var(--ink-soft)}
+  .lg i{width:14px;height:14px;border-radius:4px;display:inline-block;border:1px solid rgba(0,0,0,.12)}
+  .pal{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px;margin-top:8px}
+  .sw{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--paper)}
+  .sw .c{height:46px}.sw .l{padding:7px 9px}.sw .l b{display:block;font-size:.82rem}
+  .sw .l span{font-family:var(--font-mono);font-size:9.5px;color:var(--ink-faint)}
+  .note{background:color-mix(in srgb,var(--brass) 9%,var(--paper));border:1px solid color-mix(in srgb,var(--brass) 30%,var(--line));
+    border-left:3px solid var(--brass);border-radius:10px;padding:14px 16px;color:var(--ink-soft);font-size:.94rem;margin-top:8px}
+  footer{padding:34px 0 60px;color:var(--ink-faint);font-size:.85rem;border-top:1px solid var(--line);margin-top:20px}
+</style>
+
+<header>
+  <div class="wrap">
+    <span class="eyebrow">Proposta Renderizada · Studio · Rio de Janeiro</span>
+    <h1>Vistas 3D do studio</h1>
+    <p class="lead">Renderizações volumétricas do layout aprovado — cozinha bar e mesa de jantar na entrada, sofá e cama encostados na parede direita, ambiente totalmente aberto para a Baía de Guanabara. Estética Trancoso / Fasano Boa Nova: madeira quente, verde-mata, latão e fibras naturais.</p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>Maquete 3D — vista aérea</h2>
+    <p class="sub">Vista isométrica do apartamento inteiro, da porta (à direita) até a esquadria com a baía (ao fundo à esquerda).</p>
+    <figure>
+      <div class="scene"><canvas id="iso" width="1040" height="860"></canvas></div>
+      <figcaption>Isométrica · escala aproximada · pé-direito 2,60 m</figcaption>
+    </figure>
+    <div class="legend-row">
+      <span class="lg"><i style="background:#B98F5C"></i>Marcenaria / madeira freijó</span>
+      <span class="lg"><i style="background:#5E663F"></i>Cama / cabeceira (verde-mata)</span>
+      <span class="lg"><i style="background:#CDBEA4"></i>Estofados em linho</span>
+      <span class="lg"><i style="background:#B07E33"></i>Detalhes em latão</span>
+      <span class="lg"><i style="background:#83A7AD"></i>Baía de Guanabara</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Perspectiva — da entrada para a baía</h2>
+    <p class="sub">Vista ao nível dos olhos ao abrir a porta: a linha de visão atravessa o studio até a água, com o estar à direita e a mesa de jantar à esquerda.</p>
+    <figure>
+      <div class="scene"><canvas id="persp" width="1120" height="720"></canvas></div>
+      <figcaption>Perspectiva de 1 ponto · ambiente integrado, sem divisórias</figcaption>
+    </figure>
+    <div class="note">Renders esquemáticos volumétricos (não fotorrealistas), gerados para comunicar proporções, fluxo e clima. Servem de base para render fotorrealista e para as elevações executivas de marcenaria.</div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Paleta de materiais</h2>
+    <p class="sub">Base areia e madeira quente, acento verde-mata e latão, fibras naturais — o fio Trancoso / Fasano.</p>
+    <div class="pal">
+      <div class="sw"><div class="c" style="background:#EFE9DE"></div><div class="l"><b>Areia / linho</b><span>#EFE9DE</span></div></div>
+      <div class="sw"><div class="c" style="background:#B98F5C"></div><div class="l"><b>Freijó</b><span>#B98F5C</span></div></div>
+      <div class="sw"><div class="c" style="background:#59613F"></div><div class="l"><b>Verde-mata</b><span>#59613F</span></div></div>
+      <div class="sw"><div class="c" style="background:#A9772F"></div><div class="l"><b>Latão</b><span>#A9772F</span></div></div>
+      <div class="sw"><div class="c" style="background:#C9BBA4"></div><div class="l"><b>Palha / fibra</b><span>#C9BBA4</span></div></div>
+      <div class="sw"><div class="c" style="background:#83A7AD"></div><div class="l"><b>Água / baía</b><span>#83A7AD</span></div></div>
+    </div>
+  </div>
+</section>
+
+<footer><div class="wrap">Studio Rio de Janeiro · ~28 m² · proposta conceitual — medidas a confirmar em campo.</div></footer>
+
+<script>
+(function(){
+  "use strict";
+  var lerp=function(a,b,t){return a+(b-a)*t;};
+  function hx(h){h=h.replace('#','');return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)];}
+  function sh(hex,f){var c=hx(hex);var g=function(v){v=Math.round(v*f);return Math.max(0,Math.min(255,v));};return 'rgb('+g(c[0])+','+g(c[1])+','+g(c[2])+')';}
+  function rgba(hex,a){var c=hx(hex);return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')';}
+
+  var C={floor:'#E7DAC2',floorLine:'#D6C4A4',wall:'#F1E9D8',wallSide:'#E4DAC5',
+    wood:'#B98F5C',woodS:'#D6C1A0',olive:'#5E663F',oliveL:'#6E7749',brass:'#B07E33',
+    linen:'#CDBEA4',stone:'#E1DACB',dark:'#4A4437',ink:'#3A342B',
+    sky1:'#CFE0E3',sky2:'#F2E7D2',sea:'#83A7AD',seaD:'#6E959C',hill:'#4E5C43',wet:'#BFD0CC'};
+
+  function setup(cv){
+    var dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+    var W=cv.width,H=cv.height;
+    cv.width=W*dpr;cv.height=H*dpr;cv.style.aspectRatio=W+'/'+H;
+    var ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
+    return {ctx:ctx,W:W,H:H};
+  }
+
+  /* ---------- ISOMETRIC ---------- */
+  function drawIso(){
+    var cv=document.getElementById('iso');if(!cv)return;
+    var s=setup(cv),ctx=s.ctx,W=s.W,H=s.H;
+    var SC=78, K=0.866*SC, M=0.5*SC, OX=W*0.60, OY=140;
+    // depth "a" measured from window (a=0 back) ; x width 0(left)..3.09(right); z up
+    function P(x,a,z){return [ (x-a)*K+OX, (x+a)*M - z*SC + OY ];}
+    function poly(pts,fill,stroke,sw){ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(var i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=sw||1;ctx.lineJoin='round';ctx.stroke();}}
+    var DX=3.09, DA=9.65, HH=2.60;
+
+    // ground shadow
+    ctx.save();ctx.filter='blur(8px)';
+    poly([P(-.25,-.25,0),P(DX+.25,-.25,0),P(DX+.25,DA+.25,0),P(-.25,DA+.25,0)],'rgba(60,50,35,0.16)');
+    ctx.restore();
+
+    // FLOOR
+    poly([P(0,0,0),P(DX,0,0),P(DX,DA,0),P(0,DA,0)],C.floor,rgba(C.floorLine,.6),1);
+    // floor planks (along length)
+    ctx.save();ctx.strokeStyle=rgba(C.floorLine,.55);ctx.lineWidth=1;
+    for(var px=0.34;px<DX;px+=0.34){ctx.beginPath();var a1=P(px,0,0),a2=P(px,DA,0);ctx.moveTo(a1[0],a1[1]);ctx.lineTo(a2[0],a2[1]);ctx.stroke();}
+    ctx.restore();
+
+    // rug (living)
+    poly([P(1.0,3.0,0.01),P(3.0,3.0,0.01),P(3.0,5.25,0.01),P(1.0,5.25,0.01)],rgba('#B8A98C',.55),rgba(C.dark,.12),1);
+
+    // ===== WINDOW WALL + BAY (back, a=0) =====
+    (function(){
+      var BL=P(0,0,0),BR=P(DX,0,0),TR=P(DX,0,HH),TL=P(0,0,HH);
+      ctx.save();
+      ctx.beginPath();ctx.moveTo(BL[0],BL[1]);ctx.lineTo(BR[0],BR[1]);ctx.lineTo(TR[0],TR[1]);ctx.lineTo(TL[0],TL[1]);ctx.closePath();ctx.clip();
+      var minY=Math.min(TL[1],TR[1]),maxY=Math.max(BL[1],BR[1]);
+      var g=ctx.createLinearGradient(0,minY,0,maxY);g.addColorStop(0,C.sky1);g.addColorStop(0.62,C.sky2);g.addColorStop(0.63,C.seaD);g.addColorStop(1,C.sea);
+      ctx.fillStyle=g;ctx.fillRect(Math.min(BL[0],TL[0])-4,minY-4,Math.abs(BR[0]-TL[0])+40,maxY-minY+8);
+      // horizon at z~1.0
+      var HzL=P(0,0,1.02),HzR=P(DX,0,1.02);
+      // mountains sitting on horizon (Sugarloaf-ish)
+      function hump(cx,cy,w,h){ctx.beginPath();ctx.moveTo(cx-w,cy);ctx.bezierCurveTo(cx-w*0.5,cy-h,cx+w*0.5,cy-h,cx+w,cy);ctx.closePath();ctx.fillStyle=rgba(C.hill,.92);ctx.fill();}
+      var midX=(HzL[0]+HzR[0])/2, midY=(HzL[1]+HzR[1])/2;
+      hump(midX-58,midY+6,34,40);
+      hump(midX-10,midY+9,50,66);   // Pão de Açúcar
+      hump(midX+64,midY+5,30,30);
+      // sea sparkle lines
+      ctx.strokeStyle=rgba('#FFFFFF',.28);ctx.lineWidth=1.4;
+      for(var i=1;i<=4;i++){var yy=lerp(midY+16,maxY-8,i/5);ctx.beginPath();ctx.moveTo(midX-70,yy);ctx.lineTo(midX+70,yy);ctx.stroke();}
+      ctx.restore();
+      // glass frame + mullions
+      ctx.strokeStyle=rgba(C.dark,.5);ctx.lineWidth=2.4;
+      poly([BL,BR,TR,TL],null,rgba(C.dark,.55),2.4);
+      var m1=P(DX/3,0,0),m1t=P(DX/3,0,HH),m2=P(2*DX/3,0,0),m2t=P(2*DX/3,0,HH);
+      ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(m1[0],m1[1]);ctx.lineTo(m1t[0],m1t[1]);ctx.moveTo(m2[0],m2[1]);ctx.lineTo(m2t[0],m2t[1]);ctx.stroke();
+    })();
+
+    // low side walls (tray) — left x=0, right x=3.09, entry a=9.65
+    function wall(x0,x1,a0,a1,h,col){box(x0,x1,a0,a1,h,col,0,true);}
+    // draw left & right & entry low walls as thin boxes (drawn before furniture)
+    // helper box (top + right(x1) face + left(a1) face)
+    function box(x0,x1,a0,a1,h,base,z0,quiet){
+      z0=z0||0;
+      var top=[P(x0,a0,z0+h),P(x1,a0,z0+h),P(x1,a1,z0+h),P(x0,a1,z0+h)];
+      var rf=[P(x1,a0,z0),P(x1,a1,z0),P(x1,a1,z0+h),P(x1,a0,z0+h)];
+      var lf=[P(x0,a1,z0),P(x1,a1,z0),P(x1,a1,z0+h),P(x0,a1,z0+h)];
+      poly(lf,sh(base,.66),rgba(C.dark,.14),1);
+      poly(rf,sh(base,.82),rgba(C.dark,.14),1);
+      poly(top,base,rgba(C.dark,quiet?.10:.16),1);
+    }
+    box(0,0.07,0,DA,0.34,C.wallSide);        // left low wall
+    box(3.02,DX,0,DA,0.34,C.wallSide);        // right low wall
+    box(0,DX,9.58,DA,0.34,C.wallSide);        // entry low wall
+
+    // ===== FURNITURE (sorted back->front) =====
+    var items=[];
+    function add(key,fn){items.push({k:key,fn:fn});}
+
+    // bench-mirante (near window)
+    add(0.4,function(){box(1.2,2.55,0.25,0.55,0.45,C.linen);});
+    // poltrona-mirante (window left nook)
+    add(0.6,function(){box(0.2,0.92,0.12,0.85,0.42,C.linen);box(0.2,0.92,0.72,0.85,0.78,sh(C.linen,.92),0);});
+    // bed + headboard + nightstands
+    add(1.0,function(){
+      box(2.66,DX,0.60,1.00,0.52,C.wood);      // nightstand A
+      box(2.66,DX,2.62,3.02,0.52,C.wood);      // nightstand B
+      box(1.11,DX,1.02,2.60,0.30,'#EFE7DA');   // mattress base
+      box(1.11,DX,1.02,2.60,0.52,'#F6F1E6',0.30); // duvet (slightly higher)
+      box(2.95,DX,1.02,2.60,1.02,C.olive);     // headboard on right wall
+      // pillows
+      box(2.35,2.9,1.15,1.70,0.62,'#FBF7EE',0.30);
+      box(2.35,2.9,1.92,2.47,0.62,'#FBF7EE',0.30);
+    });
+    // TV on left wall (grounded by an accent media panel)
+    add(4.4,function(){
+      box(0,0.10,3.45,4.80,1.70,C.wallSide);        // media/accent wall panel
+      var a0=3.74,a1=4.51,zc=0.82,zt=1.46;
+      var f=[P(0.11,a0,zc),P(0.11,a1,zc),P(0.11,a1,zt),P(0.11,a0,zt)];
+      poly(f,'#26221C',rgba(C.dark,.4),1.2);
+    });
+    // sofa (right wall)
+    add(6.6,function(){
+      box(2.19,DX,3.10,4.95,0.42,C.linen);           // seat
+      box(2.86,DX,3.10,4.95,0.82,sh(C.linen,.9));     // backrest at wall
+      box(2.19,2.34,3.10,4.95,0.66,sh(C.linen,.86));  // left arm
+    });
+    // coffee table
+    add(5.6,function(){box(1.55,2.05,3.7,4.5,0.38,C.woodS);});
+    // dining table (round) + chairs
+    add(7.4,function(){
+      var cx=1.9,ca=5.75,r=0.5,ht=0.75;
+      // chairs
+      box(1.9-0.22,1.9+0.22,5.75+0.62,5.75+1.0,0.9,C.woodS);
+      box(1.9-0.22,1.9+0.22,5.75-1.0,5.75-0.62,0.9,C.woodS);
+      box(1.9+0.62,1.9+1.0,5.75-0.22,5.75+0.22,0.9,C.woodS);
+      box(1.9-1.0,1.9-0.62,5.75-0.22,5.75+0.22,0.9,C.woodS);
+      // pedestal
+      var b=P(cx,ca,0),t=P(cx,ca,ht);
+      ctx.strokeStyle=sh(C.wood,.7);ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(b[0],b[1]);ctx.lineTo(t[0],t[1]);ctx.stroke();
+      // top ellipse (iso circle -> axis-aligned ellipse)
+      var ce=P(cx,ca,ht);var rx=1.2247*r*SC, ry=0.7071*r*SC;
+      ctx.beginPath();ctx.ellipse(ce[0],ce[1]+3,rx,ry,0,0,Math.PI*2);ctx.fillStyle=sh(C.wood,.7);ctx.fill();
+      ctx.beginPath();ctx.ellipse(ce[0],ce[1],rx,ry,0,0,Math.PI*2);ctx.fillStyle=C.wood;ctx.fill();ctx.strokeStyle=rgba(C.dark,.18);ctx.lineWidth=1;ctx.stroke();
+    });
+    // kitchen bar (left wall) + tower
+    add(6.5,function(){
+      box(0.07,0.66,5.45,7.10,0.95,C.wood);           // counter
+      box(0.07,0.66,6.55,7.10,2.05,sh(C.wood,.92));   // tall unit (micro/despensa)
+      box(0.07,0.70,5.45,7.10,1.0,rgba(C.stone,1));   // stone top (thin overlay)
+    });
+    // desk (right wall)
+    add(9.7,function(){
+      box(2.55,DX,6.80,8.05,0.74,C.woodS);
+      box(2.42,2.62,7.1,7.55,0.5,sh(C.linen,.9)); // chair
+    });
+    // wardrobe (entry, right wall)
+    add(11.2,function(){box(2.42,DX,8.15,9.42,2.15,C.wood);});
+    // bathroom (entry left) — low enclosure
+    add(10.6,function(){
+      box(0.07,1.35,7.25,9.55,1.15,C.wet);
+      // suggest fixtures
+      box(0.15,0.5,7.35,8.15,0.9,sh(C.wet,.9));
+    });
+
+    items.sort(function(a,b){return a.k-b.k;});
+    items.forEach(function(it){it.fn();});
+
+    // labels
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=rgba(C.ink,.9);
+    function label(x,a,z,txt,sz){ctx.font='600 '+(sz||12)+'px '+getComputedStyle(document.body).fontFamily;var p=P(x,a,z);
+      ctx.save();ctx.fillStyle='rgba(255,252,246,.82)';var w=ctx.measureText(txt).width+10;ctx.fillRect(p[0]-w/2,p[1]-9,w,18);ctx.restore();
+      ctx.fillStyle=rgba(C.ink,.92);ctx.fillText(txt,p[0],p[1]);}
+    label(2.0,1.8,1.25,'Cama Queen',12);
+    label(2.6,4.0,1.0,'Sofá',12);
+    label(1.9,5.75,1.15,'Mesa jantar',11);
+    label(0.36,6.3,2.35,'Cozinha bar',11);
+    label(2.8,7.4,1.0,'Trabalho',10);
+    label(2.75,8.8,2.4,'Armário',11);
+    label(0.7,8.4,1.35,'Banho',10);
+    label(0.55,0.5,1.0,'Mirante',10);
+    label(0.1,4.1,1.7,'TV',10);
+    label(1.55,0.0,2.35,'Baía de Guanabara',12);
+  }
+
+  /* ---------- PERSPECTIVE (1-point, toward the bay) ---------- */
+  function drawPersp(){
+    var cv=document.getElementById('persp');if(!cv)return;
+    var s=setup(cv),ctx=s.ctx,W=s.W,H=s.H;
+    // opening (front) and window (back)
+    var f={xL:24,xR:W-24,yT:20,yB:H-22};
+    var b={xL:W*0.40,xR:W*0.60,yT:H*0.34,yB:H*0.66};
+    function flr(u,v){var lx=lerp(f.xL,b.xL,v),rx=lerp(f.xR,b.xR,v),y=lerp(f.yB,b.yB,v);return [lerp(lx,rx,u),y];}
+    function cel(u,v){var lx=lerp(f.xL,b.xL,v),rx=lerp(f.xR,b.xR,v),y=lerp(f.yT,b.yT,v);return [lerp(lx,rx,u),y];}
+    function hp(u,v,hf){var g=flr(u,v),c=cel(u,v);return [g[0],lerp(g[1],c[1],hf)];}
+    function poly(pts,fill,stroke,sw){ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(var i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=sw||1;ctx.lineJoin='round';ctx.stroke();}}
+
+    // CEILING
+    poly([[f.xL,f.yT],[f.xR,f.yT],[b.xR,b.yT],[b.xL,b.yT]],'#EDE6D6');
+    // LEFT wall
+    poly([[f.xL,f.yT],[f.xL,f.yB],[b.xL,b.yB],[b.xL,b.yT]],sh(C.wall,.9));
+    // RIGHT wall
+    poly([[f.xR,f.yT],[f.xR,f.yB],[b.xR,b.yB],[b.xR,b.yT]],sh(C.wall,.96));
+    // FLOOR
+    poly([[f.xL,f.yB],[f.xR,f.yB],[b.xR,b.yB],[b.xL,b.yB]],C.floor);
+    // floor boards (lines converging to VP)
+    ctx.strokeStyle=rgba(C.floorLine,.5);ctx.lineWidth=1;
+    for(var u=0.1;u<1;u+=0.12){var a=flr(u,0),z=flr(u,1);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(z[0],z[1]);ctx.stroke();}
+
+    // BACK WINDOW + BAY
+    (function(){
+      ctx.save();ctx.beginPath();ctx.rect(b.xL,b.yT,b.xR-b.xL,b.yB-b.yT);ctx.clip();
+      var g=ctx.createLinearGradient(0,b.yT,0,b.yB);g.addColorStop(0,C.sky1);g.addColorStop(.60,C.sky2);g.addColorStop(.61,C.seaD);g.addColorStop(1,C.sea);
+      ctx.fillStyle=g;ctx.fillRect(b.xL,b.yT,b.xR-b.xL,b.yB-b.yT);
+      var hz=lerp(b.yT,b.yB,.60),cxm=(b.xL+b.xR)/2;
+      function hump(cx,cy,w,h){ctx.beginPath();ctx.moveTo(cx-w,cy);ctx.bezierCurveTo(cx-w*.5,cy-h,cx+w*.5,cy-h,cx+w,cy);ctx.closePath();ctx.fillStyle=rgba(C.hill,.93);ctx.fill();}
+      hump(cxm-42,hz+3,26,30);hump(cxm-2,hz+4,40,54);hump(cxm+48,hz+2,24,24);
+      ctx.strokeStyle=rgba('#fff',.30);ctx.lineWidth=1.2;
+      for(var i=1;i<=3;i++){var yy=lerp(hz+12,b.yB-6,i/4);ctx.beginPath();ctx.moveTo(cxm-58,yy);ctx.lineTo(cxm+58,yy);ctx.stroke();}
+      ctx.restore();
+      ctx.strokeStyle=rgba(C.dark,.5);ctx.lineWidth=3;ctx.strokeRect(b.xL,b.yT,b.xR-b.xL,b.yB-b.yT);
+      ctx.lineWidth=1.4;var mx1=lerp(b.xL,b.xR,.5);ctx.beginPath();ctx.moveTo(mx1,b.yT);ctx.lineTo(mx1,b.yB);ctx.stroke();
+    })();
+
+    // pendant over dining (left-mid)
+    (function(){var c=cel(0.30,0.46),d=hp(0.30,0.46,0.78);ctx.strokeStyle=rgba(C.dark,.5);ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(c[0],c[1]);ctx.lineTo(d[0],d[1]);ctx.stroke();
+      ctx.beginPath();ctx.ellipse(d[0],d[1]+4,14,7,0,0,Math.PI*2);ctx.fillStyle=C.brass;ctx.fill();})();
+
+    // rug
+    poly([flr(0.16,0.24),flr(0.86,0.24),flr(0.82,0.72),flr(0.20,0.72)],rgba('#B8A98C',.5),rgba(C.dark,.1),1);
+
+    // pbox: draws a box on floor; side='L' or 'R' interior face
+    function pbox(u0,u1,v0,v1,hf,base,side){
+      var A=hp(u0,v0,0),B=hp(u1,v0,0),Cc=hp(u1,v1,0),D=hp(u0,v1,0);
+      var A2=hp(u0,v0,hf),B2=hp(u1,v0,hf),C2=hp(u1,v1,hf),D2=hp(u0,v1,hf);
+      if(side==='L'){poly([A,D,D2,A2],sh(base,.64),rgba(C.dark,.12),1);}
+      else{poly([B,Cc,C2,B2],sh(base,.64),rgba(C.dark,.12),1);}
+      poly([A,B,B2,A2],sh(base,.82),rgba(C.dark,.12),1);   // front
+      poly([A2,B2,C2,D2],base,rgba(C.dark,.14),1);         // top
+    }
+
+    // DINING (left-mid): table ellipse + chairs
+    (function(){
+      pbox(0.20,0.30,0.40,0.52,0.30,C.woodS,'R'); // chair far
+      var cc=flr(0.30,0.46),ct=hp(0.30,0.46,0.30);
+      ctx.strokeStyle=sh(C.wood,.7);ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(cc[0],cc[1]);ctx.lineTo(ct[0],ct[1]);ctx.stroke();
+      ctx.beginPath();ctx.ellipse(ct[0],ct[1]+3,52,20,0,0,Math.PI*2);ctx.fillStyle=sh(C.wood,.72);ctx.fill();
+      ctx.beginPath();ctx.ellipse(ct[0],ct[1],52,20,0,0,Math.PI*2);ctx.fillStyle=C.wood;ctx.fill();ctx.strokeStyle=rgba(C.dark,.15);ctx.lineWidth=1;ctx.stroke();
+      pbox(0.30,0.40,0.40,0.52,0.30,C.woodS,'R'); // chair near
+    })();
+
+    // KITCHEN bar (front-left, on left wall)
+    pbox(0.02,0.16,0.10,0.30,0.44,C.wood,'R');
+    // TV on left wall (mid)
+    (function(){var p1=hp(0.005,0.44,0.52),p2=hp(0.005,0.56,0.52),p3=hp(0.005,0.56,0.80),p4=hp(0.005,0.44,0.80);poly([p1,p2,p3,p4],'#26221C',rgba(C.dark,.4),1);})();
+
+    // SOFA (right, front-mid)
+    pbox(0.72,0.985,0.26,0.60,0.26,C.linen,'L');       // seat
+    pbox(0.90,0.985,0.26,0.60,0.40,sh(C.linen,.9),'L'); // back at wall
+
+    // BED (right, back near window)
+    pbox(0.62,0.985,0.66,0.90,0.16,'#F2ECDF','L');      // mattress
+    pbox(0.90,0.985,0.66,0.90,0.34,C.olive,'L');        // headboard at wall
+    // nightstand
+    pbox(0.90,0.985,0.90,0.985,0.20,C.wood,'L');
+
+    // plant near window-left
+    (function(){var b0=flr(0.12,0.80),h=hp(0.12,0.80,0.34);ctx.fillStyle=sh(C.wood,.8);ctx.fillRect(h[0]-8,h[1],16,b0[1]-h[1]);
+      ctx.fillStyle=C.olive;ctx.beginPath();ctx.ellipse(h[0],h[1]-6,20,26,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=sh(C.olive,1.15);ctx.beginPath();ctx.ellipse(h[0]-8,h[1]-12,10,15,0,0,Math.PI*2);ctx.fill();})();
+
+    // warm vignette
+    var vg=ctx.createRadialGradient(W/2,H*0.5,H*0.25,W/2,H*0.5,H*0.9);
+    vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(40,30,15,0.16)');
+    ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+  }
+
+  function render(){try{drawIso();}catch(e){}try{drawPersp();}catch(e){}}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',render);else render();
+})();
+</script>
