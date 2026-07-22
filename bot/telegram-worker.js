@@ -43,7 +43,7 @@ const HELP =
 
 // Palavras-chave que ajudam a adivinhar a categoria (nome deve existir no app)
 const SYNONYMS = {
-  'Alimentação': ['mercado', 'supermercado', 'ifood', 'restaurante', 'almoco', 'almoço', 'janta', 'lanche', 'padaria', 'comida', 'feira'],
+  'Alimentação': ['mercado', 'supermercado', 'ifood', 'rappi', 'restaurante', 'almoco', 'almoço', 'jantar', 'janta', 'lanche', 'lanchonete', 'padaria', 'comida', 'feira', 'delivery', 'sorvete', 'chocolate', 'doce', 'doces', 'pizza', 'hamburguer', 'hambúrguer', 'sushi', 'acai', 'açaí', 'cafe', 'café', 'marmita', 'salgado', 'refeicao', 'refeição', 'pao', 'pão', 'churrasco'],
   'Transporte': ['uber', '99', 'gasolina', 'combustivel', 'onibus', 'ônibus', 'metro', 'metrô', 'estacionamento', 'passagem'],
   'Moradia': ['aluguel', 'luz', 'energia', 'agua', 'água', 'condominio', 'condomínio', 'gas', 'gás', 'internet'],
   'Saúde': ['farmacia', 'farmácia', 'remedio', 'remédio', 'medico', 'médico', 'consulta', 'dentista', 'academia'],
@@ -161,7 +161,7 @@ export default {
       }
 
       // Despesa: monta o lançamento e pergunta ONDE lançar (cartão ou despesa)
-      const categoryId = findCategory(data.categories, 'expense', text);
+      const categoryId = findCategory(data.categories, 'expense', text, data);
       const description = cleanDescription(text, amt.raw);
       const instMatch = n.match(/(\d+)\s*(?:x|vezes?|parcelas?)\b/);
       const installments = instMatch ? Math.max(1, parseInt(instMatch[1], 10)) : 1;
@@ -312,7 +312,35 @@ function parseAmount(text) {
   return isNaN(n) ? null : { value: Math.round(n * 100) / 100, raw: m[0] };
 }
 
-function findCategory(categories, type, text) {
+// Palavras genéricas demais para "aprender" pelo histórico (evitam falso-positivo)
+const HIST_STOP = {
+  conta: 1, compra: 1, compras: 1, pagamento: 1, pago: 1, parcela: 1, parcelas: 1,
+  mensal: 1, mensalidade: 1, valor: 1, gasto: 1, gastos: 1, taxa: 1, fatura: 1
+};
+
+// Aprende com o histórico: se uma palavra da nova mensagem já apareceu numa
+// descrição lançada antes, usa a categoria daquele lançamento (a mais frequente).
+function categoryFromHistory(n, type, list, data) {
+  if (!data) return '';
+  const valid = {};
+  list.forEach(function (c) { valid[c.id] = true; });
+  const scores = {};
+  function scan(desc, catId) {
+    if (!catId || !valid[catId] || !desc) return;
+    normalize(desc).split(/[^a-z0-9]+/).forEach(function (w) {
+      if (w.length < 4 || HIST_STOP[w]) return;
+      const re = new RegExp('(^|[^0-9a-z])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '($|[^0-9a-z])');
+      if (re.test(n)) scores[catId] = (scores[catId] || 0) + 1;
+    });
+  }
+  (data.transactions || []).forEach(function (t) { if (t.type === type) scan(t.description, t.categoryId); });
+  if (type === 'expense') (data.cardExpenses || []).forEach(function (ce) { scan(ce.description, ce.categoryId); });
+  let best = '', bestScore = 0;
+  for (const id in scores) { if (scores[id] > bestScore) { bestScore = scores[id]; best = id; } }
+  return bestScore > 0 ? best : '';
+}
+
+function findCategory(categories, type, text, data) {
   const n = normalize(text);
   // casa por palavra inteira (evita "gás" casar dentro de "gastei", "99" dentro de "990" etc.)
   function hasWord(w) {
@@ -325,14 +353,17 @@ function findCategory(categories, type, text) {
   for (const c of list) {
     if (hasWord(c.name)) return c.id;
   }
-  // 2) sinônimos -> nome da categoria
+  // 2) histórico do usuário: item parecido já classificado antes (aprende com você)
+  const fromHist = categoryFromHistory(n, type, list, data);
+  if (fromHist) return fromHist;
+  // 3) sinônimos -> nome da categoria
   for (const catName in SYNONYMS) {
     if (SYNONYMS[catName].some(hasWord)) {
       const c = list.find(function (x) { return normalize(x.name) === normalize(catName); });
       if (c) return c.id;
     }
   }
-  // 3) "Outros" ou a primeira
+  // 4) "Outros" ou a primeira
   const outros = list.find(function (c) { return normalize(c.name) === 'outros'; });
   return outros ? outros.id : (list[0] ? list[0].id : '');
 }
@@ -399,7 +430,7 @@ function applyMessage(data, text, amt) {
     const card = data.cards[0];
     const instMatch = n.match(/(\d+)\s*x\b/);
     const installments = instMatch ? Math.max(1, parseInt(instMatch[1], 10)) : 1;
-    const categoryId = findCategory(data.categories, 'expense', text);
+    const categoryId = findCategory(data.categories, 'expense', text, data);
     if (!Array.isArray(data.cardExpenses)) data.cardExpenses = [];
     data.cardExpenses.push({
       id: uid('ce'), cardId: card.id, description: description,
@@ -413,7 +444,7 @@ function applyMessage(data, text, amt) {
   }
 
   const type = isIncome ? 'income' : 'expense';
-  const categoryId = findCategory(data.categories, type, text);
+  const categoryId = findCategory(data.categories, type, text, data);
   if (!Array.isArray(data.transactions)) data.transactions = [];
   data.transactions.push({
     id: uid('tx'), type: type, description: description, amount: amt.value,
