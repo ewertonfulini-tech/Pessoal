@@ -234,13 +234,21 @@
       // Reconciliação inicial (uma vez), evitando perder dados sem querer
       const snap = await fb.fsMod.getDoc(ref);
       if (snap.exists() && snap.data() && snap.data().json) {
-        const remote = JSON.parse(snap.data().json);
-        if (localIsEmpty()) {
+        const remoteJson = snap.data().json;
+        const remote = JSON.parse(remoteJson);
+        const localJson = JSON.stringify(global.Store.getData());
+        if (localJson === remoteJson) {
+          // Idênticos: nada a fazer, sem perguntar.
+          setStatus('ready', 'Sincronizado.');
+        } else if (localIsEmpty()) {
+          // Local vazio: adota a nuvem e a regrava no formato atual (evita
+          // reperguntar por diferença de versão do formato).
           applyRemote(remote);
+          await pushNow();
         } else {
-          // Ambos têm dados: o usuário escolhe qual manter (sem travar)
+          // Só quando os dados REALMENTE divergem é que perguntamos qual manter.
           const useRemote = await chooseReconciliation();
-          if (useRemote) applyRemote(remote);
+          if (useRemote) { applyRemote(remote); await pushNow(); }
           else await pushNow();
         }
       } else {
