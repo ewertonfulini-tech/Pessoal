@@ -1698,8 +1698,19 @@
   /* ---------- Service worker (permite instalar na tela inicial) ---------- */
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
+    // Auto-atualização: quando uma versão nova assume o controle, recarrega uma
+    // vez (só para quem já tinha uma versão instalada — não recarrega na 1ª visita).
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (reloaded || !hadController) return;
+      reloaded = true;
+      location.reload();
+    });
     // Registro relativo funciona em subpastas (ex: GitHub Pages /Pessoal/)
-    navigator.serviceWorker.register('sw.js').catch(function () { /* offline/local: ignora */ });
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      if (reg && reg.update) { try { reg.update(); } catch (e) {} }
+    }).catch(function () { /* offline/local: ignora */ });
   }
 
   /* ================================================================== *

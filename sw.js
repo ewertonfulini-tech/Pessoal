@@ -4,7 +4,7 @@
  * reserva quando estiver offline. Requisições externas (Firebase/gstatic) NÃO são
  * interceptadas.
  */
-const CACHE = 'meugestor-v3';
+const CACHE = 'meugestor-v4';
 const SHELL = [
   './',
   './index.html',
