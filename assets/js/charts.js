@@ -217,10 +217,18 @@
     opts = opts || {};
     const w = opts.width || 640;
     const h = opts.height || 240;
-    const padL = opts.padL || 8, padR = 8, padT = 16, padB = 28;
+    const padL = opts.padL || 8, padR = 8, padB = 28;
+    const padT = opts.valueLabels ? 26 : 16;
     const innerW = w - padL - padR;
     const innerH = h - padT - padB;
     const formatValue = opts.formatValue || U.formatBRL;
+    const showLabels = !!opts.valueLabels;
+    const labelFmt = opts.formatLabel || function (v) {
+      const a = Math.abs(v);
+      if (a >= 1e6) return 'R$ ' + (v / 1e6).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mi';
+      if (a >= 1e3) return 'R$ ' + Math.round(v / 1e3) + ' mil';
+      return 'R$ ' + Math.round(v);
+    };
 
     const allValues = data.reduce(function (acc, g) {
       g.bars.forEach(function (b) { acc.push(b.value); });
@@ -281,6 +289,17 @@
         });
         bar.appendChild(svgEl('title')).textContent = (b.name ? b.name + ': ' : '') + formatValue(b.value);
         svg.appendChild(bar);
+
+        if (showLabels && b.value !== 0) {
+          const isNeg = b.value < 0;
+          const ly = isNeg ? Math.min(h - padB - 1, Math.max(by, zeroY) + 11)
+            : Math.max(9, Math.min(by, zeroY) - 4);
+          const t = svgEl('text', {
+            x: bx + barW / 2, y: ly, 'text-anchor': 'middle', class: 'chart-bar-label'
+          });
+          t.textContent = labelFmt(b.value);
+          svg.appendChild(t);
+        }
       });
 
       const lbl = svgEl('text', {

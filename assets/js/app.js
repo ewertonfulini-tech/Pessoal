@@ -784,11 +784,14 @@
     const spentAll = F.expenseByCategory(state.year, state.month0)
       .reduce(function (s, c) { return s + c.total; }, 0);
 
+    // Saldo = orçado − gasto TOTAL do mês (mesma referência do "Gasto no mês");
+    // negativo = estouro (vermelho).
+    const saldoOrc = Math.round((goal.limit - spentAll) * 100) / 100;
     view.appendChild(el('div', { class: 'stat-grid' }, [
       statCard('Total orçado', U.formatBRL(goal.limit), ''),
       statCard('Gasto no mês', U.formatBRL(spentAll), 'expense'),
-      statCard('Saldo do orçamento', U.formatBRL(goal.remaining),
-        goal.remaining >= 0 ? 'positive' : 'negative')
+      statCard(saldoOrc >= 0 ? 'Saldo do orçamento' : 'Estouro do orçamento',
+        U.formatBRL(saldoOrc), saldoOrc >= 0 ? 'positive' : 'negative')
     ]));
 
     view.appendChild(el('p', { class: 'muted', text:

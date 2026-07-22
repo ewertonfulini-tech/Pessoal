@@ -68,7 +68,11 @@
   function render() {
     const d = derive();
     view.innerHTML = '';
-    view.appendChild(sectionHeader('Patrimônio'));
+    const editValuesBtn = el('button', {
+      class: 'icon-btn small', text: '✎', title: 'Editar FGTS, câmbio e meta',
+      onclick: function () { openGoalModal(refresh); }
+    });
+    view.appendChild(sectionHeader('Patrimônio', editValuesBtn));
 
     view.appendChild(renderKpis(d));
 
@@ -95,19 +99,23 @@
   /* ---------- KPIs ---------- */
   function renderKpis(d) {
     const p = pat();
-    const cards = [
+    // 1ª linha: Investimentos · Imóveis e veículos · Dívidas
+    const row1 = el('div', { class: 'stat-grid' }, [
+      statCard('Investimentos', U.formatBRL(d.invTotal), '',
+        countInstituicoes(p) + ' instituição(ões)'),
+      statCard('Imóveis & veículos', U.formatBRL(d.imobTotal), '',
+        p.imobilizado.length + ' bem(ns)'),
+      statCard('Dívidas / financiamentos', U.formatBRL(d.dividaTotal), d.dividaTotal > 0 ? 'negative' : '',
+        (d.bruto > 0 ? (d.dividaTotal / d.bruto * 100).toFixed(0) : 0) + '% do patrimônio bruto')
+    ]);
+    // 2ª linha: Patrimônio líquido · Líquido + FGTS
+    const row2 = el('div', { class: 'stat-grid', style: 'grid-template-columns:repeat(2,1fr)' }, [
       statCard('Patrimônio líquido', U.formatBRL(d.liquidoSemFGTS), d.liquidoSemFGTS >= 0 ? 'positive' : 'negative',
         formatUSD(d.usdVal) + ' · câmbio R$ ' + U.formatNumber(p.cambioUSD)),
       statCard('Líquido + FGTS', U.formatBRL(d.liquidoComFGTS), 'positive',
-        'inclui FGTS de ' + U.formatBRL(d.fgts)),
-      statCard('Imóveis & veículos', U.formatBRL(d.imobTotal), '',
-        p.imobilizado.length + ' bem(ns)'),
-      statCard('Investimentos', U.formatBRL(d.invTotal), '',
-        countInstituicoes(p) + ' instituição(ões)'),
-      statCard('Dívidas / financiamentos', U.formatBRL(d.dividaTotal), d.dividaTotal > 0 ? 'negative' : '',
-        (d.bruto > 0 ? (d.dividaTotal / d.bruto * 100).toFixed(0) : 0) + '% do patrimônio bruto')
-    ];
-    return el('div', { class: 'stat-grid four' }, cards);
+        'inclui FGTS de ' + U.formatBRL(d.fgts))
+    ]);
+    return el('div', {}, [row1, row2]);
   }
 
   /* ---------- Composição (donut) ---------- */
@@ -207,7 +215,7 @@
 
     return el('div', { class: 'panel' }, [
       el('h3', { class: 'panel-title', text: 'Evolução anual (investimentos)' }),
-      el('div', { class: 'bars-wrap' }, [global.Charts.barsSigned(chartData, { height: 220 })])
+      el('div', { class: 'bars-wrap' }, [global.Charts.barsSigned(chartData, { height: 240, valueLabels: true })])
     ]);
   }
 
@@ -425,7 +433,7 @@
         ]
       };
     });
-    panel.appendChild(el('div', { class: 'bars-wrap' }, [global.Charts.barsSigned(chartData, { height: 220 })]));
+    panel.appendChild(el('div', { class: 'bars-wrap' }, [global.Charts.barsSigned(chartData, { height: 240, valueLabels: true })]));
     panel.appendChild(el('div', { class: 'legend-inline' }, [
       el('span', { class: 'legend-item' }, [
         el('span', { class: 'legend-dot', style: 'background:' + PALETTE[0] }), el('span', { text: 'Aporte' })
@@ -726,7 +734,7 @@
       onSaved && onSaved();
     }
 
-    UI.openModal('Editar meta e configurações', body, {
+    UI.openModal('Editar meta, FGTS e câmbio', body, {
       buttons: [
         { label: 'Cancelar', variant: 'ghost', onClick: function (c) { c(); } },
         { label: 'Salvar', variant: 'primary', onClick: save }
