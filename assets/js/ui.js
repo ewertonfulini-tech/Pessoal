@@ -374,11 +374,29 @@
         : U.escapeHtml('À vista: ' + U.formatBRL(total));
     }
     const recurRow = el('div', { class: 'field-row' }, [field('Recorrência', recIn), endField]);
+
+    // Fatura de destino (opcional): força em qual fatura o débito/estorno entra
+    const dueChk = el('input', { type: 'checkbox' });
+    const dueMonthIn = el('input', {
+      type: 'month', disabled: true,
+      value: ce.dueOverride || (ce.purchaseDate ? String(ce.purchaseDate).slice(0, 7) : U.todayISO().slice(0, 7))
+    });
+    if (ce.dueOverride) { dueChk.checked = true; dueMonthIn.disabled = false; }
+    dueChk.addEventListener('change', function () { dueMonthIn.disabled = !dueChk.checked; });
+    const faturaField = el('div', { class: 'field' }, [
+      el('label', { class: 'field-label' }, [dueChk, el('span', { text: ' Lançar em uma fatura específica' })]),
+      dueMonthIn,
+      el('small', { class: 'field-hint', text:
+        'Sem marcar, entra na fatura pela data. Marque para escolher a fatura (mês de ' +
+        'vencimento) — vale para débito, parcelas e estorno.' })
+    ]);
+
     function syncAll() {
       const est = isEstorno();
       recurRow.style.display = est ? 'none' : '';
       parcelField.style.display = (est || isRecurring()) ? 'none' : '';
       endField.style.display = (!est && isRecurring()) ? '' : 'none';
+      faturaField.style.display = isRecurring() ? 'none' : ''; // recorrência entra por período
       if (est || isRecurring()) instIn.value = 1;
       updatePreview();
     }
@@ -400,6 +418,7 @@
         field('Categoria', catIn)
       ]),
       recurRow,
+      faturaField,
       preview
     ]);
     syncAll();
@@ -411,6 +430,9 @@
       const d = global.Store.getData();
       const est = isEstorno();
       const recurrence = est ? 'none' : recIn.value;
+      // Fatura forçada (só quando não é recorrente)
+      const dueOverride = (dueChk.checked && recurrence === 'none' && /^\d{4}-\d{2}$/.test(dueMonthIn.value))
+        ? dueMonthIn.value : '';
       const payload = {
         cardId: cardIn.value, description: descIn.value.trim(),
         // Estorno é lançado como valor negativo (crédito que abate a fatura)
@@ -419,12 +441,17 @@
         installments: (est || recurrence !== 'none') ? 1 : Math.max(1, parseInt(instIn.value, 10) || 1),
         categoryId: catIn.value,
         recurrence: recurrence,
-        recurrenceEnd: recurrence === 'none' ? '' : (endIn.value || '')
+        recurrenceEnd: recurrence === 'none' ? '' : (endIn.value || ''),
+        dueOverride: dueOverride
       };
       if (isEdit) {
-        Object.assign(d.cardExpenses.find(function (x) { return x.id === ce.id; }), payload);
+        const ref = d.cardExpenses.find(function (x) { return x.id === ce.id; });
+        Object.assign(ref, payload);
+        if (!dueOverride) delete ref.dueOverride;
       } else {
-        d.cardExpenses.push(Object.assign({ id: U.uid('ce') }, payload));
+        const novo = Object.assign({ id: U.uid('ce') }, payload);
+        if (!dueOverride) delete novo.dueOverride;
+        d.cardExpenses.push(novo);
       }
       global.Store.save();
       const label = est ? 'Estorno' : 'Compra';
