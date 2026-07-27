@@ -170,12 +170,13 @@
       // diferentes por mês; mudar todos deve ser uma escolha explícita).
       scopeIn = select([
         { value: 'month', label: 'Somente ' + mLabel },
-        { value: 'all', label: 'Todos os meses' }
+        { value: 'future', label: 'Deste mês em diante' },
+        { value: 'all', label: 'Todos os meses (inclui anteriores)' }
       ], 'month');
       scopeField = field('Aplicar o valor em', scopeIn,
-        hasOverride
-          ? 'Este mês já tem um valor personalizado. Escolha "Todos os meses" para voltar ao valor da recorrência.'
-          : 'Por padrão, altera só este mês. Escolha "Todos os meses" para mudar o valor de toda a recorrência.');
+        '"Somente ' + mLabel + '": muda só este mês. "Deste mês em diante": muda ' +
+        'este e os próximos, mantendo os anteriores. "Todos os meses": muda tudo, ' +
+        'inclusive os meses passados.');
       // O seletor de escopo não faz sentido se a recorrência for removida
       function syncScope() { scopeField.style.display = recIn.value === 'none' ? 'none' : ''; }
       recIn.addEventListener('change', syncScope);
@@ -214,13 +215,32 @@
         ref.recurrence = recIn.value;
         ref.accountId = accountId;
         ref.recurrenceEnd = recIn.value === 'none' ? '' : (endIn.value || '');
-        // Valor: "só este mês" grava uma exceção; "todos os meses" grava na série
+        // Valor: escopo da alteração numa recorrência
         const scope = (scopeIn && recIn.value !== 'none') ? scopeIn.value : 'all';
         if (scope === 'month' && overrideKey) {
+          // só este mês: grava uma exceção
           d.amountOverrides[overrideKey] = amount;
-        } else {
+        } else if (scope === 'future' && overrideKey && occCtx) {
+          // deste mês em diante: congela os meses ANTERIORES no valor atual e
+          // passa a série (mês atual + futuros) a usar o novo valor.
+          const oldBase = Number(tx.amount) || 0;
+          const start = U.parseISO(ref.date);
+          let y = start.year, m = start.month0, guard = 0;
+          const endKey = occCtx.year * 12 + occCtx.month0;
+          while (y * 12 + m < endKey && guard++ < 1200) {
+            const k = ref.id + ':' + U.monthKey(y, m);
+            if (d.amountOverrides[k] == null) d.amountOverrides[k] = oldBase;
+            const nx = U.addMonths(y, m, 1); y = nx.year; m = nx.month0;
+          }
           ref.amount = amount;
-          if (overrideKey && d.amountOverrides[overrideKey] != null) delete d.amountOverrides[overrideKey];
+          delete d.amountOverrides[overrideKey]; // mês atual usa o novo valor da série
+        } else {
+          // todos os meses (inclui anteriores): novo valor em toda a série e
+          // limpa TODAS as exceções desta recorrência (passado e futuro).
+          ref.amount = amount;
+          Object.keys(d.amountOverrides).forEach(function (k) {
+            if (k.indexOf(ref.id + ':') === 0) delete d.amountOverrides[k];
+          });
         }
       } else {
         d.transactions.push({
