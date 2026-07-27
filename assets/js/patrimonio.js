@@ -141,12 +141,11 @@
     view.appendChild(renderEvolucaoPanel(d));
 
     const grid2 = el('div', { class: 'dashboard-grid' });
-    grid2.appendChild(renderInstituicoesPanel(d));
+    grid2.appendChild(renderInvPanel());
     grid2.appendChild(renderTiposPanel(d));
     view.appendChild(grid2);
 
     view.appendChild(renderImobPanel());
-    view.appendChild(renderInvPanel());
     view.appendChild(renderMovimentacaoPanel());
     view.appendChild(renderHistoricoPanel());
 
@@ -274,50 +273,6 @@
       el('h3', { class: 'panel-title', text: 'Evolução anual (investimentos)' }),
       el('div', { class: 'bars-wrap' }, [global.Charts.barsSigned(chartData, { height: 240, valueLabels: true })])
     ]);
-  }
-
-  /* ---------- Por instituição ---------- */
-  function renderInstituicoesPanel(d) {
-    const p = pat();
-    const agg = new Map();
-    p.investimentos.forEach(function (i) {
-      if (+i.valor > 0) {
-        const cur = agg.get(i.instituicao) || { valor: 0, local: i.local };
-        cur.valor += +i.valor;
-        if (i.local === 'Exterior') cur.local = 'Exterior';
-        agg.set(i.instituicao, cur);
-      }
-    });
-    const items = Array.from(agg.entries()).map(function (e) {
-      return { instituicao: e[0], valor: e[1].valor, local: e[1].local };
-    }).sort(function (a, b) { return b.valor - a.valor; });
-    const max = Math.max.apply(null, items.map(function (i) { return i.valor; }).concat([1]));
-
-    const panel = el('div', { class: 'panel' }, [
-      el('h3', { class: 'panel-title', text: 'Por instituição' })
-    ]);
-    if (!items.length) {
-      panel.appendChild(el('p', { class: 'muted', text: 'Nenhum investimento cadastrado.' }));
-      return panel;
-    }
-    items.forEach(function (it, i) {
-      const color = PALETTE[i % PALETTE.length];
-      const pct = d.invTotal > 0 ? (it.valor / d.invTotal * 100) : 0;
-      const bColor = brandColor(it.instituicao, color);
-      panel.appendChild(el('div', { class: 'budget-row' }, [
-        el('div', { class: 'budget-cat' }, [
-          brandBadge(it.instituicao, color),
-          el('span', { class: 'budget-name', text: it.instituicao + (it.local === 'Exterior' ? ' (US)' : '') })
-        ]),
-        el('div', { class: 'budget-track' }, [
-          el('div', { class: 'progress slim' }, [
-            el('div', { class: 'progress-fill', style: 'width:' + (it.valor / max * 100) + '%;background:' + bColor })
-          ]),
-          el('div', { class: 'budget-values muted small', text: U.formatBRL(it.valor) + ' · ' + pct.toFixed(0) + '%' })
-        ])
-      ]));
-    });
-    return panel;
   }
 
   /* ---------- Por tipo de ativo ---------- */
