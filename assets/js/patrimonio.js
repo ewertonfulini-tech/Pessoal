@@ -6,6 +6,11 @@
   const UI = global.UI;
   const el = U.el;
 
+  // Valores em R$ sem casas decimais (todo o painel de Patrimônio)
+  function money(n) {
+    return (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+  }
+
   const TIPOS = ['A classificar', 'Renda Fixa', 'Tesouro', 'Fundos', 'COE', 'FIIs', 'Ações',
     'Multimercado', 'Cripto', 'Previdência', 'Caixa', 'Outros'];
   const TYPE_ORDER = ['Renda Fixa', 'Tesouro', 'Fundos', 'COE', 'FIIs', 'Ações', 'Multimercado',
@@ -157,19 +162,19 @@
     const p = pat();
     // 1ª linha: Investimentos · Imóveis e veículos · Dívidas
     const row1 = el('div', { class: 'stat-grid' }, [
-      statCard('Investimentos', U.formatBRL(d.invTotal), '',
+      statCard('Investimentos', money(d.invTotal), '',
         countInstituicoes(p) + ' instituição(ões)'),
-      statCard('Imóveis & veículos', U.formatBRL(d.imobTotal), '',
+      statCard('Imóveis & veículos', money(d.imobTotal), '',
         p.imobilizado.length + ' bem(ns)'),
-      statCard('Dívidas / financiamentos', U.formatBRL(d.dividaTotal), d.dividaTotal > 0 ? 'negative' : '',
+      statCard('Dívidas / financiamentos', money(d.dividaTotal), d.dividaTotal > 0 ? 'negative' : '',
         (d.bruto > 0 ? (d.dividaTotal / d.bruto * 100).toFixed(0) : 0) + '% do patrimônio bruto')
     ]);
     // 2ª linha: Patrimônio líquido · Líquido + FGTS
     const row2 = el('div', { class: 'stat-grid', style: 'grid-template-columns:repeat(2,1fr)' }, [
-      statCard('Patrimônio líquido', U.formatBRL(d.liquidoSemFGTS), d.liquidoSemFGTS >= 0 ? 'positive' : 'negative',
+      statCard('Patrimônio líquido', money(d.liquidoSemFGTS), d.liquidoSemFGTS >= 0 ? 'positive' : 'negative',
         formatUSD(d.usdVal) + ' · câmbio R$ ' + U.formatNumber(p.cambioUSD)),
-      statCard('Líquido + FGTS', U.formatBRL(d.liquidoComFGTS), 'positive',
-        'inclui FGTS de ' + U.formatBRL(d.fgts))
+      statCard('Líquido + FGTS', money(d.liquidoComFGTS), 'positive',
+        'inclui FGTS de ' + money(d.fgts))
     ]);
     return el('div', {}, [row1, row2]);
   }
@@ -186,29 +191,34 @@
     const panel = el('div', { class: 'panel' }, [
       el('h3', { class: 'panel-title', text: 'Composição do patrimônio' })
     ]);
+    // O anel mostra a composição dos ativos (imóveis, investimentos, FGTS),
+    // mas o valor central é o LÍQUIDO — já descontando as dívidas.
     const donutWrap = el('div', { class: 'donut-wrap' }, [
-      global.Charts.donutGeneric(entries, { size: 180, stroke: 24, topLabel: 'ativos' })
+      global.Charts.donutGeneric(entries, {
+        size: 180, stroke: 24, topLabel: 'líquido', formatValue: money,
+        centerTotal: d.liquidoComFGTS
+      })
     ]);
     const legend = el('div', { class: 'legend' });
     entries.forEach(function (e) {
       legend.appendChild(el('div', { class: 'legend-item' }, [
         el('span', { class: 'legend-dot', style: 'background:' + e.color }),
         el('span', { class: 'legend-name', text: e.name }),
-        el('span', { class: 'legend-val', text: U.formatBRL(e.total) })
+        el('span', { class: 'legend-val', text: money(e.total) })
       ]));
     });
     if (d.dividaTotal > 0) {
       legend.appendChild(el('div', { class: 'legend-item' }, [
         el('span', { class: 'legend-dot', style: 'background:var(--danger)' }),
         el('span', { class: 'legend-name', text: '(–) Dívidas' }),
-        el('span', { class: 'legend-val', text: '-' + U.formatBRL(d.dividaTotal) })
+        el('span', { class: 'legend-val', text: '-' + money(d.dividaTotal) })
       ]));
     }
     if (!entries.length) legend.appendChild(el('p', { class: 'muted', text: 'Sem dados ainda.' }));
     panel.appendChild(el('div', { class: 'donut-layout' }, [donutWrap, legend]));
     if (totalAtivos > 0) {
       panel.appendChild(el('p', { class: 'muted small', text:
-        'Ativos totais: ' + U.formatBRL(totalAtivos) + ' · dívidas de ' + U.formatBRL(d.dividaTotal) + ' deduzidas do líquido' }));
+        'Ativos totais: ' + money(totalAtivos) + ' · dívidas de ' + money(d.dividaTotal) + ' deduzidas do líquido' }));
     }
     return panel;
   }
@@ -234,15 +244,15 @@
         editBtn
       ]),
       el('div', { class: 'goal-head' }, [
-        el('span', { text: U.formatBRL(d.invTotal) + ' de ' + U.formatBRL(meta) }),
-        el('strong', { class: falta > 0 ? 'neg' : '', text: falta > 0 ? 'falta ' + U.formatBRL(falta) : 'meta atingida' })
+        el('span', { text: money(d.invTotal) + ' de ' + money(meta) }),
+        el('strong', { class: falta > 0 ? 'neg' : '', text: falta > 0 ? 'falta ' + money(falta) : 'meta atingida' })
       ]),
       el('div', { class: 'progress' }, [
         el('div', { class: 'progress-fill', style: 'width:' + prog + '%' })
       ]),
       el('div', { class: 'goal-foot muted small', text:
         meta > 0
-          ? 'Aporte mensal necessário: ' + U.formatBRL(mensal) + '/mês (' + mesesRest + ' meses restantes em ' + p.meta.ano + ')'
+          ? 'Aporte mensal necessário: ' + money(mensal) + '/mês (' + mesesRest + ' meses restantes em ' + p.meta.ano + ')'
           : 'Defina um valor de meta para ver a projeção.' })
     ]);
   }
@@ -271,7 +281,7 @@
 
     return el('div', { class: 'panel' }, [
       el('h3', { class: 'panel-title', text: 'Evolução anual (investimentos)' }),
-      el('div', { class: 'bars-wrap' }, [global.Charts.barsSigned(chartData, { height: 240, valueLabels: true })])
+      el('div', { class: 'bars-wrap' }, [global.Charts.barsSigned(chartData, { height: 240, valueLabels: true, formatValue: money })])
     ]);
   }
 
@@ -299,17 +309,17 @@
       el('h3', { class: 'panel-title', text: 'Por tipo de ativo' })
     ]);
     if (naoClass > 0) {
-      panel.appendChild(el('p', { class: 'muted small', text: U.formatBRL(naoClass) + ' ainda sem classificação.' }));
+      panel.appendChild(el('p', { class: 'muted small', text: money(naoClass) + ' ainda sem classificação.' }));
     }
     const donutWrap = el('div', { class: 'donut-wrap' }, [
-      global.Charts.donutGeneric(entries, { size: 180, stroke: 24, topLabel: 'total' })
+      global.Charts.donutGeneric(entries, { size: 180, stroke: 24, topLabel: 'total', formatValue: money })
     ]);
     const legend = el('div', { class: 'legend' });
     entries.forEach(function (e) {
       legend.appendChild(el('div', { class: 'legend-item' }, [
         el('span', { class: 'legend-dot', style: 'background:' + e.color }),
         el('span', { class: 'legend-name', text: e.name }),
-        el('span', { class: 'legend-val', text: U.formatBRL(e.total) })
+        el('span', { class: 'legend-val', text: money(e.total) })
       ]));
     });
     if (!entries.length) legend.appendChild(el('p', { class: 'muted', text: 'Sem dados ainda.' }));
@@ -356,9 +366,9 @@
         el('div', { class: 'imob-sum-text' }, [
           el('span', { class: 'muted small', text: (k === 'Imóvel' ? 'Imóveis' : k === 'Veículo' ? 'Veículos' : 'Outros') +
             ' · ' + c.n + ' item(ns)' }),
-          el('strong', { class: 'imob-sum-val', text: U.formatBRL(c.valor) }),
+          el('strong', { class: 'imob-sum-val', text: money(c.valor) }),
           el('span', { class: 'muted small', text: c.divida > 0
-            ? 'líquido ' + U.formatBRL(liq) + ' · dívida ' + U.formatBRL(c.divida)
+            ? 'líquido ' + money(liq) + ' · dívida ' + money(c.divida)
             : 'sem dívidas' })
         ])
       ]));
@@ -383,11 +393,11 @@
         list.appendChild(el('div', { class: 'txn-row' }, [
           el('div', { class: 'txn-main' }, [
             el('span', { class: 'txn-desc', text: it.nome }),
-            el('span', { class: 'txn-meta', text: it.classe + ' · líquido ' + U.formatBRL(liq) +
-              (it.divida > 0 ? ' · dívida ' + U.formatBRL(it.divida) : '') })
+            el('span', { class: 'txn-meta', text: it.classe + ' · líquido ' + money(liq) +
+              (it.divida > 0 ? ' · dívida ' + money(it.divida) : '') })
           ]),
           el('div', { class: 'txn-right' }, [
-            el('span', { class: 'txn-amount', text: U.formatBRL(it.valor) }),
+            el('span', { class: 'txn-amount', text: money(it.valor) }),
             el('div', { class: 'row-actions' }, [
               el('button', {
                 class: 'icon-btn small', text: '✎', title: 'Editar',
@@ -440,7 +450,7 @@
         brandBadge(nome),
         el('div', { class: 'imob-sum-text' }, [
           el('span', { class: 'muted small', text: nome + (info.local === 'Exterior' ? ' (US)' : '') + ' · ' + info.n + ' item(ns)' }),
-          el('strong', { class: 'imob-sum-val', text: U.formatBRL(info.valor) })
+          el('strong', { class: 'imob-sum-val', text: money(info.valor) })
         ])
       ]));
     });
@@ -470,7 +480,7 @@
             ])
           ]),
           el('div', { class: 'txn-right' }, [
-            el('span', { class: 'txn-amount', text: U.formatBRL(it.valor) }),
+            el('span', { class: 'txn-amount', text: money(it.valor) }),
             el('div', { class: 'row-actions' }, [
               el('button', {
                 class: 'icon-btn small', text: '✎', title: 'Editar',
@@ -511,8 +521,8 @@
     const totAporte = movs.reduce(function (a, m) { return a + (+m.aporte || 0); }, 0);
     const totRend = movs.reduce(function (a, m) { return a + (+m.rentabilidade || 0); }, 0);
     panel.appendChild(el('div', { class: 'stat-grid slim' }, [
-      statCard('Aporte no período', U.formatBRL(totAporte), ''),
-      statCard('Rendimento no período', U.formatBRL(totRend), totRend >= 0 ? 'positive' : 'negative')
+      statCard('Aporte no período', money(totAporte), ''),
+      statCard('Rendimento no período', money(totRend), totRend >= 0 ? 'positive' : 'negative')
     ]));
 
     const chartData = movs.map(function (m) {
@@ -524,7 +534,7 @@
         ]
       };
     });
-    panel.appendChild(el('div', { class: 'bars-wrap' }, [global.Charts.barsSigned(chartData, { height: 240, valueLabels: true })]));
+    panel.appendChild(el('div', { class: 'bars-wrap' }, [global.Charts.barsSigned(chartData, { height: 240, valueLabels: true, formatValue: money })]));
     panel.appendChild(el('div', { class: 'legend-inline' }, [
       el('span', { class: 'legend-item' }, [
         el('span', { class: 'legend-dot', style: 'background:' + PALETTE[0] }), el('span', { text: 'Aporte' })
@@ -543,12 +553,12 @@
       list.appendChild(el('div', { class: 'txn-row compact' }, [
         el('div', { class: 'txn-main' }, [
           el('span', { class: 'txn-desc', text: monthLabelShort(m.mes) }),
-          el('span', { class: 'txn-meta', text: 'saldo ' + U.formatBRL(m.saldo || 0) + ' · aporte ' + U.formatBRL(m.aporte || 0) })
+          el('span', { class: 'txn-meta', text: 'saldo ' + money(m.saldo || 0) + ' · aporte ' + money(m.aporte || 0) })
         ]),
         el('div', { class: 'txn-right' }, [
           el('span', {
             class: 'txn-amount ' + ((+m.rentabilidade || 0) >= 0 ? 'pos' : 'neg'),
-            text: U.formatBRL(m.rentabilidade || 0)
+            text: money(m.rentabilidade || 0)
           }),
           el('div', { class: 'row-actions' }, [
             el('button', {

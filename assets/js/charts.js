@@ -21,6 +21,7 @@
     const cx = size / 2, cy = size / 2;
     const circ = 2 * Math.PI * r;
     const total = data.reduce(function (s, d) { return s + d.total; }, 0);
+    const formatValue = opts.formatValue || U.formatBRL;
 
     const svg = svgEl('svg', {
       viewBox: '0 0 ' + size + ' ' + size,
@@ -58,7 +59,7 @@
         'stroke-dashoffset': -offset,
         transform: 'rotate(-90 ' + cx + ' ' + cy + ')'
       });
-      seg.appendChild(svgEl('title')).textContent = d.name + ': ' + U.formatBRL(d.total);
+      seg.appendChild(svgEl('title')).textContent = d.name + ': ' + formatValue(d.total);
       svg.appendChild(seg);
       offset += len;
     });
@@ -67,7 +68,7 @@
     const center = svgEl('text', {
       x: cx, y: cy - 6, 'text-anchor': 'middle', class: 'chart-donut-total'
     });
-    center.textContent = opts.maskTotal ? 'R$ ••••' : U.formatBRL(total);
+    center.textContent = opts.maskTotal ? 'R$ ••••' : formatValue(total);
     const label = svgEl('text', {
       x: cx, y: cy + 16, 'text-anchor': 'middle', class: 'chart-donut-label'
     });
@@ -83,6 +84,7 @@
     opts = opts || {};
     const w = opts.width || 640;
     const h = opts.height || 240;
+    const formatValue = opts.formatValue || U.formatBRL;
     const padL = 8, padR = 8, padT = 16, padB = 28;
     const innerW = w - padL - padR;
     const innerH = h - padT - padB;
@@ -120,14 +122,14 @@
         width: barW, height: Math.max(0, incH), rx: 3,
         fill: 'var(--income)'
       });
-      incBar.appendChild(svgEl('title')).textContent = 'Receitas: ' + U.formatBRL(d.income);
+      incBar.appendChild(svgEl('title')).textContent = 'Receitas: ' + formatValue(d.income);
 
       const expBar = svgEl('rect', {
         x: gx + 2, y: padT + innerH - expH,
         width: barW, height: Math.max(0, expH), rx: 3,
         fill: 'var(--expense)'
       });
-      expBar.appendChild(svgEl('title')).textContent = 'Despesas: ' + U.formatBRL(d.expense);
+      expBar.appendChild(svgEl('title')).textContent = 'Despesas: ' + formatValue(d.expense);
 
       svg.appendChild(incBar);
       svg.appendChild(expBar);
@@ -194,10 +196,14 @@
       offset += len;
     });
 
+    // O centro mostra opts.centerTotal quando informado (ex.: líquido, já
+    // descontando dívidas), mesmo que o anel represente só a composição dos
+    // ativos (dívida não é uma "fatia" da composição, e sim um desconto).
+    const centerVal = (opts.centerTotal != null) ? opts.centerTotal : total;
     const center = svgEl('text', {
       x: cx, y: cy - 6, 'text-anchor': 'middle', class: 'chart-donut-total'
     });
-    center.textContent = formatValue(total);
+    center.textContent = formatValue(centerVal);
     const label = svgEl('text', {
       x: cx, y: cy + 16, 'text-anchor': 'middle', class: 'chart-donut-label'
     });

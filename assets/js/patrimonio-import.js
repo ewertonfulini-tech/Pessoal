@@ -7,6 +7,11 @@
   const U = global.Utils;
   const el = U.el;
 
+  // Valores em R$ sem casas decimais (consistente com o restante do painel de Patrimônio)
+  function money(n) {
+    return (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+  }
+
   const PDFJS_WORKER_URL = 'assets/js/vendor/pdfjs-worker.js';
   const PDFJS_MAIN_URL = 'assets/js/vendor/pdfjs-main.js';
   const LOCKED_BLOB_PLACEHOLDER = '/*__LOCKED_BLOB__*/null';
@@ -528,7 +533,7 @@
 
     const box2 = el('div', { class: 'panel', style: 'padding:12px;font-size:12.5px' }, [
       el('p', { text: name + ' — ' + (parsed.banco ? parsed.banco + ' · ' : '') +
-        (parsed.tipo === 'investimentos' ? ('investimentos (' + U.formatBRL(total) + ')') : ('movimentação mensal (' + parsed.linhas.length + ' mês(es))')) })
+        (parsed.tipo === 'investimentos' ? ('investimentos (' + money(total) + ')') : ('movimentação mensal (' + parsed.linhas.length + ' mês(es))')) })
     ]);
 
     let instIn = null;
@@ -541,7 +546,7 @@
     parsed.linhas.slice(0, 14).forEach(function (l) {
       list.appendChild(el('div', { class: 'muted small', style: 'display:flex;justify-content:space-between' }, [
         el('span', { text: parsed.tipo === 'investimentos' ? (l.tipo || 'A classificar') : U.formatDateBR(l.mes + '-01') }),
-        el('span', { text: parsed.tipo === 'investimentos' ? U.formatBRL(l.valor) : ('aporte ' + U.formatBRL(l.aporte) + ' · rend. ' + U.formatBRL(l.rentabilidade)) })
+        el('span', { text: parsed.tipo === 'investimentos' ? money(l.valor) : ('aporte ' + money(l.aporte) + ' · rend. ' + money(l.rentabilidade)) })
       ]));
     });
     if (parsed.linhas.length > 14) list.appendChild(el('p', { class: 'muted small', text: '… +' + (parsed.linhas.length - 14) }));
