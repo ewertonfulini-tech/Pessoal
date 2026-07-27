@@ -295,7 +295,10 @@
         map.set(t, (map.get(t) || 0) + (+i.valor));
       }
     });
+    // Do maior para o menor valor (empate: ordem padrão dos tipos)
     const types = Array.from(map.keys()).sort(function (a, b) {
+      const diff = map.get(b) - map.get(a);
+      if (diff !== 0) return diff;
       let ia = TYPE_ORDER.indexOf(a), ib = TYPE_ORDER.indexOf(b);
       if (ia < 0) ia = 99; if (ib < 0) ib = 99;
       return ia !== ib ? ia - ib : a.localeCompare(b, 'pt-BR');
