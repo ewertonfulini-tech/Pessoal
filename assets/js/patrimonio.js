@@ -17,8 +17,9 @@
 
   const view = document.getElementById('view');
 
-  // Estado de UI (não persistido): detalhamento de imóveis/veículos expandido
+  // Estado de UI (não persistido): detalhamentos expandidos
   let imobExpanded = false;
+  let invExpanded = false;
 
   function pat() { return global.Store.getData().patrimonio; }
   function refresh() { render(); }
@@ -467,10 +468,43 @@
       return panel;
     }
     const totByInst = new Map();
-    p.investimentos.forEach(function (i) { totByInst.set(i.instituicao, (totByInst.get(i.instituicao) || 0) + (+i.valor || 0)); });
+    p.investimentos.forEach(function (i) {
+      const cur = totByInst.get(i.instituicao) || { valor: 0, n: 0, local: i.local };
+      cur.valor += (+i.valor || 0);
+      cur.n += 1;
+      if (i.local === 'Exterior') cur.local = 'Exterior';
+      totByInst.set(i.instituicao, cur);
+    });
+
+    // Resumo por instituição (selo + valor somado), detalhamento recolhido
+    const insts = Array.from(totByInst.entries()).sort(function (a, b) { return b[1].valor - a[1].valor; });
+    const resumo = el('div', { class: 'imob-summary' });
+    insts.forEach(function (e) {
+      const nome = e[0], info = e[1];
+      resumo.appendChild(el('div', { class: 'imob-sum-card' }, [
+        brandBadge(nome),
+        el('div', { class: 'imob-sum-text' }, [
+          el('span', { class: 'muted small', text: nome + (info.local === 'Exterior' ? ' (US)' : '') + ' · ' + info.n + ' item(ns)' }),
+          el('strong', { class: 'imob-sum-val', text: U.formatBRL(info.valor) })
+        ])
+      ]));
+    });
+    panel.appendChild(resumo);
+
+    const expanded = !!invExpanded;
+    panel.appendChild(el('button', {
+      class: 'card-toggle' + (expanded ? ' open' : ''),
+      onclick: function () { invExpanded = !expanded; refresh(); }
+    }, [
+      el('span', { class: 'card-toggle-caret', text: expanded ? '▾' : '▸' }),
+      el('span', { text: (expanded ? 'Ocultar detalhamento' : 'Ver detalhamento') +
+        ' (' + p.investimentos.length + ')' })
+    ]));
+    if (!expanded) return panel;
+
     const list = el('div', { class: 'txn-list' });
     p.investimentos.slice()
-      .sort(function (a, b) { return (totByInst.get(b.instituicao) - totByInst.get(a.instituicao)) || (b.valor - a.valor); })
+      .sort(function (a, b) { return (totByInst.get(b.instituicao).valor - totByInst.get(a.instituicao).valor) || (b.valor - a.valor); })
       .forEach(function (it) {
         list.appendChild(el('div', { class: 'txn-row' }, [
           el('div', { class: 'txn-main inst-main' }, [
