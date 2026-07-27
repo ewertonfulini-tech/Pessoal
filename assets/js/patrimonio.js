@@ -17,6 +17,9 @@
 
   const view = document.getElementById('view');
 
+  // Estado de UI (não persistido): detalhamento de imóveis/veículos expandido
+  let imobExpanded = false;
+
   function pat() { return global.Store.getData().patrimonio; }
   function refresh() { render(); }
 
@@ -31,6 +34,59 @@
   function countInstituicoes(p) {
     return new Set(p.investimentos.filter(function (i) { return +i.valor > 0; })
       .map(function (i) { return i.instituicao; })).size;
+  }
+
+  /* ---------- Selo da instituição (monograma com a cor da marca) ----------
+   * Usamos as iniciais da instituição sobre a cor característica dela — não
+   * embutimos logotipos de terceiros (marcas registradas) no projeto.
+   */
+  const BRAND_COLORS = {
+    itau: '#EC7000', 'banco do brasil': '#F9DD16', bb: '#F9DD16', bradesco: '#CC092F',
+    santander: '#EC0000', caixa: '#0070AF', nubank: '#820AD1', nu: '#820AD1',
+    inter: '#FF7A00', c6: '#242424', 'c6 bank': '#242424', original: '#00A868',
+    xp: '#0F0F0F', 'xp investimentos': '#0F0F0F', rico: '#F5333F', clear: '#00B2A9',
+    btg: '#00285E', 'btg pactual': '#00285E', 'modal mais': '#0A2240', modalmais: '#0A2240',
+    genial: '#00C08B', daycoval: '#003B71', safra: '#0C2340', sicredi: '#3FA110',
+    sicoob: '#003641', banrisul: '#0072BC', 'mercado pago': '#00B1EA', picpay: '#21C25E',
+    'will bank': '#FFDD00', neon: '#00E1FF', pan: '#00A1E0', avenue: '#0B1F3A',
+    nomad: '#111827', 'interactive brokers': '#D81222', binance: '#F0B90B',
+    'porto seguro': '#0033A0', porto: '#0033A0', 'brb': '#0A5C36', agora: '#E30613'
+  };
+  function normBrand(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  }
+  function brandColor(nome, fallback) {
+    const n = normBrand(nome);
+    if (BRAND_COLORS[n]) return BRAND_COLORS[n];
+    // casa pelo primeiro token conhecido (ex.: "Itau - Personnalite" -> itau)
+    const keys = Object.keys(BRAND_COLORS);
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i];
+      if (k.length >= 3 && new RegExp('(^|[^a-z0-9])' + k + '($|[^a-z0-9])').test(n)) return BRAND_COLORS[k];
+    }
+    return fallback || 'var(--primary)';
+  }
+  // Preto/branco conforme o contraste da cor de fundo (para marcas claras)
+  function inkFor(hex) {
+    const m = /^#([0-9a-f]{6})$/i.exec(String(hex || ''));
+    if (!m) return '#fff';
+    const v = parseInt(m[1], 16);
+    const r = (v >> 16) & 255, g = (v >> 8) & 255, b = v & 255;
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 165 ? '#111' : '#fff';
+  }
+  function brandInitials(nome) {
+    const parts = String(nome || '').trim().split(/[^A-Za-zÀ-ÿ0-9]+/).filter(Boolean);
+    if (!parts.length) return '?';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  function brandBadge(nome, fallbackColor) {
+    const bg = brandColor(nome, fallbackColor);
+    return el('span', {
+      class: 'brand-badge', title: nome,
+      style: 'background:' + bg + ';color:' + inkFor(bg),
+      text: brandInitials(nome)
+    });
   }
 
   /* ---------- Componentes locais (mesma convenção de app.js) ---------- */
@@ -246,14 +302,15 @@
     items.forEach(function (it, i) {
       const color = PALETTE[i % PALETTE.length];
       const pct = d.invTotal > 0 ? (it.valor / d.invTotal * 100) : 0;
+      const bColor = brandColor(it.instituicao, color);
       panel.appendChild(el('div', { class: 'budget-row' }, [
         el('div', { class: 'budget-cat' }, [
-          el('span', { class: 'cat-dot', style: 'background:' + color }),
+          brandBadge(it.instituicao, color),
           el('span', { class: 'budget-name', text: it.instituicao + (it.local === 'Exterior' ? ' (US)' : '') })
         ]),
         el('div', { class: 'budget-track' }, [
           el('div', { class: 'progress slim' }, [
-            el('div', { class: 'progress-fill', style: 'width:' + (it.valor / max * 100) + '%;background:' + color })
+            el('div', { class: 'progress-fill', style: 'width:' + (it.valor / max * 100) + '%;background:' + bColor })
           ]),
           el('div', { class: 'budget-values muted small', text: U.formatBRL(it.valor) + ' · ' + pct.toFixed(0) + '%' })
         ])
@@ -321,6 +378,48 @@
       panel.appendChild(el('p', { class: 'muted', text: 'Nenhum imóvel ou veículo cadastrado.' }));
       return panel;
     }
+
+    // Resumo por classe (ícone + total), com o detalhamento recolhido
+    const CLASS_ICON = { 'Imóvel': '🏠', 'Veículo': '🚗', 'Outro': '📦' };
+    const byClass = new Map();
+    p.imobilizado.forEach(function (it) {
+      const k = it.classe || 'Outro';
+      const cur = byClass.get(k) || { valor: 0, divida: 0, n: 0 };
+      cur.valor += (+it.valor || 0);
+      cur.divida += (+it.divida || 0);
+      cur.n += 1;
+      byClass.set(k, cur);
+    });
+    const resumo = el('div', { class: 'imob-summary' });
+    ['Imóvel', 'Veículo', 'Outro'].forEach(function (k) {
+      const c = byClass.get(k);
+      if (!c) return;
+      const liq = c.valor - c.divida;
+      resumo.appendChild(el('div', { class: 'imob-sum-card' }, [
+        el('span', { class: 'imob-sum-icon', text: CLASS_ICON[k] || '📦' }),
+        el('div', { class: 'imob-sum-text' }, [
+          el('span', { class: 'muted small', text: (k === 'Imóvel' ? 'Imóveis' : k === 'Veículo' ? 'Veículos' : 'Outros') +
+            ' · ' + c.n + ' item(ns)' }),
+          el('strong', { class: 'imob-sum-val', text: U.formatBRL(c.valor) }),
+          el('span', { class: 'muted small', text: c.divida > 0
+            ? 'líquido ' + U.formatBRL(liq) + ' · dívida ' + U.formatBRL(c.divida)
+            : 'sem dívidas' })
+        ])
+      ]));
+    });
+    panel.appendChild(resumo);
+
+    const expanded = !!imobExpanded;
+    panel.appendChild(el('button', {
+      class: 'card-toggle' + (expanded ? ' open' : ''),
+      onclick: function () { imobExpanded = !expanded; refresh(); }
+    }, [
+      el('span', { class: 'card-toggle-caret', text: expanded ? '▾' : '▸' }),
+      el('span', { text: (expanded ? 'Ocultar detalhamento' : 'Ver detalhamento') +
+        ' (' + p.imobilizado.length + ')' })
+    ]));
+    if (!expanded) return panel;
+
     const list = el('div', { class: 'txn-list' });
     p.imobilizado.slice().sort(function (a, b) { return (b.valor - b.divida) - (a.valor - a.divida); })
       .forEach(function (it) {
@@ -374,9 +473,12 @@
       .sort(function (a, b) { return (totByInst.get(b.instituicao) - totByInst.get(a.instituicao)) || (b.valor - a.valor); })
       .forEach(function (it) {
         list.appendChild(el('div', { class: 'txn-row' }, [
-          el('div', { class: 'txn-main' }, [
-            el('span', { class: 'txn-desc', text: it.instituicao + (it.local === 'Exterior' ? ' (US)' : '') }),
-            el('span', { class: 'txn-meta', text: it.tipo || 'A classificar' })
+          el('div', { class: 'txn-main inst-main' }, [
+            brandBadge(it.instituicao),
+            el('div', { class: 'inst-text' }, [
+              el('span', { class: 'txn-desc', text: it.instituicao + (it.local === 'Exterior' ? ' (US)' : '') }),
+              el('span', { class: 'txn-meta', text: it.tipo || 'A classificar' })
+            ])
           ]),
           el('div', { class: 'txn-right' }, [
             el('span', { class: 'txn-amount', text: U.formatBRL(it.valor) }),
