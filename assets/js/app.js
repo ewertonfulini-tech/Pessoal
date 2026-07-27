@@ -349,12 +349,14 @@
     groups.forEach(function (date) {
       const rows = byDate[date];
       const subtotal = rows.reduce(function (s, o) { return s + o.amount; }, 0);
+      // O subtotal do dia só faz sentido com 2+ lançamentos; com um só, repetiria
+      // o mesmo valor que já aparece na própria linha.
       container.appendChild(el('div', { class: 'day-header' }, [
         el('span', { class: 'day-date', text: U.formatDateBR(date) }),
-        el('span', {
+        rows.length > 1 ? el('span', {
           class: 'day-subtotal ' + (isIncome ? 'pos' : 'neg'),
           text: (isIncome ? '+ ' : '- ') + U.formatBRL(subtotal)
-        })
+        }) : null
       ]));
       rows.forEach(function (o) {
         // Linha consolidada da fatura de cartão paga (só exibição)
