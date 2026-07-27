@@ -620,9 +620,9 @@ html, body {
 
   /* Linhas de lançamento empilhadas (evita o valor sobrepor a descrição) */
   .txn-row { flex-direction: column; align-items: stretch; gap: 10px; }
-  .txn-right { justify-content: space-between; width: 100%; }
-  .txn-amount { font-size: 16px; }
-  .row-actions { margin-left: auto; }
+  .txn-right { justify-content: flex-start; width: 100%; }
+  .txn-amount { font-size: 16px; margin-left: auto; text-align: right; }
+  .row-actions { margin-left: 0; }
 
   /* Cartões: cabeçalho e ações acomodam melhor */
   .card-head-actions { width: 100%; justify-content: flex-end; }

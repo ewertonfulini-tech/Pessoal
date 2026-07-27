@@ -406,14 +406,14 @@
           ]),
           el('div', { class: 'txn-right' }, [
             paidBtn,
-            el('span', {
-              class: 'txn-amount ' + (isIncome ? 'pos' : 'neg'),
-              text: (isIncome ? '+ ' : '- ') + U.formatBRL(o.amount)
-            }),
             rowActions(
               function () { global.UI.openTransactionModal(type, tx, refresh, { year: state.year, month0: state.month0 }); },
               function () { deleteTransaction(tx, o.recurrence !== 'none'); }
-            )
+            ),
+            el('span', {
+              class: 'txn-amount ' + (isIncome ? 'pos' : 'neg'),
+              text: (isIncome ? '+ ' : '- ') + U.formatBRL(o.amount)
+            })
           ])
         ]));
       });
