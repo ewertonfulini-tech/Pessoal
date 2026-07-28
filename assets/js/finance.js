@@ -21,9 +21,13 @@
     const start = U.parseISO(tx.date);
     const rec = tx.recurrence || 'none';
 
-    // Mês pausado (recorrência): não gera ocorrência neste mês
+    // Ocorrência excluída: por data exata (1 lançamento específico) ou,
+    // por compatibilidade com dados antigos, por mês inteiro (chave "id:YYYY-MM").
     const skips = global.Store.getData().skipOverrides;
-    if (skips && skips[tx.id + ':' + U.monthKey(year, month0)]) return out;
+    function isSkipped(dateISO) {
+      if (!skips) return false;
+      return !!(skips[tx.id + ':' + dateISO] || skips[tx.id + ':' + dateISO.slice(0, 7)]);
+    }
 
     function makeOcc(dateISO) {
       const store = global.Store.getData();
@@ -59,7 +63,7 @@
     }
 
     if (rec === 'none') {
-      if (start.year === year && start.month0 === month0) out.push(makeOcc(tx.date));
+      if (start.year === year && start.month0 === month0 && !isSkipped(tx.date)) out.push(makeOcc(tx.date));
       return out;
     }
 
@@ -68,7 +72,7 @@
       if (U.monthDiff(year, month0, start.year, start.month0) < 0) return out;
       const iso = U.buildISO(year, month0, start.day);
       const p = U.parseISO(iso);
-      if (beforeEnd(p.year, p.month0, p.day)) out.push(makeOcc(iso));
+      if (beforeEnd(p.year, p.month0, p.day) && !isSkipped(iso)) out.push(makeOcc(iso));
       return out;
     }
 
@@ -77,7 +81,7 @@
       if (year < start.year) return out;
       const iso = U.buildISO(year, month0, start.day);
       const p = U.parseISO(iso);
-      if (beforeEnd(p.year, p.month0, p.day)) out.push(makeOcc(iso));
+      if (beforeEnd(p.year, p.month0, p.day) && !isSkipped(iso)) out.push(makeOcc(iso));
       return out;
     }
 
@@ -89,7 +93,9 @@
         if (wd !== targetWeekday) continue;
         if (!afterStart(year, month0, day)) continue;
         if (!beforeEnd(year, month0, day)) continue;
-        out.push(makeOcc(U.buildISO(year, month0, day)));
+        const iso = U.buildISO(year, month0, day);
+        if (isSkipped(iso)) continue;
+        out.push(makeOcc(iso));
       }
       return out;
     }
@@ -193,9 +199,18 @@
     if (!card) return [];
     const rec = ce.recurrence || 'none';
 
+    // Cobrança excluída: por data exata (1 lançamento específico) ou, por
+    // compatibilidade com dados antigos, por fatura inteira ("id:YYYY-MM").
+    const skips = global.Store.getData().cardSkipOverrides;
+    function isSkipped(dateISO) {
+      if (!skips) return false;
+      return !!(skips[ce.id + ':' + dateISO] || skips[ce.id + ':' + U.monthKey(year, month0)]);
+    }
+
     if (rec === 'none') {
       return installmentsOf(ce)
         .filter(function (p) { return p.due.year === year && p.due.month0 === month0; })
+        .filter(function (p) { return !isSkipped(ce.purchaseDate); })
         .map(function (p) {
           return { amount: p.amount, n: p.n, of: p.of, purchaseDate: ce.purchaseDate,
             dueISO: p.dueISO, recurring: false };
@@ -221,9 +236,11 @@
     function pushOcc(serial) {
       if (serial < startSerial || serial > endSerial || serial < winStart || serial > winEnd) return;
       const dt = new Date(serial * 86400000);
+      const dateISO = U.buildISO(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
+      if (isSkipped(dateISO)) return;
       charges.push({
         amount: amount, n: 1, of: 1, recurring: true, dueISO: dueISO,
-        purchaseDate: U.buildISO(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate())
+        purchaseDate: dateISO
       });
     }
 

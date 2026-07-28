@@ -54,6 +54,8 @@
       amountOverrides: {},
       // Meses pausados de uma recorrência: chave "id:YYYY-MM" -> true (não gera a ocorrência)
       skipOverrides: {},
+      // Faturas puladas de uma compra recorrente no cartão: chave "cardExpenseId:YYYY-MM" -> true
+      cardSkipOverrides: {},
       // Faturas pagas: chave "cardId:YYYY-MM" -> true
       invoicePaid: {},
       // Contas (banco/carteira/dinheiro) com saldo inicial
@@ -95,6 +97,7 @@
     if (!merged.paidOverrides || typeof merged.paidOverrides !== 'object') merged.paidOverrides = {};
     if (!merged.amountOverrides || typeof merged.amountOverrides !== 'object') merged.amountOverrides = {};
     if (!merged.skipOverrides || typeof merged.skipOverrides !== 'object') merged.skipOverrides = {};
+    if (!merged.cardSkipOverrides || typeof merged.cardSkipOverrides !== 'object') merged.cardSkipOverrides = {};
     if (!merged.invoicePaid || typeof merged.invoicePaid !== 'object') merged.invoicePaid = {};
     if (!merged.settings || typeof merged.settings !== 'object') merged.settings = {};
 

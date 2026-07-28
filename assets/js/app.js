@@ -415,7 +415,7 @@
             paidBtn,
             rowActions(
               function () { global.UI.openTransactionModal(type, tx, refresh, { year: state.year, month0: state.month0 }); },
-              function () { deleteTransaction(tx, o.recurrence !== 'none'); }
+              function () { deleteTransaction(tx, o.recurrence !== 'none', o.date); }
             ),
             el('span', {
               class: 'txn-amount ' + (isIncome ? 'pos' : 'neg'),
@@ -439,7 +439,7 @@
     render();
   }
 
-  function deleteTransaction(tx, isRecurring) {
+  function deleteTransaction(tx, isRecurring, occDate) {
     if (!isRecurring) {
       global.UI.confirmModal('Excluir lançamento', 'Excluir "' + tx.description + '"?', function () {
         const d = global.Store.getData();
@@ -450,23 +450,23 @@
       }, true);
       return;
     }
-    // Recorrente: apagar só neste mês (pausa) ou a série inteira
-    const mLabel = U.monthLabel(state.year, state.month0);
+    // Recorrente: apagar só esta ocorrência (data exata) ou a série inteira
+    const dLabel = U.formatDateBR(occDate);
     const body = el('div', { class: 'modal-body' }, [
       el('p', { class: 'confirm-text', html:
         'Excluir "<b>' + U.escapeHtml(tx.description) + '</b>" — esta é uma recorrência. O que você quer fazer?' }),
       el('p', { class: 'muted small', text:
-        '"Só neste mês" pausa a cobrança em ' + mLabel + ' (útil para assinaturas pausadas); ' +
-        'os outros meses continuam.' })
+        '"Só este lançamento" remove apenas a ocorrência de ' + dLabel + '; ' +
+        'as demais (passadas e futuras) continuam normalmente.' })
     ]);
     global.UI.openModal('Excluir recorrência', body, {
       buttons: [
         { label: 'Cancelar', variant: 'ghost', onClick: function (c) { c(); } },
-        { label: 'Só neste mês', variant: 'primary', onClick: function (c) {
+        { label: 'Só este lançamento', variant: 'primary', onClick: function (c) {
           const d = global.Store.getData();
-          d.skipOverrides[tx.id + ':' + U.monthKey(state.year, state.month0)] = true;
+          d.skipOverrides[tx.id + ':' + occDate] = true;
           global.Store.save(); c();
-          U.toast('Pausado em ' + mLabel + '.', 'success');
+          U.toast('Lançamento de ' + dLabel + ' excluído.', 'success');
           render();
         } },
         { label: 'Toda a recorrência', variant: 'danger', onClick: function (c) {
@@ -611,7 +611,7 @@
               text: (isCredit ? '+ ' : '- ') + U.formatBRL(Math.abs(i.amount)) }),
             rowActions(
               function () { global.UI.openCardExpenseModal(card.id, ce, refresh); },
-              function () { deleteCardExpense(ce); }
+              function () { deleteCardExpense(ce, i.recurring, i.purchaseDate); }
             )
           ])
         ]);
@@ -768,15 +768,48 @@
     }, true);
   }
 
-  function deleteCardExpense(ce) {
-    global.UI.confirmModal('Excluir compra',
-      'Excluir "' + ce.description + '"? Todas as parcelas serão removidas.', function () {
-        const d = global.Store.getData();
-        d.cardExpenses = d.cardExpenses.filter(function (x) { return x.id !== ce.id; });
-        global.Store.save();
-        U.toast('Compra excluída.', 'success');
-        render();
-      }, true);
+  function deleteCardExpense(ce, isRecurring, occDate) {
+    if (!isRecurring) {
+      global.UI.confirmModal('Excluir compra',
+        'Excluir "' + ce.description + '"? ' +
+        (ce.installments > 1 ? 'Todas as parcelas serão removidas.' : ''), function () {
+          const d = global.Store.getData();
+          d.cardExpenses = d.cardExpenses.filter(function (x) { return x.id !== ce.id; });
+          global.Store.save();
+          U.toast('Compra excluída.', 'success');
+          render();
+        }, true);
+      return;
+    }
+    // Recorrente: apagar só esta ocorrência (data exata) ou a série inteira
+    const dLabel = U.formatDateBR(occDate);
+    const body = el('div', { class: 'modal-body' }, [
+      el('p', { class: 'confirm-text', html:
+        'Excluir "<b>' + U.escapeHtml(ce.description) + '</b>" — esta é uma cobrança recorrente. ' +
+        'O que você quer fazer?' }),
+      el('p', { class: 'muted small', text:
+        '"Só esta cobrança" remove apenas a ocorrência de ' + dLabel + '; as demais ' +
+        '(passadas e futuras) continuam normalmente.' })
+    ]);
+    global.UI.openModal('Excluir recorrência', body, {
+      buttons: [
+        { label: 'Cancelar', variant: 'ghost', onClick: function (c) { c(); } },
+        { label: 'Só esta cobrança', variant: 'primary', onClick: function (c) {
+          const d = global.Store.getData();
+          d.cardSkipOverrides[ce.id + ':' + occDate] = true;
+          global.Store.save(); c();
+          U.toast('Cobrança de ' + dLabel + ' excluída.', 'success');
+          render();
+        } },
+        { label: 'Toda a recorrência', variant: 'danger', onClick: function (c) {
+          const d = global.Store.getData();
+          d.cardExpenses = d.cardExpenses.filter(function (x) { return x.id !== ce.id; });
+          global.Store.save(); c();
+          U.toast('Recorrência excluída.', 'success');
+          render();
+        } }
+      ]
+    });
   }
 
   /* ================================================================== *
