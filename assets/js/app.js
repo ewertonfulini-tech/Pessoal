@@ -375,13 +375,13 @@
               ])
             ]),
             el('div', { class: 'txn-right' }, [
-              el('span', { class: 'txn-amount neg', text: '- ' + U.formatBRL(o.amount) }),
               el('button', {
                 class: 'chip ' + (o.paid ? 'chip-on' : ''),
                 title: o.paid ? 'Desmarcar fatura como paga' : 'Marcar fatura como paga',
                 text: o.paid ? '✓ Pago' : 'Marcar pago',
                 onclick: function () { toggleInvoicePaid(o.cardId); }
-              })
+              }),
+              el('span', { class: 'txn-amount neg', text: '- ' + U.formatBRL(o.amount) })
             ])
           ]));
           return;
