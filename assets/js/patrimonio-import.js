@@ -324,6 +324,30 @@
         return { banco: 'ARQ / Alpaca (US$→R$ ' + cambioUSD + ')', tipo: 'investimentos', instituicao: 'ARQ', local: 'Exterior', linhas: linhas };
       }
     }
+    // 6) Itaú — posição consolidada (Personnalité)
+    if (/itaupersonnalite/i.test(flat) ||
+        (/total investido/i.test(flat) && /ag[êe]ncia\s+conta corrente/i.test(flat))) {
+      const ITAU_TMAP = {
+        'Investimentos Imobiliários': 'FIIs',
+        'Tesouro Direto': 'Tesouro',
+        'Ações': 'Ações',
+        'Poupança': 'Caixa',
+        'Fundos de Investimento': 'Fundos',
+        'CDB, Renda Fixa e Estruturados': 'Renda Fixa',
+        'Previdência': 'Previdência'
+      };
+      const linhas = [];
+      Object.keys(ITAU_TMAP).forEach(function (label) {
+        const esc = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(esc + '\\s+(?:R\\$\\s*-?[\\d.,]+|-)\\s+(?:-?[\\d.,]+%|-)\\s+(?:R\\$\\s*([\\d.,]+)|-)');
+        const m = re.exec(flat);
+        if (m && m[1]) {
+          const v = parseFlexibleNumber(m[1]);
+          if (v > 0) linhas.push({ tipo: ITAU_TMAP[label], valor: v });
+        }
+      });
+      if (linhas.length) return { banco: 'Itaú — posição consolidada', tipo: 'investimentos', instituicao: 'Itaú', local: 'Brasil', linhas: linhas };
+    }
     return null;
   }
 
@@ -384,7 +408,7 @@
       el('h3', { class: 'panel-title', text: 'Importar / exportar' }),
       el('p', { class: 'muted small', text:
         'Cole um bloco JSON (ex.: do backup exportado pelo app antigo), importe um extrato em PDF ' +
-        '(offline, reconhece XP, Daycoval, BRB/Genial e ARQ), importe um CSV/OFX, ou exporte um backup.' }),
+        '(offline, reconhece XP, Daycoval, BRB/Genial, ARQ e Itaú), importe um CSV/OFX, ou exporte um backup.' }),
     ]);
 
     // Colar JSON
