@@ -348,6 +348,19 @@
       });
       if (linhas.length) return { banco: 'Itaú — posição consolidada', tipo: 'investimentos', instituicao: 'Itaú', local: 'Brasil', linhas: linhas };
     }
+    // 7) BRB — Genial Seguros (extrato de previdência, vários planos PGBL)
+    if (/Genial\s+(Corretora\s+de\s+)?Seguros/i.test(flat) && /SALDO FINAL/i.test(flat)) {
+      const re = /SALDO FINAL\s+R\$([\d,]+\.\d{2})/gi;
+      let total = 0; let m;
+      while ((m = re.exec(flat))) total += parseFlexibleNumber(m[1]);
+      if (total > 0) {
+        return {
+          banco: 'BRB — Genial Seguros (previdência)', tipo: 'investimentos',
+          instituicao: 'BRB Previdência', local: 'Brasil',
+          linhas: [{ tipo: 'Previdência', valor: Math.round(total * 100) / 100 }]
+        };
+      }
+    }
     return null;
   }
 
@@ -408,7 +421,7 @@
       el('h3', { class: 'panel-title', text: 'Importar / exportar' }),
       el('p', { class: 'muted small', text:
         'Cole um bloco JSON (ex.: do backup exportado pelo app antigo), importe um extrato em PDF ' +
-        '(offline, reconhece XP, Daycoval, BRB/Genial, ARQ e Itaú), importe um CSV/OFX, ou exporte um backup.' }),
+        '(offline, reconhece XP, Daycoval, BRB/Genial, BRB Previdência, ARQ e Itaú), importe um CSV/OFX, ou exporte um backup.' }),
     ]);
 
     // Colar JSON
