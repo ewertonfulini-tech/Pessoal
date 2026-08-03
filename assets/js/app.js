@@ -271,7 +271,7 @@
     // Barra de busca e filtros
     const f = state.filters[type];
     const searchIn = el('input', {
-      type: 'search', class: 'toolbar-search', placeholder: 'Buscar por descrição...', value: f.q
+      type: 'search', class: 'toolbar-search', placeholder: 'Buscar por descrição ou valor...', value: f.q
     });
     const catFilter = el('select', { class: 'toolbar-select' });
     catFilter.appendChild(el('option', { value: '', text: 'Todas as categorias' }));
@@ -303,9 +303,16 @@
       f.q = searchIn.value;
       f.category = catFilter.value;
       f.status = statusFilter.value;
-      const q = f.q.trim().toLowerCase();
+      const raw = f.q.trim();
+      const q = raw.toLowerCase();
+      // Dígitos da busca (para casar por valor: "47", "215,85", "1.295,10" etc.)
+      const qDigits = raw.replace(/[^0-9]/g, '');
       const filtered = occ.filter(function (o) {
-        if (q && o.description.toLowerCase().indexOf(q) === -1) return false;
+        if (q) {
+          const nameMatch = o.description.toLowerCase().indexOf(q) > -1;
+          const valueMatch = qDigits && Math.abs(o.amount).toFixed(2).replace(/[^0-9]/g, '').indexOf(qDigits) > -1;
+          if (!nameMatch && !valueMatch) return false;
+        }
         if (f.category === '__none__') { if (o.categoryId && catIds[o.categoryId]) return false; }
         else if (f.category && o.categoryId !== f.category) return false;
         if (f.status === 'paid' && !o.paid) return false;
