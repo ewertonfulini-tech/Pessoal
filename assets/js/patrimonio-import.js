@@ -605,6 +605,19 @@
           if (parsed.banco) pat().movNota = 'Série baseada no relatório de ' + parsed.banco + '. As demais instituições entram conforme os extratos chegarem.';
         }
         const parts = applyImport(obj);
+        if (parsed.tipo === 'investimentos') {
+          // Atualiza o saldo do mês corrente na Movimentação mensal com o total
+          // geral da carteira (soma de todas as instituições). Aporte e
+          // rendimento não dá para inferir de um extrato de posição só —
+          // ficam para o usuário preencher à mão.
+          const mes = U.todayISO().slice(0, 7);
+          const totalGeral = pat().investimentos.reduce(function (s, i) { return s + (+i.valor || 0); }, 0);
+          const mv = pat().movimentacoes || (pat().movimentacoes = []);
+          const existingMv = mv.find(function (m) { return m.mes === mes; });
+          if (existingMv) existingMv.saldo = totalGeral;
+          else mv.push({ id: U.uid('pat'), mes: mes, saldo: totalGeral, aporte: 0, rentabilidade: 0 });
+          parts.push('saldo de ' + U.formatDateBR(mes + '-01').slice(3));
+        }
         global.Store.save();
         msgEl(applyMsg, 'Importado ✓ (' + parts.join(', ') + ').', true);
         refresh();
