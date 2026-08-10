@@ -32,11 +32,6 @@
   function formatUSD(n) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n || 0);
   }
-  function monthLabelShort(mes) {
-    const m = String(mes || '').match(/(\d{4})-(\d{1,2})/);
-    if (!m) return mes || '—';
-    return U.MESES_CURTOS[(+m[2] - 1 + 12) % 12] + '/' + m[1].slice(2);
-  }
   function countInstituicoes(p) {
     return new Set(p.investimentos.filter(function (i) { return +i.valor > 0; })
       .map(function (i) { return i.instituicao; })).size;
@@ -151,7 +146,6 @@
     view.appendChild(grid2);
 
     view.appendChild(renderImobPanel());
-    view.appendChild(renderMovimentacaoPanel());
     view.appendChild(renderHistoricoPanel());
 
     if (global.PatrimonioImport) view.appendChild(global.PatrimonioImport.buildPanel(refresh));
@@ -501,86 +495,7 @@
     return panel;
   }
 
-  /* ---------- Movimentação mensal ---------- */
-  function renderMovimentacaoPanel() {
-    const p = pat();
-    const movs = p.movimentacoes.slice().filter(function (m) { return m.mes; })
-      .sort(function (a, b) { return a.mes < b.mes ? -1 : 1; });
-    const addBtn = el('button', {
-      class: 'btn small primary', text: '+ Movimentação',
-      onclick: function () { openMovementModal(null, refresh); }
-    });
-    const panel = el('div', { class: 'panel' }, [
-      el('div', { class: 'panel-head-row' }, [
-        el('h3', { class: 'panel-title', text: 'Movimentação mensal' }),
-        addBtn
-      ])
-    ]);
-    if (!movs.length) {
-      panel.appendChild(el('p', { class: 'muted', text: 'Nenhuma movimentação mensal ainda.' }));
-      return panel;
-    }
-
-    const totAporte = movs.reduce(function (a, m) { return a + (+m.aporte || 0); }, 0);
-    const totRend = movs.reduce(function (a, m) { return a + (+m.rentabilidade || 0); }, 0);
-    panel.appendChild(el('div', { class: 'stat-grid slim' }, [
-      statCard('Aporte no período', money(totAporte), ''),
-      statCard('Rendimento no período', money(totRend), totRend >= 0 ? 'positive' : 'negative')
-    ]));
-
-    const chartData = movs.map(function (m) {
-      return {
-        label: monthLabelShort(m.mes),
-        bars: [
-          { value: +m.aporte || 0, color: PALETTE[0], name: 'Aporte' },
-          { value: +m.rentabilidade || 0, color: PALETTE[1], name: 'Rendimento' }
-        ]
-      };
-    });
-    panel.appendChild(el('div', { class: 'bars-wrap' }, [global.Charts.barsSigned(chartData, { height: 240, valueLabels: true, formatValue: money })]));
-    panel.appendChild(el('div', { class: 'legend-inline' }, [
-      el('span', { class: 'legend-item' }, [
-        el('span', { class: 'legend-dot', style: 'background:' + PALETTE[0] }), el('span', { text: 'Aporte' })
-      ]),
-      el('span', { class: 'legend-item' }, [
-        el('span', { class: 'legend-dot', style: 'background:' + PALETTE[1] }), el('span', { text: 'Rendimento' })
-      ])
-    ]));
-
-    if (p.movNota) {
-      panel.appendChild(el('p', { class: 'muted small', text: 'ℹ️ ' + p.movNota }));
-    }
-
-    const list = el('div', { class: 'txn-list' });
-    movs.slice().reverse().forEach(function (m) {
-      list.appendChild(el('div', { class: 'txn-row compact' }, [
-        el('div', { class: 'txn-main' }, [
-          el('span', { class: 'txn-desc', text: monthLabelShort(m.mes) }),
-          el('span', { class: 'txn-meta', text: 'saldo ' + money(m.saldo || 0) + ' · aporte ' + money(m.aporte || 0) })
-        ]),
-        el('div', { class: 'txn-right' }, [
-          el('span', {
-            class: 'txn-amount ' + ((+m.rentabilidade || 0) >= 0 ? 'pos' : 'neg'),
-            text: money(m.rentabilidade || 0)
-          }),
-          el('div', { class: 'row-actions' }, [
-            el('button', {
-              class: 'icon-btn small', text: '✎', title: 'Editar',
-              onclick: function () { openMovementModal(m, refresh); }
-            }),
-            el('button', {
-              class: 'icon-btn small danger', text: '🗑', title: 'Excluir',
-              onclick: function () { deleteMovement(m); }
-            })
-          ])
-        ])
-      ]));
-    });
-    panel.appendChild(list);
-    return panel;
-  }
-
-  /* ---------- Histórico anual (lista inline de adicionar/remover) ---------- */
+/* ---------- Histórico anual (lista inline de adicionar/remover) ---------- */
   function renderHistoricoPanel() {
     const p = pat();
     const addBtn = el('button', {
@@ -751,65 +666,7 @@
     }, true);
   }
 
-  function openMovementModal(existing, onSaved) {
-    const isEdit = !!existing;
-    const m = existing || { mes: U.todayISO().slice(0, 7), saldo: '', aporte: '', rentabilidade: '' };
-    const mesIn = el('input', { type: 'month', value: m.mes || U.todayISO().slice(0, 7) });
-    const saldoIn = UI.numberInput(m.saldo ? U.formatNumber(m.saldo) : '');
-    const aporteIn = UI.numberInput(m.aporte ? U.formatNumber(m.aporte) : '');
-    const rendIn = UI.numberInput(m.rentabilidade ? U.formatNumber(m.rentabilidade) : '');
-
-    const body = el('div', { class: 'modal-body' }, [
-      UI.field('Mês', mesIn),
-      UI.field('Saldo final', saldoIn),
-      el('div', { class: 'field-row' }, [
-        UI.field('Aporte', aporteIn),
-        UI.field('Rendimento', rendIn)
-      ])
-    ]);
-
-    function save(close) {
-      if (!mesIn.value) { U.toast('Informe o mês.', 'error'); return; }
-      const payload = {
-        mes: mesIn.value, saldo: U.parseAmount(saldoIn.value),
-        aporte: U.parseAmount(aporteIn.value), rentabilidade: U.parseAmount(rendIn.value)
-      };
-      const p = pat();
-      // upsert por mês: se já existir outra linha para o mesmo mês, atualiza-a em vez de duplicar
-      const dup = p.movimentacoes.find(function (x) { return x.mes === payload.mes && x.id !== m.id; });
-      if (dup) {
-        Object.assign(dup, payload);
-        if (isEdit) p.movimentacoes = p.movimentacoes.filter(function (x) { return x.id !== m.id; });
-      } else if (isEdit) {
-        Object.assign(p.movimentacoes.find(function (x) { return x.id === m.id; }), payload);
-      } else {
-        p.movimentacoes.push(Object.assign({ id: U.uid('pat') }, payload));
-      }
-      global.Store.save();
-      U.toast('Salvo.', 'success');
-      close();
-      onSaved && onSaved();
-    }
-
-    UI.openModal(isEdit ? 'Editar movimentação' : 'Nova movimentação', body, {
-      buttons: [
-        { label: 'Cancelar', variant: 'ghost', onClick: function (c) { c(); } },
-        { label: 'Salvar', variant: 'primary', onClick: save }
-      ]
-    });
-  }
-
-  function deleteMovement(m) {
-    UI.confirmModal('Excluir', 'Excluir a movimentação de ' + monthLabelShort(m.mes) + '?', function () {
-      const p = pat();
-      p.movimentacoes = p.movimentacoes.filter(function (x) { return x.id !== m.id; });
-      global.Store.save();
-      U.toast('Excluído.', 'success');
-      render();
-    }, true);
-  }
-
-  function openGoalModal(onSaved) {
+function openGoalModal(onSaved) {
     const p = pat();
     const anoIn = el('input', { type: 'number', value: p.meta.ano });
     const valorIn = UI.numberInput(p.meta.valor ? U.formatNumber(p.meta.valor) : '');
