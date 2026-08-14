@@ -32,7 +32,8 @@
     function makeOcc(dateISO) {
       const store = global.Store.getData();
       const key = tx.id + ':' + U.monthKey(year, month0);
-      const paid = !!store.paidOverrides[key];
+      const paidKey = tx.id + ':' + dateISO;
+      const paid = !!(store.paidOverrides[paidKey] || store.paidOverrides[key]);
       const ov = store.amountOverrides ? store.amountOverrides[key] : undefined;
       const overridden = (ov !== undefined && ov !== null);
       return {
@@ -44,7 +45,7 @@
         categoryId: tx.categoryId,
         type: tx.type,
         recurrence: rec,
-        paidKey: key,
+        paidKey: paidKey,
         paid: paid,
         // Valor personalizado só neste mês (exceção da recorrência)
         amountKey: key,
