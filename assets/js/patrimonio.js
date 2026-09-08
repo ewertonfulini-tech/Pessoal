@@ -32,6 +32,11 @@
   function formatUSD(n) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n || 0);
   }
+  function monthLabelShort(mes) {
+    const m = String(mes || '').match(/(\d{4})-(\d{1,2})/);
+    if (!m) return mes || '—';
+    return U.MESES_CURTOS[(+m[2] - 1 + 12) % 12] + '/' + m[1].slice(2);
+  }
   function countInstituicoes(p) {
     return new Set(p.investimentos.filter(function (i) { return +i.valor > 0; })
       .map(function (i) { return i.instituicao; })).size;
@@ -139,6 +144,7 @@
     view.appendChild(grid1);
 
     view.appendChild(renderEvolucaoPanel(d));
+    view.appendChild(renderEvolucaoMensalPanel(d));
 
     const grid2 = el('div', { class: 'dashboard-grid' });
     grid2.appendChild(renderInvPanel());
@@ -276,6 +282,48 @@
     return el('div', { class: 'panel' }, [
       el('h3', { class: 'panel-title', text: 'Evolução anual (investimentos)' }),
       el('div', { class: 'bars-wrap' }, [global.Charts.barsSigned(chartData, { height: 240, valueLabels: true, formatValue: money })])
+    ]);
+  }
+
+  /* ---------- Evolução mensal ---------- */
+  function renderEvolucaoMensalPanel(d) {
+    const p = pat();
+    const mesAtual = U.todayISO().slice(0, 7);
+    const map = new Map((p.movimentacoes || [])
+      .filter(function (m) { return m.mes; })
+      .map(function (m) { return [m.mes, +m.saldo || 0]; }));
+    // O mês atual sempre reflete o total ao vivo da carteira, não um valor
+    // salvo (que pode estar desatualizado se ainda não importou o extrato).
+    map.set(mesAtual, d.invTotal);
+
+    const meses = Array.from(map.keys()).sort().slice(-12); // últimos 12 meses
+    if (meses.length < 2) {
+      return el('div', { class: 'panel' }, [
+        el('h3', { class: 'panel-title', text: 'Evolução mensal (investimentos)' }),
+        el('p', { class: 'muted', text:
+          'Ainda não há histórico suficiente. O saldo do mês é preenchido automaticamente ' +
+          'sempre que você importa um extrato de posição em Carteira de investimentos.' })
+      ]);
+    }
+
+    const chartData = meses.map(function (mes) {
+      return {
+        label: monthLabelShort(mes),
+        bars: [{
+          value: map.get(mes),
+          color: mes === mesAtual ? PALETTE[0] : 'var(--track)',
+          name: mes === mesAtual ? 'Atual' : 'Saldo'
+        }]
+      };
+    });
+
+    return el('div', { class: 'panel' }, [
+      el('h3', { class: 'panel-title', text: 'Evolução mensal (investimentos)' }),
+      el('div', { class: 'bars-wrap' }, [global.Charts.barsSigned(chartData, { height: 240, valueLabels: true, formatValue: money })]),
+      el('p', { class: 'muted small', text:
+        'Mostra o valor total da carteira mês a mês (últimos 12 meses). O aporte e o ' +
+        'rendimento separados só ficam disponíveis para os meses importados de um ' +
+        'relatório de rentabilidade que já traga essa divisão (ex.: XP).' })
     ]);
   }
 
