@@ -80,12 +80,16 @@
       res.push(insts.size + ' instituição(ões)');
     }
     if (Array.isArray(obj.movimentacoes)) {
-      const map = new Map((p.movimentacoes || []).map(function (m) { return [m.mes, m]; }));
+      // Chave por mês + instituição: cada instituição reporta seu próprio
+      // extrato, então o mesmo mês pode ter uma linha por banco/corretora.
+      function movKey(m) { return m.mes + '|' + String(m.instituicao || ''); }
+      const map = new Map((p.movimentacoes || []).map(function (m) { return [movKey(m), m]; }));
       obj.movimentacoes.forEach(function (m) {
         if (m.mes) {
-          const existing = map.get(m.mes);
-          map.set(m.mes, {
+          const existing = map.get(movKey(m));
+          map.set(movKey(m), {
             id: (existing && existing.id) || U.uid('pat'), mes: m.mes,
+            instituicao: String(m.instituicao || '').trim(),
             saldo: parseFlexibleNumber(m.saldo), aporte: parseFlexibleNumber(m.aporte),
             rentabilidade: parseFlexibleNumber(m.rentabilidade)
           });
@@ -574,6 +578,7 @@
     ]);
 
     let instIn = null;
+    let institMvIn = null;
     let mesIn = null;
     if (parsed.tipo === 'investimentos') {
       instIn = el('input', { type: 'text', value: parsed.instituicao || '', placeholder: 'Instituição (ex.: XP)' });
@@ -584,6 +589,16 @@
         el('small', { class: 'field-hint', text:
           'Usado só para o saldo na Evolução mensal. Se o extrato for de um mês anterior, troque aqui — ' +
           'nesse caso o saldo salvo é só desta instituição (não dá pra saber o valor das outras naquele mês).' })
+      ]));
+    } else {
+      // Adivinha a instituição a partir do "banco" detectado (ex.: "XP —
+      // relatório de rentabilidade" -> "XP"), mas deixa editável.
+      const guess = (parsed.banco || '').split(' — ')[0].trim();
+      institMvIn = el('input', { type: 'text', value: guess, placeholder: 'Instituição (ex.: XP)' });
+      box2.appendChild(el('div', { class: 'field' }, [
+        el('label', { class: 'field-label', text: 'Instituição' }), institMvIn,
+        el('small', { class: 'field-hint', text:
+          'A Evolução mensal soma o aporte/rendimento de cada instituição por mês.' })
       ]));
     }
 
@@ -601,35 +616,32 @@
     box2.appendChild(el('button', {
       class: 'btn primary small', text: 'Importar',
       onclick: function () {
+        const inst = (instIn ? instIn.value : (institMvIn ? institMvIn.value : '')).trim();
         let obj;
         if (parsed.tipo === 'investimentos') {
-          const inst = (instIn.value || '').trim();
           if (!inst) { msgEl(applyMsg, 'Informe a instituição.', false); return; }
           obj = { investimentos: parsed.linhas.map(function (l) {
             return { instituicao: inst, tipo: l.tipo || 'A classificar', local: parsed.local || 'Brasil', valor: l.valor };
           }) };
         } else {
-          obj = { movimentacoes: parsed.linhas };
-          if (parsed.banco) pat().movNota = 'Série baseada no relatório de ' + parsed.banco + '. As demais instituições entram conforme os extratos chegarem.';
+          obj = { movimentacoes: parsed.linhas.map(function (l) {
+            return Object.assign({ instituicao: inst }, l);
+          }) };
+          if (parsed.banco) pat().movNota = 'Série baseada no relatório de ' + parsed.banco + '.';
         }
         const parts = applyImport(obj);
         if (parsed.tipo === 'investimentos') {
-          // Atualiza o saldo do mês na Movimentação mensal. Para o mês
-          // corrente, usa o total geral da carteira (soma de todas as
-          // instituições) — é o retrato "ao vivo" de agora. Para um mês
-          // passado (extrato atrasado), não dá pra saber quanto valiam as
-          // OUTRAS instituições naquela época, então usa só o valor desta
-          // instituição neste extrato (evita misturar dado antigo com atual).
+          // Atualiza o saldo do mês desta instituição na Evolução mensal. O
+          // mês corrente é sempre sobrescrito pelo total AO VIVO da carteira
+          // no gráfico (renderEvolucaoMensalPanel), então aqui só precisa
+          // guardar o valor desta instituição — não dá pra saber, num extrato
+          // de uma instituição só, quanto valiam as outras naquele mês.
           const mes = /^\d{4}-\d{2}$/.test(mesIn.value) ? mesIn.value : U.todayISO().slice(0, 7);
-          const isMesAtual = mes === U.todayISO().slice(0, 7);
-          const totalGeral = isMesAtual
-            ? pat().investimentos.reduce(function (s, i) { return s + (+i.valor || 0); }, 0)
-            : total;
           const mv = pat().movimentacoes || (pat().movimentacoes = []);
-          const existingMv = mv.find(function (m) { return m.mes === mes; });
-          if (existingMv) existingMv.saldo = totalGeral;
-          else mv.push({ id: U.uid('pat'), mes: mes, saldo: totalGeral, aporte: 0, rentabilidade: 0 });
-          parts.push('saldo de ' + U.formatDateBR(mes + '-01').slice(3));
+          const existingMv = mv.find(function (m) { return m.mes === mes && m.instituicao === inst; });
+          if (existingMv) existingMv.saldo = total;
+          else mv.push({ id: U.uid('pat'), mes: mes, instituicao: inst, saldo: total, aporte: 0, rentabilidade: 0 });
+          parts.push('saldo de ' + inst + ' em ' + U.formatDateBR(mes + '-01').slice(3));
         }
         global.Store.save();
         msgEl(applyMsg, 'Importado ✓ (' + parts.join(', ') + ').', true);

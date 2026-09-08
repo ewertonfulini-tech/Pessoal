@@ -289,42 +289,82 @@
   function renderEvolucaoMensalPanel(d) {
     const p = pat();
     const mesAtual = U.todayISO().slice(0, 7);
-    const map = new Map((p.movimentacoes || [])
-      .filter(function (m) { return m.mes; })
-      .map(function (m) { return [m.mes, +m.saldo || 0]; }));
-    // O mês atual sempre reflete o total ao vivo da carteira, não um valor
-    // salvo (que pode estar desatualizado se ainda não importou o extrato).
-    map.set(mesAtual, d.invTotal);
 
-    const meses = Array.from(map.keys()).sort().slice(-12); // últimos 12 meses
+    // Agrupa por mês, somando as instituições que já reportaram aquele mês.
+    const byMes = new Map();
+    (p.movimentacoes || []).filter(function (m) { return m.mes; }).forEach(function (m) {
+      const cur = byMes.get(m.mes) || { saldo: 0, aporte: 0, rentabilidade: 0, insts: new Set() };
+      cur.saldo += (+m.saldo || 0);
+      cur.aporte += (+m.aporte || 0);
+      cur.rentabilidade += (+m.rentabilidade || 0);
+      if (m.instituicao) cur.insts.add(m.instituicao);
+      byMes.set(m.mes, cur);
+    });
+    // O mês atual sempre reflete o total AO VIVO da carteira (soma de todas
+    // as instituições agora), não o que foi salvo num import — evita mostrar
+    // um saldo desatualizado se o extrato do mês ainda não chegou.
+    const atualEntry = byMes.get(mesAtual) || { saldo: 0, aporte: 0, rentabilidade: 0, insts: new Set() };
+    atualEntry.saldo = d.invTotal;
+    byMes.set(mesAtual, atualEntry);
+
+    const meses = Array.from(byMes.keys()).sort().slice(-12); // últimos 12 meses
     if (meses.length < 2) {
       return el('div', { class: 'panel' }, [
         el('h3', { class: 'panel-title', text: 'Evolução mensal (investimentos)' }),
         el('p', { class: 'muted', text:
           'Ainda não há histórico suficiente. O saldo do mês é preenchido automaticamente ' +
-          'sempre que você importa um extrato de posição em Carteira de investimentos.' })
+          'sempre que você importa um extrato de posição, e o aporte/rendimento quando o ' +
+          'extrato já traz essa divisão (ex.: relatório de rentabilidade da XP).' })
       ]);
     }
 
-    const chartData = meses.map(function (mes) {
-      return {
-        label: monthLabelShort(mes),
-        bars: [{
-          value: map.get(mes),
-          color: mes === mesAtual ? PALETTE[0] : 'var(--track)',
-          name: mes === mesAtual ? 'Atual' : 'Saldo'
-        }]
-      };
+    const temQuebra = meses.some(function (mes) {
+      const e = byMes.get(mes);
+      return e.aporte !== 0 || e.rentabilidade !== 0;
     });
 
-    return el('div', { class: 'panel' }, [
+    const chartData = meses.map(function (mes) {
+      const e = byMes.get(mes);
+      const bars = temQuebra
+        ? [
+            { value: e.aporte, color: PALETTE[0], name: 'Aporte' },
+            { value: e.rentabilidade, color: PALETTE[1], name: 'Rendimento' }
+          ]
+        : [{ value: e.saldo, color: mes === mesAtual ? PALETTE[0] : 'var(--track)', name: 'Saldo' }];
+      return { label: monthLabelShort(mes), bars: bars };
+    });
+
+    const panel = el('div', { class: 'panel' }, [
       el('h3', { class: 'panel-title', text: 'Evolução mensal (investimentos)' }),
-      el('div', { class: 'bars-wrap' }, [global.Charts.barsSigned(chartData, { height: 240, valueLabels: true, formatValue: money })]),
-      el('p', { class: 'muted small', text:
-        'Mostra o valor total da carteira mês a mês (últimos 12 meses). O aporte e o ' +
-        'rendimento separados só ficam disponíveis para os meses importados de um ' +
-        'relatório de rentabilidade que já traga essa divisão (ex.: XP).' })
+      el('div', { class: 'bars-wrap' }, [global.Charts.barsSigned(chartData, { height: 240, valueLabels: true, formatValue: money })])
     ]);
+    if (temQuebra) {
+      panel.appendChild(el('div', { class: 'legend-inline' }, [
+        el('span', { class: 'legend-item' }, [
+          el('span', { class: 'legend-dot', style: 'background:' + PALETTE[0] }), el('span', { text: 'Aporte' })
+        ]),
+        el('span', { class: 'legend-item' }, [
+          el('span', { class: 'legend-dot', style: 'background:' + PALETTE[1] }), el('span', { text: 'Rendimento' })
+        ])
+      ]));
+    }
+    const list = el('div', { class: 'txn-list' });
+    meses.slice().reverse().forEach(function (mes) {
+      const e = byMes.get(mes);
+      list.appendChild(el('div', { class: 'txn-row compact' }, [
+        el('div', { class: 'txn-main' }, [
+          el('span', { class: 'txn-desc', text: monthLabelShort(mes) }),
+          el('span', { class: 'txn-meta', text:
+            'saldo ' + money(e.saldo) + (e.insts.size ? ' · ' + e.insts.size + ' instituição(ões)' : '') })
+        ]),
+        el('span', {
+          class: 'txn-amount ' + (e.rentabilidade >= 0 ? 'pos' : 'neg'),
+          text: (e.aporte || e.rentabilidade) ? money(e.rentabilidade) : ''
+        })
+      ]));
+    });
+    panel.appendChild(list);
+    return panel;
   }
 
   /* ---------- Por tipo de ativo ---------- */
