@@ -574,9 +574,17 @@
     ]);
 
     let instIn = null;
+    let mesIn = null;
     if (parsed.tipo === 'investimentos') {
       instIn = el('input', { type: 'text', value: parsed.instituicao || '', placeholder: 'Instituição (ex.: XP)' });
       box2.appendChild(el('div', { class: 'field' }, [el('label', { class: 'field-label', text: 'Instituição' }), instIn]));
+      mesIn = el('input', { type: 'month', value: U.todayISO().slice(0, 7) });
+      box2.appendChild(el('div', { class: 'field' }, [
+        el('label', { class: 'field-label', text: 'Mês de referência deste extrato' }), mesIn,
+        el('small', { class: 'field-hint', text:
+          'Usado só para o saldo na Evolução mensal. Se o extrato for de um mês anterior, troque aqui — ' +
+          'nesse caso o saldo salvo é só desta instituição (não dá pra saber o valor das outras naquele mês).' })
+      ]));
     }
 
     const list = el('div', { style: 'max-height:150px;overflow:auto;margin:8px 0;border-top:1px solid var(--border);padding-top:6px' });
@@ -606,12 +614,17 @@
         }
         const parts = applyImport(obj);
         if (parsed.tipo === 'investimentos') {
-          // Atualiza o saldo do mês corrente na Movimentação mensal com o total
-          // geral da carteira (soma de todas as instituições). Aporte e
-          // rendimento não dá para inferir de um extrato de posição só —
-          // ficam para o usuário preencher à mão.
-          const mes = U.todayISO().slice(0, 7);
-          const totalGeral = pat().investimentos.reduce(function (s, i) { return s + (+i.valor || 0); }, 0);
+          // Atualiza o saldo do mês na Movimentação mensal. Para o mês
+          // corrente, usa o total geral da carteira (soma de todas as
+          // instituições) — é o retrato "ao vivo" de agora. Para um mês
+          // passado (extrato atrasado), não dá pra saber quanto valiam as
+          // OUTRAS instituições naquela época, então usa só o valor desta
+          // instituição neste extrato (evita misturar dado antigo com atual).
+          const mes = /^\d{4}-\d{2}$/.test(mesIn.value) ? mesIn.value : U.todayISO().slice(0, 7);
+          const isMesAtual = mes === U.todayISO().slice(0, 7);
+          const totalGeral = isMesAtual
+            ? pat().investimentos.reduce(function (s, i) { return s + (+i.valor || 0); }, 0)
+            : total;
           const mv = pat().movimentacoes || (pat().movimentacoes = []);
           const existingMv = mv.find(function (m) { return m.mes === mes; });
           if (existingMv) existingMv.saldo = totalGeral;
