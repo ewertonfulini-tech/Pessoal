@@ -144,7 +144,6 @@
     view.appendChild(grid1);
 
     view.appendChild(renderEvolucaoPanel(d));
-    view.appendChild(renderEvolucaoMensalPanel(d));
 
     const grid2 = el('div', { class: 'dashboard-grid' });
     grid2.appendChild(renderInvPanel());
