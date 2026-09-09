@@ -4,9 +4,13 @@ PyYAML>=6.0
 python-dotenv>=1.0
 pytest>=7.4
 
+# Necessário para provider "binance_futures" (paper/live trading de cripto,
+# funciona nativamente no Mac):
+ccxt>=4.3
+
 # Opcional, só para backtest com ações da B3 via provider "yfinance":
 yfinance>=0.2
 
 # Opcional, só funciona no Windows com o terminal MetaTrader5 instalado,
-# necessário para provider "mt5" (dados reais) e para live trading:
+# necessário para provider "mt5" (dados reais) e para live trading via MT5:
 # MetaTrader5>=5.0.45 ; sys_platform == "win32"

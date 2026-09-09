@@ -1,9 +1,10 @@
 from datetime import datetime
 
 from ..models import Side
+from .base import Broker, BrokerPosition
 
 
-class MT5Broker:
+class MT5Broker(Broker):
     """Envio de ordens reais via MetaTrader 5. Só funciona no Windows, com o
     terminal MT5 aberto e logado numa conta (demo ou real).
 
@@ -30,11 +31,20 @@ class MT5Broker:
             raise RuntimeError(f"Não foi possível ler a conta MT5: {self._mt5.last_error()}")
         return float(info.balance)
 
-    def get_open_position(self, symbol: str):
+    def _to_broker_position(self, position) -> BrokerPosition:
+        side = Side.LONG if position.type == self._mt5.ORDER_TYPE_BUY else Side.SHORT
+        return BrokerPosition(
+            id=str(position.ticket),
+            side=side,
+            quantity=position.volume,
+            entry_price=position.price_open,
+        )
+
+    def get_open_position(self, symbol: str) -> BrokerPosition | None:
         positions = self._mt5.positions_get(symbol=symbol)
         if not positions:
             return None
-        return positions[0]
+        return self._to_broker_position(positions[0])
 
     def send_market_order(
         self,
@@ -43,7 +53,7 @@ class MT5Broker:
         quantity: float,
         stop_loss: float,
         take_profit: float,
-    ):
+    ) -> BrokerPosition:
         mt5 = self._mt5
         order_type = mt5.ORDER_TYPE_BUY if side == Side.LONG else mt5.ORDER_TYPE_SELL
         tick = mt5.symbol_info_tick(symbol)
@@ -68,9 +78,13 @@ class MT5Broker:
         result = mt5.order_send(request)
         if result is None or result.retcode != mt5.TRADE_RETCODE_DONE:
             raise RuntimeError(f"Falha ao enviar ordem: {result}")
-        return result
 
-    def get_realized_pnl(self, position_ticket: int, since: datetime) -> float:
+        opened = self.get_open_position(symbol)
+        if opened is None:
+            raise RuntimeError("Ordem enviada mas posição não encontrada em seguida.")
+        return opened
+
+    def get_realized_pnl(self, position_id: str, since: datetime) -> float:
         """Soma o lucro líquido (profit + comissão + swap) dos negócios de
         fechamento associados a uma posição, para reconciliar o resultado
         real com o RiskManager (essencial para o limite de perda diária
@@ -78,17 +92,19 @@ class MT5Broker:
         deals = self._mt5.history_deals_get(since, datetime.now())
         if not deals:
             return 0.0
+        ticket = int(position_id)
         return sum(
             d.profit + d.commission + d.swap
             for d in deals
-            if d.position_id == position_ticket
+            if d.position_id == ticket
         )
 
-    def close_position(self, symbol: str):
+    def close_position(self, symbol: str) -> None:
         mt5 = self._mt5
-        position = self.get_open_position(symbol)
-        if position is None:
+        raw_positions = mt5.positions_get(symbol=symbol)
+        if not raw_positions:
             return None
+        position = raw_positions[0]
 
         is_long = position.type == mt5.ORDER_TYPE_BUY
         order_type = mt5.ORDER_TYPE_SELL if is_long else mt5.ORDER_TYPE_BUY
@@ -111,4 +127,3 @@ class MT5Broker:
         result = mt5.order_send(request)
         if result is None or result.retcode != mt5.TRADE_RETCODE_DONE:
             raise RuntimeError(f"Falha ao fechar posição: {result}")
-        return result

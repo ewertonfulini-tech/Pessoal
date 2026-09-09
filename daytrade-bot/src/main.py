@@ -19,6 +19,11 @@ def build_provider(config: dict) -> DataProvider:
         from .data_providers.mt5_provider import MT5Provider
 
         return MT5Provider()
+    if provider_name == "binance_futures":
+        from .data_providers.binance_futures_provider import BinanceFuturesProvider
+
+        exchange_config = config.get("exchange", {})
+        return BinanceFuturesProvider(testnet=exchange_config.get("testnet", True))
     raise ValueError(f"Provider desconhecido: {provider_name}")
 
 
@@ -101,20 +106,34 @@ def run_paper(config: dict) -> None:
 
 
 def run_live(config: dict) -> None:
-    from .broker.mt5_broker import MT5Broker
     from .engine.live_trader import LiveTrader
 
-    if config["market"]["provider"] != "mt5":
+    provider_name = config["market"]["provider"]
+    require_confirmation = True
+
+    if provider_name == "mt5":
+        from .broker.mt5_broker import MT5Broker
+
+        broker = MT5Broker()
+    elif provider_name == "binance_futures":
+        from .broker.binance_futures_broker import BinanceFuturesBroker
+
+        exchange_config = config.get("exchange", {})
+        testnet = exchange_config.get("testnet", True)
+        broker = BinanceFuturesBroker(
+            testnet=testnet, leverage=exchange_config.get("leverage", 1)
+        )
+        # testnet não envolve dinheiro real, então dispensa a trava de confirmação.
+        require_confirmation = not testnet
+    else:
         print(
-            "Live trading só é suportado com provider 'mt5' (execução real "
-            "precisa do terminal MetaTrader5 conectado à corretora)."
+            "Live trading só é suportado com provider 'mt5' ou 'binance_futures'."
         )
         sys.exit(1)
 
     provider = build_provider(config)
     strategy = build_strategy(config)
     risk_manager = build_risk_manager(config)
-    broker = MT5Broker()
 
     trader = LiveTrader(
         provider=provider,
@@ -125,6 +144,7 @@ def run_live(config: dict) -> None:
         timeframe=config["market"]["timeframe"],
         poll_interval_seconds=config["paper"].get("poll_interval_seconds", 30),
         warmup_days=config["paper"].get("warmup_days", 5),
+        require_real_money_confirmation=require_confirmation,
     )
     trader.run()
 
