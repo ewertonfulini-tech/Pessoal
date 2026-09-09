@@ -33,7 +33,11 @@ backtest:
   start: "2024-06-01"
   end: "2024-08-01"
   slippage_pct: 0.0005 # 0.05% de deslizamento em cada execução
-  commission_per_trade: 2.5 # custo fixo (corretagem/taxa) por operação
+  commission_pct: 0.0005 # 0.05% por execução (taxa "taker" típica de futuros na Binance,
+                          # cobrada tanto na entrada quanto na saída)
+  commission_per_trade: 0.0 # custo FIXO por operação — use isso (não commission_pct)
+                            # se migrar para B3/MT5, onde a corretagem costuma ser um
+                            # valor fixo por operação em vez de percentual
 
 paper:
   poll_interval_seconds: 30

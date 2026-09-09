@@ -81,6 +81,7 @@ def run_backtest(config: dict) -> None:
         timeframe=config["market"]["timeframe"],
         slippage_pct=config["backtest"].get("slippage_pct", 0.0),
         commission_per_trade=config["backtest"].get("commission_per_trade", 0.0),
+        commission_pct=config["backtest"].get("commission_pct", 0.0),
     )
     result = backtester.run(
         start=parse_date(config["backtest"]["start"]),

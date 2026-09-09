@@ -103,6 +103,7 @@ class Backtester:
         timeframe: str,
         slippage_pct: float = 0.0,
         commission_per_trade: float = 0.0,
+        commission_pct: float = 0.0,
     ):
         self.provider = provider
         self.strategy = strategy
@@ -111,6 +112,7 @@ class Backtester:
         self.timeframe = timeframe
         self.slippage_pct = slippage_pct
         self.commission_per_trade = commission_per_trade
+        self.commission_pct = commission_pct
 
     def _fill_price(self, price: float, side: Side, is_entry: bool) -> float:
         direction = 1 if (side == Side.LONG) == is_entry else -1
@@ -166,12 +168,13 @@ class Backtester:
                 if exit_price is not None:
                     fill = self._fill_price(exit_price, position.side, is_entry=False)
                     direction = 1 if position.side == Side.LONG else -1
+                    notional = (position.entry_price + fill) * position.quantity
                     pnl = (
                         direction
                         * (fill - position.entry_price)
                         * position.quantity
                         * self.risk_manager.point_value
-                    ) - self.commission_per_trade
+                    ) - self.commission_per_trade - (notional * self.commission_pct)
                     self.risk_manager.register_trade_result(pnl)
                     result.trades.append(
                         Trade(
