@@ -202,6 +202,11 @@ capital:
   max_trades_per_day: 4
   point_value: 1.0                 # 1.0 para cripto/ações (1 unidade de
                                     # preço = 1 unidade de PnL por contrato)
+  quantity_step: 0.001              # menor fração negociável (BTC/USDT = 0.001).
+                                    # Sem isso o dimensionamento por risco pode
+                                    # arredondar a quantidade para 0 e nenhuma
+                                    # operação é aberta — confira o valor do
+                                    # seu símbolo na Binance antes de operar.
 exchange:
   testnet: true
   leverage: 1                      # comece baixo — alavancagem maior

@@ -8,6 +8,9 @@ capital:
   daily_profit_target_pct: 0.03 # robô trava lucro ao ganhar 3% no dia (null para desativar)
   max_trades_per_day: 4
   point_value: 1.0 # valor financeiro de 1 unidade de preço por contrato (1.0 para cripto/ações)
+  quantity_step: 0.001 # menor fração negociável do ativo (BTC/USDT na Binance = 0.001).
+                        # Ações/mini-índice/MT5: use 1.0 (quantidade inteira).
+                        # Confira o valor certo do seu símbolo antes de operar de verdade.
 
 market:
   # "binance_futures" (funciona nativamente no Mac, sem VM) | "yfinance" (só backtest de ações B3) | "mt5" (só Windows)

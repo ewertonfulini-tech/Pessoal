@@ -21,6 +21,8 @@ class RiskManager:
     daily_profit_target_pct: float | None = 0.03  # trava lucro em 3% no dia (opcional)
     max_trades_per_day: int = 4
     point_value: float = 1.0  # valor financeiro de 1 ponto/unidade de preço por contrato/ação
+    quantity_step: float = 1.0  # menor incremento de quantidade negociável (1.0
+                                  # para contratos/ações inteiras; ex. 0.001 para BTC)
 
     current_capital: float = field(init=False)
     _day: date | None = field(default=None, init=False)
@@ -60,12 +62,14 @@ class RiskManager:
 
         return True, ""
 
-    def position_size(self, entry_price: float, stop_price: float) -> int:
+    def position_size(self, entry_price: float, stop_price: float) -> float:
         risk_amount = self.current_capital * self.risk_per_trade_pct
         risk_per_unit = abs(entry_price - stop_price) * self.point_value
         if risk_per_unit <= 0:
-            return 0
-        return max(0, math.floor(risk_amount / risk_per_unit))
+            return 0.0
+        raw_quantity = risk_amount / risk_per_unit
+        steps = math.floor(raw_quantity / self.quantity_step)
+        return round(max(0, steps) * self.quantity_step, 8)
 
     def register_trade_result(self, pnl: float) -> None:
         self.current_capital += pnl

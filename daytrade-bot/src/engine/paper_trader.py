@@ -126,7 +126,7 @@ class PaperTrader:
             opened_at=ts,
         )
         self.logger.info(
-            "[PAPER] Entrada %s @ %.2f | qtd=%d stop=%.2f alvo=%.2f | %s",
+            "[PAPER] Entrada %s @ %.2f | qtd=%s stop=%.2f alvo=%.2f | %s",
             side.value,
             entry_price,
             quantity,

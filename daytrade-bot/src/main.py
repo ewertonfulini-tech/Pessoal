@@ -59,6 +59,7 @@ def build_risk_manager(config: dict) -> RiskManager:
         daily_profit_target_pct=capital_config.get("daily_profit_target_pct"),
         max_trades_per_day=capital_config["max_trades_per_day"],
         point_value=capital_config.get("point_value", 1.0),
+        quantity_step=capital_config.get("quantity_step", 1.0),
     )
 
 
