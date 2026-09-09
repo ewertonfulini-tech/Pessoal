@@ -28,15 +28,22 @@ class RiskManager:
     _day: date | None = field(default=None, init=False)
     _daily_pnl: float = field(default=0.0, init=False)
     _trades_today: int = field(default=0, init=False)
+    _capital_at_day_start: float = field(init=False)
 
     def __post_init__(self):
         self.current_capital = self.initial_capital
+        self._capital_at_day_start = self.initial_capital
 
     def reset_day(self, day: date) -> None:
         if day != self._day:
             self._day = day
             self._daily_pnl = 0.0
             self._trades_today = 0
+            # ancora os limites diários no capital de HOJE, não no capital
+            # inicial fixo — senão, depois de uma sequência de perdas, um
+            # limite de "2% ao dia" pode acabar representando uma fatia bem
+            # maior do que sobrou na conta.
+            self._capital_at_day_start = self.current_capital
 
     @property
     def daily_pnl(self) -> float:
@@ -47,13 +54,13 @@ class RiskManager:
         return self._trades_today
 
     def can_open_trade(self) -> tuple[bool, str]:
-        loss_limit = -abs(self.daily_loss_limit_pct) * self.initial_capital
+        loss_limit = -abs(self.daily_loss_limit_pct) * self._capital_at_day_start
         if self._daily_pnl <= loss_limit:
             return False, "limite de perda diária atingido"
 
         if (
             self.daily_profit_target_pct is not None
-            and self._daily_pnl >= self.daily_profit_target_pct * self.initial_capital
+            and self._daily_pnl >= self.daily_profit_target_pct * self._capital_at_day_start
         ):
             return False, "meta de lucro diária atingida"
 

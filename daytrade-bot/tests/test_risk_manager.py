@@ -71,3 +71,17 @@ def test_reset_day_clears_daily_counters():
     rm.reset_day(date(2024, 1, 2))
     assert rm.daily_pnl == 0.0
     assert rm.trades_today == 0
+
+
+def test_daily_loss_limit_scales_down_with_shrunken_capital():
+    # depois de perder metade do capital no dia 1, o limite de perda do dia 2
+    # tem que ser 2% dos 500 que restaram (10), não 2% dos 1000 originais (20)
+    rm = make_risk_manager(initial_capital=1000, daily_loss_limit_pct=0.02)
+    rm.reset_day(date(2024, 1, 1))
+    rm.register_trade_result(-500)
+
+    rm.reset_day(date(2024, 1, 2))
+    rm.register_trade_result(-15)
+    can_trade, reason = rm.can_open_trade()
+    assert can_trade is False
+    assert "perda" in reason
