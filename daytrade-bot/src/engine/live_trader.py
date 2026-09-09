@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import time as time_module
 from datetime import datetime, timedelta

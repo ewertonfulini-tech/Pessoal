@@ -87,6 +87,8 @@ Fonte de dados (Binance Futures via ccxt, ou yfinance/MT5)
 
 ## Instalação (macOS)
 
+Requer Python 3.9 ou superior (o que já vem pré-instalado no macOS serve).
+
 ```bash
 cd daytrade-bot
 python3 -m venv .venv
