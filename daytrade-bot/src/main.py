@@ -51,6 +51,10 @@ def build_strategy(config: dict) -> Strategy:
         from .strategies.mean_reversion_strategy import MeanReversionStrategy
 
         return MeanReversionStrategy(session_close_time=session_close_time)
+    if name == "funding_rate":
+        from .strategies.funding_rate_strategy import FundingRateContrarianStrategy
+
+        return FundingRateContrarianStrategy(session_close_time=session_close_time)
 
     raise ValueError(f"Estratégia desconhecida: {name}")
 

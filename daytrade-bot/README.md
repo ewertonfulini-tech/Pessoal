@@ -77,6 +77,13 @@ Fonte de dados (Binance Futures via ccxt, ou yfinance/MT5)
     no fundo da banda com RSI sobrevendido, vende no topo com RSI
     sobrecomprado, alvo na própria média. O oposto do ORB: faz mais sentido
     em mercado lateral/picotado, tende a sofrer em tendências fortes.
+  - `funding_rate`: usa o funding rate de futuros perpétuos como sinal
+    contrário (funding muito positivo → aposta em correção para baixo;
+    muito negativo → para cima). Importante: **não é** a arbitragem de
+    funding "de verdade" (que trava o resultado sem depender de direção,
+    com uma perna comprada no mercado à vista e outra vendida no futuro) —
+    esta versão ainda aposta em direção, só usa posicionamento do mercado
+    em vez de indicador técnico de preço como sinal.
 - **RiskManager** (`src/risk/risk_manager.py`): decide *quanto* operar, com
   base em % de risco por trade, e desliga o robô no dia se bater o limite de
   perda, a meta de lucro (trava de ganho) ou o número máximo de trades.

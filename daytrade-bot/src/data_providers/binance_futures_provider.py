@@ -49,6 +49,45 @@ class BinanceFuturesProvider(DataProvider):
         df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
         return df.set_index("timestamp")
 
+    def _fetch_funding_rate_history(
+        self, symbol: str, start: datetime, end: datetime
+    ) -> pd.DataFrame:
+        """Histórico do funding rate (liquidado a cada 8h), usado como coluna
+        auxiliar `funding_rate` no histórico de preços — não é essencial
+        para a maioria das estratégias, então qualquer falha aqui não deve
+        quebrar o backtest/paper trading (só faltará essa coluna)."""
+        try:
+            since = int(start.timestamp() * 1000)
+            end_ms = int(end.timestamp() * 1000)
+            entries: list = []
+            cursor = since
+            while cursor < end_ms:
+                batch = self._exchange.fetch_funding_rate_history(
+                    symbol, since=cursor, limit=1000
+                )
+                if not batch:
+                    break
+                entries.extend(batch)
+                next_cursor = batch[-1]["timestamp"] + 1
+                if next_cursor <= cursor or len(batch) < 1000:
+                    break
+                cursor = next_cursor
+
+            if not entries:
+                return pd.DataFrame(columns=["funding_rate"])
+
+            funding_df = pd.DataFrame(
+                {
+                    "timestamp": [
+                        pd.to_datetime(e["timestamp"], unit="ms") for e in entries
+                    ],
+                    "funding_rate": [e["fundingRate"] for e in entries],
+                }
+            )
+            return funding_df.set_index("timestamp").sort_index()
+        except Exception:
+            return pd.DataFrame(columns=["funding_rate"])
+
     def get_historical(
         self, symbol: str, timeframe: str, start: datetime, end: datetime
     ) -> pd.DataFrame:
@@ -71,7 +110,18 @@ class BinanceFuturesProvider(DataProvider):
         df = self._rows_to_dataframe(rows)
         if df.empty:
             return df
-        return df[(df.index >= start) & (df.index <= end)]
+        df = df[(df.index >= start) & (df.index <= end)].sort_index()
+
+        funding_df = self._fetch_funding_rate_history(symbol, start, end)
+        if funding_df.empty:
+            df["funding_rate"] = float("nan")
+            return df
+
+        merged = pd.merge_asof(
+            df, funding_df, left_index=True, right_index=True, direction="backward"
+        )
+        merged.index = df.index
+        return merged
 
     def get_latest_candle(self, symbol: str, timeframe: str) -> pd.Series | None:
         # o último candle retornado pela Binance ainda está em formação;
@@ -80,4 +130,10 @@ class BinanceFuturesProvider(DataProvider):
         df = self._rows_to_dataframe(batch)
         if len(df) < 2:
             return None
-        return df.iloc[-2]
+        candle = df.iloc[-2].copy()
+        try:
+            funding = self._exchange.fetch_funding_rate(symbol)
+            candle["funding_rate"] = funding.get("fundingRate")
+        except Exception:
+            candle["funding_rate"] = float("nan")
+        return candle
