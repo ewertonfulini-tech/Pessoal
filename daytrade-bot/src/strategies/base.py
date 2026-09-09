@@ -20,6 +20,13 @@ class Strategy(ABC):
     #: quantidade mínima de candles anteriores necessários antes de operar
     warmup_period: int = 20
 
+    #: se True (padrão), a entrada só é executada se a vela de execução ainda
+    #: for do mesmo dia do sinal — apropriado para day trade (evita abrir uma
+    #: posição "da noite pro dia" que a estratégia nunca pretendeu segurar).
+    #: Estratégias de swing trade (que não fecham no mesmo dia, geralmente em
+    #: timeframes diários) devem sobrescrever para False.
+    requires_same_day_entry: bool = True
+
     def __init__(self, session_close_time: time = time(17, 20)):
         self.session_close_time = session_close_time
 

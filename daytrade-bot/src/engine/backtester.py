@@ -209,7 +209,10 @@ class Backtester:
 
             entry_bar = df.iloc[i + 1]
             entry_ts = df.index[i + 1]
-            if entry_ts.date() != current_ts.date():
+            if (
+                self.strategy.requires_same_day_entry
+                and entry_ts.date() != current_ts.date()
+            ):
                 continue
 
             side = Side.LONG if signal.action == Action.BUY else Side.SHORT

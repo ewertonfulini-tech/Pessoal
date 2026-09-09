@@ -23,8 +23,11 @@ exchange:
   leverage: 1 # comece em 1x. Alavancagem maior = risco de liquidação maior.
 
 strategy:
-  # "orb" (rompimento) | "ema_rsi" (cruzamento de médias) | "mean_reversion" (reversão à
-  # média via Bandas de Bollinger + RSI) | "funding_rate" (contrária ao funding rate extremo)
+  # DAY TRADE (use com market.timeframe de minutos, ex. "5m"):
+  #   "orb" (rompimento) | "ema_rsi" (cruzamento de médias) | "mean_reversion" (reversão à
+  #   média via Bandas de Bollinger + RSI) | "funding_rate" (contrária ao funding rate extremo)
+  # SWING TRADE (use com market.timeframe: "1d" ou "4h", sem fechamento no mesmo dia):
+  #   "donchian" (rompimento de canal — sistema clássico dos "Turtle Traders")
   name: orb
   session_open_time: "00:00" # cripto é 24/7; isso define a "abertura do dia" para o range e o reset diário de risco
   range_minutes: 15
@@ -33,6 +36,8 @@ strategy:
   # trend_filter_period: 200 # opcional, só para "orb": só compra rompimento de alta
   #   se o preço estiver acima da média móvel desse período (e só vende rompimento
   #   de baixa se estiver abaixo). Deixe comentado (ou remova) para não filtrar.
+  # entry_channel_period: 20 # só para "donchian": tamanho do canal (em velas) usado
+  #   para detectar o rompimento — 20 velas diárias é o clássico dos Turtle Traders.
 
 backtest:
   start: "2024-06-01"

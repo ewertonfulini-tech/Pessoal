@@ -55,6 +55,13 @@ def build_strategy(config: dict) -> Strategy:
         from .strategies.funding_rate_strategy import FundingRateContrarianStrategy
 
         return FundingRateContrarianStrategy(session_close_time=session_close_time)
+    if name == "donchian":
+        from .strategies.donchian_breakout_strategy import DonchianBreakoutStrategy
+
+        return DonchianBreakoutStrategy(
+            entry_channel_period=strategy_config.get("entry_channel_period", 20),
+            risk_reward=strategy_config.get("risk_reward", 3.0),
+        )
 
     raise ValueError(f"Estratégia desconhecida: {name}")
 

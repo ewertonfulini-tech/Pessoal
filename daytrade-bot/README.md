@@ -86,6 +86,10 @@ Fonte de dados (Binance Futures via ccxt, ou yfinance/MT5)
     com uma perna comprada no mercado à vista e outra vendida no futuro) —
     esta versão ainda aposta em direção, só usa posicionamento do mercado
     em vez de indicador técnico de preço como sinal.
+  - `donchian` (**swing trade**, não day trade): rompimento de canal
+    Donchian (máxima/mínima dos N períodos anteriores) — o sistema clássico
+    dos "Turtle Traders". Não fecha a posição no fim do dia; use com
+    `market.timeframe: "1d"` ou `"4h"`. Ver seção "Modo swing trade" abaixo.
 - **RiskManager** (`src/risk/risk_manager.py`): decide *quanto* operar, com
   base em % de risco por trade, e desliga o robô no dia se bater o limite de
   perda, a meta de lucro (trava de ganho) ou o número máximo de trades.
@@ -203,6 +207,48 @@ trave ou a internet caia, a exchange ainda protege a posição. Ele fecha a
 posição automaticamente perto da virada do dia (horário configurado) e
 reconcilia o resultado real de cada operação com o `RiskManager` para que o
 limite de perda diária funcione de verdade.
+
+## Modo swing trade (`donchian`)
+
+Tudo até aqui (ORB, EMA/RSI, mean-reversion, funding rate) é **day trade**:
+opera em timeframes de minutos e força o fechamento da posição perto da
+virada do dia. Swing trade é uma categoria diferente — segura a posição por
+dias/semanas, em timeframes maiores (diário/4h), e estatisticamente tem uma
+base bem mais sólida: muito menos operações (o custo de corretagem deixa de
+dominar o resultado, como aconteceu nas estratégias de day trade acima) e
+menos ruído por sinal.
+
+A estratégia `donchian` já vem pronta pra isso — é o sistema de rompimento
+de canal usado pelos "Turtle Traders", um clássico de trend-following. Duas
+diferenças de arquitetura em relação às estratégias de day trade:
+
+- `should_force_close` sempre retorna `False` — a posição só fecha por
+  stop/alvo, nunca por horário.
+- `requires_same_day_entry = False` — a entrada pode acontecer na vela
+  seguinte ao sinal mesmo que seja "outro dia", o que é normal e esperado
+  num timeframe diário (cada vela JÁ É um dia).
+
+Para usar, troque no `config.yaml`:
+
+```yaml
+market:
+  timeframe: "1d" # ou "4h"
+
+strategy:
+  name: donchian
+  entry_channel_period: 20 # 20 velas diárias = ~1 mês, o valor clássico
+  risk_reward: 3.0
+```
+
+E rode o backtest normalmente (`python -m src.main backtest`) — como o
+histórico diário da Binance vai bem mais longe no tempo que o intraday, dá
+pra testar vários anos de uma vez. `paper`/`live` funcionam do mesmo jeito,
+só que os candles fecham a cada dia (ou 4h) em vez de a cada 5 minutos —
+não espere o robô reagir rápido, é o esperado para essa categoria.
+
+Nenhuma estratégia deste projeto foi validada como lucrativa até agora
+(veja "Limitações conhecidas" abaixo) — trate o `donchian` como mais um
+ponto de partida para backtest, não uma recomendação.
 
 ## Configuração de risco (`config.yaml`)
 
