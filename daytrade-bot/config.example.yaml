@@ -1,0 +1,32 @@
+# Copie este arquivo para config.yaml e ajuste para o seu caso.
+# Nunca coloque login/senha da corretora aqui — isso vai no arquivo .env.
+
+capital:
+  initial: 10000
+  risk_per_trade_pct: 0.005 # % do capital arriscado por trade (0.5%)
+  daily_loss_limit_pct: 0.02 # robô para de operar se perder 2% do capital no dia
+  daily_profit_target_pct: 0.03 # robô trava lucro ao ganhar 3% no dia (null para desativar)
+  max_trades_per_day: 4
+  point_value: 1.0 # valor financeiro de 1 ponto de preço por unidade/contrato
+
+market:
+  provider: yfinance # "yfinance" (backtest com ações da B3) ou "mt5" (dados reais via MetaTrader5)
+  symbol: "PETR4.SA" # ex.: ação B3 para yfinance, ou "WIN$", "WDO$" no MT5
+  timeframe: "5m" # 1m, 5m, 15m, 30m, 1h, 1d
+
+strategy:
+  name: orb # "orb" (Opening Range Breakout) ou "ema_rsi" (cruzamento de médias + RSI)
+  session_open_time: "10:00"
+  range_minutes: 15
+  risk_reward: 2.0
+  session_close_time: "17:20"
+
+backtest:
+  start: "2024-06-01"
+  end: "2024-08-01"
+  slippage_pct: 0.0005 # 0.05% de deslizamento em cada execução
+  commission_per_trade: 2.5 # custo fixo (corretagem + emolumentos) por operação
+
+paper:
+  poll_interval_seconds: 30
+  warmup_days: 5
