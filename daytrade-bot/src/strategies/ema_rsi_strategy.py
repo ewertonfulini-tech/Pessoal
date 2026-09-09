@@ -72,11 +72,18 @@ class EmaRsiStrategy(Strategy):
         if position is not None:
             return Signal(Action.HOLD)
 
-        close = history["close"]
+        # Limita a janela usada para os indicadores em vez de recalcular sobre
+        # o histórico inteiro (que só cresce) a cada vela — com EMA/RSI/ATR de
+        # período curto, algumas centenas de velas já convergem para
+        # praticamente o mesmo valor, e isso evita O(n²) em backtests longos.
+        window = min(len(history), max(self.warmup_period * 5, 200))
+        recent = history.iloc[-window:]
+
+        close = recent["close"]
         ema_fast = _ema(close, self.fast_period)
         ema_slow = _ema(close, self.slow_period)
         rsi = _rsi(close, self.rsi_period)
-        atr = _atr(history, self.atr_period)
+        atr = _atr(recent, self.atr_period)
 
         prev_fast, last_fast = ema_fast.iloc[-2], ema_fast.iloc[-1]
         prev_slow, last_slow = ema_slow.iloc[-2], ema_slow.iloc[-1]
