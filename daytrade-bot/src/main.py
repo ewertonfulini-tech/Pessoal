@@ -47,6 +47,10 @@ def build_strategy(config: dict) -> Strategy:
         from .strategies.ema_rsi_strategy import EmaRsiStrategy
 
         return EmaRsiStrategy(session_close_time=session_close_time)
+    if name == "mean_reversion":
+        from .strategies.mean_reversion_strategy import MeanReversionStrategy
+
+        return MeanReversionStrategy(session_close_time=session_close_time)
 
     raise ValueError(f"Estratégia desconhecida: {name}")
 

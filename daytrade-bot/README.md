@@ -73,6 +73,10 @@ Fonte de dados (Binance Futures via ccxt, ou yfinance/MT5)
     "day trade" (o robô fecha tudo perto da virada do dia).
   - `ema_rsi`: cruzamento de médias móveis (EMA9/EMA21) filtrado por RSI,
     com stop baseado em ATR.
+  - `mean_reversion`: reversão à média via Bandas de Bollinger + RSI — compra
+    no fundo da banda com RSI sobrevendido, vende no topo com RSI
+    sobrecomprado, alvo na própria média. O oposto do ORB: faz mais sentido
+    em mercado lateral/picotado, tende a sofrer em tendências fortes.
 - **RiskManager** (`src/risk/risk_manager.py`): decide *quanto* operar, com
   base em % de risco por trade, e desliga o robô no dia se bater o limite de
   perda, a meta de lucro (trava de ganho) ou o número máximo de trades.

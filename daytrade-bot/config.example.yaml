@@ -23,7 +23,7 @@ exchange:
   leverage: 1 # comece em 1x. Alavancagem maior = risco de liquidação maior.
 
 strategy:
-  name: orb # "orb" (Opening Range Breakout) ou "ema_rsi" (cruzamento de médias + RSI)
+  name: orb # "orb" (rompimento) | "ema_rsi" (cruzamento de médias) | "mean_reversion" (reversão à média via Bandas de Bollinger + RSI)
   session_open_time: "00:00" # cripto é 24/7; isso define a "abertura do dia" para o range e o reset diário de risco
   range_minutes: 15
   risk_reward: 2.0

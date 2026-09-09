@@ -6,33 +6,7 @@ import pandas as pd
 
 from ..models import Action, Position, Signal
 from .base import Strategy
-
-
-def _ema(series: pd.Series, span: int) -> pd.Series:
-    return series.ewm(span=span, adjust=False).mean()
-
-
-def _rsi(series: pd.Series, period: int) -> pd.Series:
-    delta = series.diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-    avg_gain = gain.rolling(period).mean()
-    avg_loss = loss.rolling(period).mean()
-    rs = avg_gain / avg_loss.replace(0, float("nan"))
-    return (100 - (100 / (1 + rs))).fillna(50)
-
-
-def _atr(df: pd.DataFrame, period: int) -> pd.Series:
-    prev_close = df["close"].shift(1)
-    true_range = pd.concat(
-        [
-            df["high"] - df["low"],
-            (df["high"] - prev_close).abs(),
-            (df["low"] - prev_close).abs(),
-        ],
-        axis=1,
-    ).max(axis=1)
-    return true_range.rolling(period).mean()
+from .indicators import atr as _atr, ema as _ema, rsi as _rsi
 
 
 class EmaRsiStrategy(Strategy):
