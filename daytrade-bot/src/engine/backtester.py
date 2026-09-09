@@ -129,6 +129,14 @@ class Backtester:
         position: Position | None = None
         start_idx = max(self.strategy.warmup_period, 1)
 
+        if len(df) <= start_idx:
+            raise ValueError(
+                f"Foram retornadas só {len(df)} vela(s) para {self.symbol} "
+                f"({self.timeframe}) entre {start} e {end} — poucos dados para "
+                f"rodar o backtest. Confira o símbolo, o timeframe e o período, "
+                f"e se a fonte de dados realmente tem histórico nesse intervalo."
+            )
+
         for i in range(start_idx, len(df)):
             current_ts = df.index[i]
             bar = df.iloc[i]

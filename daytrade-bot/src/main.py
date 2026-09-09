@@ -9,7 +9,7 @@ from .risk.risk_manager import RiskManager
 from .strategies.base import Strategy
 
 
-def build_provider(config: dict) -> DataProvider:
+def build_provider(config: dict, force_mainnet_data: bool = False) -> DataProvider:
     provider_name = config["market"]["provider"]
     if provider_name == "yfinance":
         from .data_providers.yfinance_provider import YFinanceProvider
@@ -23,7 +23,8 @@ def build_provider(config: dict) -> DataProvider:
         from .data_providers.binance_futures_provider import BinanceFuturesProvider
 
         exchange_config = config.get("exchange", {})
-        return BinanceFuturesProvider(testnet=exchange_config.get("testnet", True))
+        testnet = False if force_mainnet_data else exchange_config.get("testnet", True)
+        return BinanceFuturesProvider(testnet=testnet)
     raise ValueError(f"Provider desconhecido: {provider_name}")
 
 
@@ -64,7 +65,10 @@ def build_risk_manager(config: dict) -> RiskManager:
 def run_backtest(config: dict) -> None:
     from .engine.backtester import Backtester
 
-    provider = build_provider(config)
+    # backtest sempre usa dados históricos reais (mainnet), mesmo se
+    # exchange.testnet=true no config — a testnet da Binance não mantém
+    # histórico longo o suficiente para backtest.
+    provider = build_provider(config, force_mainnet_data=True)
     strategy = build_strategy(config)
     risk_manager = build_risk_manager(config)
 

@@ -126,6 +126,11 @@ Rode:
 python -m src.main backtest
 ```
 
+O backtest sempre busca histórico real (mainnet), mesmo que
+`exchange.testnet: true` no `config.yaml` — a testnet da Binance não guarda
+histórico longo o suficiente para backtest, só serve para paper/live trading
+em tempo real (modos 2 e 3 abaixo).
+
 Isso imprime um resumo (retorno, drawdown, taxa de acerto, profit factor) e
 salva `reports/trades.csv` e `reports/equity_curve.csv`.
 
