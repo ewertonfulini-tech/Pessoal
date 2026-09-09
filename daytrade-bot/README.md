@@ -78,8 +78,10 @@ Fonte de dados (Binance Futures via ccxt, ou yfinance/MT5)
     sobrecomprado, alvo na própria média. O oposto do ORB: faz mais sentido
     em mercado lateral/picotado, tende a sofrer em tendências fortes.
   - `funding_rate`: usa o funding rate de futuros perpétuos como sinal
-    contrário (funding muito positivo → aposta em correção para baixo;
-    muito negativo → para cima). Importante: **não é** a arbitragem de
+    contrário (funding no extremo superior da sua distribuição recente →
+    aposta em correção para baixo; extremo inferior → para cima). O limiar
+    é relativo (percentil sobre uma janela recente), não fixo — o range
+    típico do funding muda de regime ao longo do tempo. Importante: **não é** a arbitragem de
     funding "de verdade" (que trava o resultado sem depender de direção,
     com uma perna comprada no mercado à vista e outra vendida no futuro) —
     esta versão ainda aposta em direção, só usa posicionamento do mercado

@@ -18,7 +18,7 @@ def make_history(closes: list[float], funding_rates: list[float]) -> pd.DataFram
 
 
 def make_strategy(**overrides) -> FundingRateContrarianStrategy:
-    defaults = dict(extreme_threshold=0.0005, atr_period=5)
+    defaults = dict(lookback_bars=20, percentile=0.9, min_funding_samples=5, atr_period=5)
     defaults.update(overrides)
     return FundingRateContrarianStrategy(**defaults)
 
@@ -26,9 +26,10 @@ def make_strategy(**overrides) -> FundingRateContrarianStrategy:
 CLOSES = [100, 101, 99, 102, 98, 103, 100]
 
 
-def test_sell_on_very_positive_funding_rate():
+def test_sell_when_funding_spikes_above_recent_percentile():
     strategy = make_strategy()
-    history = make_history(CLOSES, [0.001] * len(CLOSES))
+    funding = [0.0001] * 6 + [0.001]
+    history = make_history(CLOSES, funding)
 
     signal = strategy.generate_signal(history, position=None)
 
@@ -36,9 +37,10 @@ def test_sell_on_very_positive_funding_rate():
     assert signal.take_profit < CLOSES[-1] < signal.stop_loss
 
 
-def test_buy_on_very_negative_funding_rate():
+def test_buy_when_funding_drops_below_recent_percentile():
     strategy = make_strategy()
-    history = make_history(CLOSES, [-0.001] * len(CLOSES))
+    funding = [-0.0001] * 6 + [-0.001]
+    history = make_history(CLOSES, funding)
 
     signal = strategy.generate_signal(history, position=None)
 
@@ -46,7 +48,7 @@ def test_buy_on_very_negative_funding_rate():
     assert signal.stop_loss < CLOSES[-1] < signal.take_profit
 
 
-def test_holds_when_funding_rate_is_normal():
+def test_holds_when_funding_rate_is_flat():
     strategy = make_strategy()
     history = make_history(CLOSES, [0.0001] * len(CLOSES))
 
