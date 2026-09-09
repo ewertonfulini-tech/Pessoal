@@ -16,19 +16,20 @@ class OpeningRangeBreakoutStrategy(Strategy):
     (o RiskManager ainda pode bloquear a entrada por limites diários).
     """
 
-    warmup_period = 1
-
     def __init__(
         self,
         session_open_time: time = time(10, 0),
         range_minutes: int = 15,
         risk_reward: float = 2.0,
         session_close_time: time = time(17, 20),
+        trend_filter_period: int | None = None,
     ):
         super().__init__(session_close_time)
         self.session_open_time = session_open_time
         self.range_minutes = range_minutes
         self.risk_reward = risk_reward
+        self.trend_filter_period = trend_filter_period
+        self.warmup_period = 1 if trend_filter_period is None else trend_filter_period + 1
         self._range_end_time = (
             datetime.combine(date.min, session_open_time)
             + timedelta(minutes=range_minutes)
@@ -77,7 +78,17 @@ class OpeningRangeBreakoutStrategy(Strategy):
 
         close = float(history["close"].iloc[-1])
 
-        if close > self._range_high:
+        trend_up, trend_down = True, True
+        if self.trend_filter_period is not None:
+            if len(history) < self.trend_filter_period:
+                return Signal(Action.HOLD, reason="aquecendo filtro de tendência")
+            trend_avg = float(
+                history["close"].rolling(self.trend_filter_period).mean().iloc[-1]
+            )
+            trend_up = close > trend_avg
+            trend_down = close < trend_avg
+
+        if close > self._range_high and trend_up:
             stop = self._range_low
             risk = close - stop
             target = close + risk * self.risk_reward
@@ -86,10 +97,10 @@ class OpeningRangeBreakoutStrategy(Strategy):
                 Action.BUY,
                 stop_loss=stop,
                 take_profit=target,
-                reason="rompimento de alta do range de abertura",
+                reason="rompimento de alta do range de abertura a favor da tendência",
             )
 
-        if close < self._range_low:
+        if close < self._range_low and trend_down:
             stop = self._range_high
             risk = stop - close
             target = close - risk * self.risk_reward
@@ -98,7 +109,7 @@ class OpeningRangeBreakoutStrategy(Strategy):
                 Action.SELL,
                 stop_loss=stop,
                 take_profit=target,
-                reason="rompimento de baixa do range de abertura",
+                reason="rompimento de baixa do range de abertura a favor da tendência",
             )
 
         return Signal(Action.HOLD)

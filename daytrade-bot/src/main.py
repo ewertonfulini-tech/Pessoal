@@ -41,6 +41,7 @@ def build_strategy(config: dict) -> Strategy:
             range_minutes=strategy_config["range_minutes"],
             risk_reward=strategy_config["risk_reward"],
             session_close_time=session_close_time,
+            trend_filter_period=strategy_config.get("trend_filter_period"),
         )
     if name == "ema_rsi":
         from .strategies.ema_rsi_strategy import EmaRsiStrategy

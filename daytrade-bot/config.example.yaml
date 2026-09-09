@@ -28,6 +28,9 @@ strategy:
   range_minutes: 15
   risk_reward: 2.0
   session_close_time: "23:55" # robô zera a posição perto da virada do dia, disciplina de day trade mesmo em mercado 24/7
+  # trend_filter_period: 200 # opcional, só para "orb": só compra rompimento de alta
+  #   se o preço estiver acima da média móvel desse período (e só vende rompimento
+  #   de baixa se estiver abaixo). Deixe comentado (ou remova) para não filtrar.
 
 backtest:
   start: "2024-06-01"
