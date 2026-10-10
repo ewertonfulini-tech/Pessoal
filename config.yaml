@@ -1,0 +1,168 @@
+# =============================================================
+# Buscador pessoal de passagens com milhas — configuração
+# Ajuste rotas, tetos e valor do milheiro ao seu perfil.
+# Chaves e tokens NÃO ficam aqui: use variáveis de ambiente.
+# =============================================================
+
+janela:
+  dias_inicio: 7      # começa a olhar voos a partir de daqui a 7 dias
+  dias_fim: 330       # até ~11 meses à frente
+
+assentos_minimos: 1   # quantos assentos na mesma reserva (programas sem contagem aparecem como "n/d")
+
+# Programas monitorados (nomes de "source" do seats.aero). Lista vazia = todos.
+# Ex.: [smiles, azul, aeroplan, flyingblue, united]
+programas: []
+
+# Quanto custa para você 1.000 milhas/pontos de cada programa, em R$.
+# É o que permite comparar Smiles com Aeroplan na mesma régua.
+# Valores de EXEMPLO — troque pelo seu custo real (compra, Livelo, cartão).
+valor_milheiro:
+  smiles: 16.00
+  azul: 16.00
+  iberia: 55.00       # Avios via Esfera (2:1) comprados em promoção bonificada
+  latam: 20.00        # LATAM Pass via Livelo/Esfera (1:1) em promoção bonificada
+  aeroplan: 90.00
+  flyingblue: 90.00
+  united: 90.00
+  american: 90.00
+  alaska: 90.00
+  padrao: 90.00       # usado para qualquer programa não listado
+
+# -------------------------------------------------------------
+# SEUS PROGRAMAS
+# Saldos opcionais: preenchendo, o alerta diz se já dá para emitir.
+# -------------------------------------------------------------
+meus_programas:
+  smiles: 0
+  azul: 0
+  latam: 0
+  iberia: 0
+  livelo: 0
+  esfera: 0
+
+# Como cada programa monitorado pode ser alcançado com o que você tem.
+# Número = pontos de origem para 1 milha no destino, SEM bônus.
+# null = a parceria existe, mas confira a paridade no app antes de transferir.
+# Paridades levantadas em set/2026 — mudam sem aviso.
+acesso:
+  smiles:       {saldo: smiles, livelo: 1, esfera: 1}
+  azul:         {saldo: azul, livelo: 1, esfera: 1}
+  latam:        {saldo: latam, livelo: 1, esfera: 1}
+  iberia:       {saldo: iberia, esfera: 2, livelo: 3.5}
+  turkish:      {esfera: 4.5}
+  aeromexico:   {livelo: 3.5, esfera: null}
+  flyingblue:   {livelo: null, esfera: null}
+  connectmiles: {livelo: null, esfera: null}
+  united:       {livelo: null}
+  etihad:       {livelo: null}
+
+# true = só alerta programas que você consegue usar (lista "acesso" acima)
+somente_programas_acessiveis: true
+
+# -------------------------------------------------------------
+# TABELA FIXA
+# Quando o buscador vê assento de resgate em voo DIRETO operado pela
+# cia indicada (em qualquer programa parceiro), cria a opção de emitir
+# pela tabela fixa. Vale nos dois sentidos (ida ou volta ao Brasil).
+# Valores por trecho. Número único = valor fixo; baixa/alta = por temporada.
+# Confira sempre no programa antes de transferir pontos.
+# -------------------------------------------------------------
+tabela_fixa:
+  iberia:
+    descricao: Tabela fixa Iberia (Avios), voos operados pela Iberia
+    cia_operadora: IB
+    onde_emitir: iberia.com → "Pagar com Avios"
+    # Preencha com o calendário de alta temporada do site da Iberia.
+    # Vazio = o alerta mostra os dois valores (baixa e alta).
+    temporada_alta: []      # ex.: [["2027-07-01", "2027-08-31"], ["2027-12-15", "2028-01-06"]]
+    trechos:
+      - origens: [GRU, GIG]
+        destinos: [MAD]
+        economy:  {baixa: 20000, alta: 24250}
+        premium:  {baixa: 36750, alta: 50500}
+        business: {baixa: 50500, alta: 74000}
+      - origens: [FOR, REC]
+        destinos: [MAD]
+        economy:  {baixa: 16000}
+        business: {baixa: 40500, alta: 59000}
+
+  latam:
+    descricao: Tabela fixa LATAM Pass para parceiras (Delta)
+    cia_operadora: DL
+    # O próprio programa da Delta mostra assentos que não são de tabela;
+    # os parceiros (ex.: Virgin Atlantic) refletem melhor o que a LATAM libera.
+    ignorar_fontes: [delta]
+    onde_emitir: só por telefone 4002-5700 ou WhatsApp +56 9 6825 0850 — peça "emissão com tabela fixa"
+    trechos:
+      - origens: [GRU, GIG]
+        destinos: [ATL, JFK, MCO, MIA, LAX, DTW, MSP, BOS, SEA]
+        economy: 57000
+        business: 112500
+
+# Critérios para algo virar alerta (basta um ser verdadeiro)
+criterios:
+  desconto_vs_mediana: 0.30   # 30% abaixo da mediana histórica da rota/programa/cabine
+  historico_dias: 60          # janela do histórico usada na mediana
+  amostras_minimas: 8         # mínimo de observações antes de confiar na mediana
+
+alertas:
+  max_por_execucao: 5         # quantas oportunidades novas por rodada no Telegram
+  realertar_apos_dias: 3      # reenvia a mesma oferta só depois disso
+
+# Preço da mesma passagem em dinheiro (Google Flights via SerpApi).
+# Só é consultado para as ofertas que viram alerta, para economizar cota.
+dinheiro:
+  ativo: true
+  moeda: BRL
+  max_buscas_mes: 90        # ajuste ao seu plano SerpApi (o gratuito é bem limitado)
+  cache_horas: 24           # reaproveita o preço consultado por 24h
+  economia_minima: 0.20     # só recomenda milhas se economizar ≥ 20% vs dinheiro
+
+seats_aero:
+  max_paginas_por_rota: 5     # cada página = 1 chamada (limite Pro: 1.000/dia)
+
+# -------------------------------------------------------------
+# Rotas monitoradas. teto_reais = custo máximo (ida, por pessoa,
+# em R$ convertidos pelo valor do milheiro) que já dispara alerta,
+# mesmo antes de existir histórico.
+# -------------------------------------------------------------
+rotas:
+  - nome: Brasil → Europa
+    origens: [GRU, GIG]
+    destinos: [LIS, MAD, CDG, FCO, LHR, AMS, FRA]
+    cabines: [business, economy]
+    teto_reais:
+      economy: 3000
+      business: 9000
+
+  - nome: Brasil → EUA
+    origens: [GRU, GIG]
+    destinos: [MIA, MCO, JFK, LAX, ATL]
+    cabines: [business, economy]
+    teto_reais:
+      economy: 2500
+      business: 8000
+
+  - nome: Europa → Brasil
+    origens: [LIS, MAD, CDG, FCO, LHR, AMS, FRA]
+    destinos: [GRU, GIG]
+    cabines: [business, economy]
+    teto_reais:
+      economy: 3000
+      business: 9000
+
+  - nome: EUA → Brasil
+    origens: [MIA, MCO, JFK, LAX, ATL]
+    destinos: [GRU, GIG]
+    cabines: [business, economy]
+    teto_reais:
+      economy: 2500
+      business: 8000
+
+  - nome: Nacional — Nordeste
+    origens: [GRU, CGH, GIG, SDU]
+    destinos: [REC, SSA, FOR, NAT, MCZ]
+    cabines: [economy]
+    teto_reais:
+      economy: 600
